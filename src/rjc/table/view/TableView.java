@@ -18,11 +18,83 @@
 
 package rjc.table.view;
 
+import javafx.scene.Parent;
+import rjc.table.Status;
+import rjc.table.data.TableData;
+import rjc.table.undo.UndoStack;
+
 /*************************************************************************************************/
 /************** Base class for scrollable table-view to visualise a table-data model *************/
 /*************************************************************************************************/
 
-public class TableView
+public class TableView extends Parent
 {
+  private TableData      m_data;
+
+  private TableCanvas    m_canvas;
+  private TableScrollBar m_verticalScrollBar;
+  private TableScrollBar m_horizontalScrollBar;
+
+  private UndoStack      m_undostack;
+  private Status         m_status;
+
+  /**************************************** constructor ******************************************/
+  public TableView( TableData data, String name )
+  {
+    // set view name and construct the view
+    setId( name );
+  }
+
+  /**************************************** constructor ******************************************/
+  public TableView( TableData data )
+  {
+    // construct the view
+  }
+
+  /*************************************** getColumnStartX ***************************************/
+  public int getColumnStartX( int columnIndex )
+  {
+    // return x coordinate of cell start for specified column position
+    return 0; // TODO
+  }
+
+  /**************************************** getRowStartY *****************************************/
+  public int getRowStartY( int rowIndex )
+  {
+    // return y coordinate of cell start for specified row position
+    return 0; // TODO
+  }
+
+  /*************************************** getColumnIndex ****************************************/
+  public int getColumnIndex( int xCoordinate )
+  {
+    // return column index at specified x coordinate
+    return 0; // TODO
+  }
+
+  /***************************************** getRowIndex *****************************************/
+  public int getRowIndex( int yCoordinate )
+  {
+    // return row index at specified y coordinate
+    return 0; // TODO
+  }
+
+  /***************************************** getUndoStack ****************************************/
+  public UndoStack getUndoStack()
+  {
+    // return undo-stack for table-view (create if necessary)
+    if ( m_undostack == null )
+      m_undostack = new UndoStack();
+    return m_undostack;
+  }
+
+  /****************************************** toString *******************************************/
+  @Override
+  public String toString()
+  {
+    // return as string
+    return getClass().getSimpleName() + "@" + Integer.toHexString( System.identityHashCode( this ) ) + "[ID=" + getId()
+        + " m_canvas=" + m_canvas + "]";
+  }
 
 }

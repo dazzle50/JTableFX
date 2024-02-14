@@ -18,11 +18,14 @@
 
 package rjc.table.demo;
 
+import java.util.TreeSet;
+
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
+import rjc.table.Utils;
 
 /*************************************************************************************************/
 /******************* Application to demonstrate JTableFX use and capabilities ********************/
@@ -34,11 +37,16 @@ public class Demo extends Application
   public static void main( String[] args )
   {
     // entry point for demo application startup
-    System.out.println( "Started !!!" );
+    Utils.trace( "################################# Java properties #################################" );
+    for ( Object property : new TreeSet<Object>( System.getProperties().keySet() ) )
+      Utils.trace( property + " = '" + System.getProperty( property.toString() ) + "'" );
+
+    Utils.trace( "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ JTableFX  demo started ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" );
+    Utils.trace( "JTableFX  VERSION = '" + Utils.VERSION + "'", args );
 
     // launch demo application display
     launch( args );
-    System.out.println( "Finished !!!" );
+    Utils.trace( "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ JTableFX  demo ended ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" );
   }
 
   /******************************************** start ********************************************/
