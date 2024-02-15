@@ -19,9 +19,7 @@
 package rjc.table.view;
 
 import javafx.scene.Parent;
-import rjc.table.Status;
 import rjc.table.data.TableData;
-import rjc.table.undo.UndoStack;
 
 /*************************************************************************************************/
 /************** Base class for scrollable table-view to visualise a table-data model *************/
@@ -34,9 +32,6 @@ public class TableView extends Parent
   private TableCanvas    m_canvas;
   private TableScrollBar m_verticalScrollBar;
   private TableScrollBar m_horizontalScrollBar;
-
-  private UndoStack      m_undostack;
-  private Status         m_status;
 
   /**************************************** constructor ******************************************/
   public TableView( TableData data, String name )
@@ -77,15 +72,6 @@ public class TableView extends Parent
   {
     // return row index at specified y coordinate
     return 0; // TODO
-  }
-
-  /***************************************** getUndoStack ****************************************/
-  public UndoStack getUndoStack()
-  {
-    // return undo-stack for table-view (create if necessary)
-    if ( m_undostack == null )
-      m_undostack = new UndoStack();
-    return m_undostack;
   }
 
   /****************************************** toString *******************************************/

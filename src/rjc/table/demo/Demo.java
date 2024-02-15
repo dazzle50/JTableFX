@@ -23,7 +23,6 @@ import java.util.TreeSet;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
-import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
 import rjc.table.Utils;
 
@@ -54,8 +53,9 @@ public class Demo extends Application
   public void start( Stage primaryStage ) throws Exception
   {
     // create demo application window
-    Scene scene = new Scene( new GridPane() );
+    Scene scene = new Scene( new DemoContents() );
     primaryStage.setScene( scene );
+    primaryStage.setTitle( "JTableFX  " + Utils.VERSION + " demo application" );
 
     // close demo app when main window is closed (in case other windows are open)
     primaryStage.setOnHidden( event -> Platform.exit() );

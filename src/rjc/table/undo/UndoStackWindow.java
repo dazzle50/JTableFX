@@ -16,9 +16,16 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table;
+package rjc.table.undo;
 
-public class Status
+import javafx.stage.Stage;
+
+public class UndoStackWindow extends Stage
 {
+
+  public UndoStackWindow( UndoStack undostack )
+  {
+    // TODO Auto-generated constructor stub
+  }
 
 }
