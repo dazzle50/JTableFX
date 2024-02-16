@@ -113,6 +113,7 @@ public class DemoContents extends GridPane
       statusBar.setStyle( m_status.getStyle() );
     } );
     m_status.update( Level.NORMAL, "Started" );
+    m_status.clearAfterMillisecs( 2500 );
 
     return statusBar;
   }

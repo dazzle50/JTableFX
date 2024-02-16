@@ -19,8 +19,34 @@
 package rjc.table.demo;
 
 import javafx.scene.control.Tab;
+import rjc.table.data.TableData;
+import rjc.table.view.TableView;
+
+/*************************************************************************************************/
+/*************************** Demonstrates a very large table and view ****************************/
+/*************************************************************************************************/
 
 public class DemoTableLarge extends Tab
 {
+  private TableData m_data; // data for the table view
+
+  /**************************************** constructor ******************************************/
+  public DemoTableLarge()
+  {
+    // create default table with default view
+    m_data = new TableData();
+    m_data.setColumnCount( 1_000_000 );
+    m_data.setRowCount( 1_000_000 );
+
+    TableView view = new TableView( m_data, "Large" );
+
+    // make view only visible when tab is selected
+    view.visibleProperty().bind( selectedProperty() );
+
+    // configure the tab
+    setText( view.getId() );
+    setClosable( false );
+    setContent( view );
+  }
 
 }

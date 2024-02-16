@@ -18,14 +18,18 @@
 
 package rjc.table.signal;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 /*************************************************************************************************/
 /****************** Observable status with severity and associated text message ******************/
 /*************************************************************************************************/
 
 public class ObservableStatus implements ISignal
 {
-  private Level  m_severity; // severity of status
-  private String m_msg;      // text message for status
+  private Level  m_severity;            // severity of status
+  private String m_msg;                 // text message for status
+  private Timer  m_timer = new Timer(); // timer to clear temporary status
 
   public static enum Level // status types
   {
@@ -60,6 +64,7 @@ public class ObservableStatus implements ISignal
     {
       m_severity = severity;
       m_msg = msg;
+      m_timer.cancel();
       signal();
     }
   }
@@ -90,6 +95,22 @@ public class ObservableStatus implements ISignal
   {
     // update message
     update( m_severity, msg );
+  }
+
+  /***************************************** setMessage ******************************************/
+  public void clearAfterMillisecs( int millisecs )
+  {
+    // clear the status after specified number of milliseconds (unless altered before)
+    m_timer = new Timer();
+    TimerTask task = new TimerTask()
+    {
+      @Override
+      public void run()
+      {
+        clear();
+      }
+    };
+    m_timer.schedule( task, millisecs );
   }
 
   /***************************************** getSeverity *****************************************/

@@ -18,6 +18,7 @@
 
 package rjc.table.view;
 
+import javafx.geometry.Orientation;
 import javafx.scene.Parent;
 import rjc.table.data.TableData;
 
@@ -37,13 +38,43 @@ public class TableView extends Parent
   public TableView( TableData data, String name )
   {
     // set view name and construct the view
+    if ( data == null )
+      throw new NullPointerException( "TableData must not be null" );
+    m_data = data;
     setId( name );
+
+    m_canvas = new TableCanvas( this );
+    m_horizontalScrollBar = new TableScrollBar( m_canvas.getColumnAxis(), Orientation.HORIZONTAL );
+    m_verticalScrollBar = new TableScrollBar( m_canvas.getRowAxis(), Orientation.VERTICAL );
+    getChildren().addAll( m_canvas, m_canvas.getOverlay(), m_horizontalScrollBar, m_verticalScrollBar );
   }
 
-  /**************************************** constructor ******************************************/
-  public TableView( TableData data )
+  /****************************************** getData ********************************************/
+  public TableData getData()
   {
-    // construct the view
+    // return data model for table-view
+    return m_data;
+  }
+
+  /***************************************** getCanvas *******************************************/
+  public TableCanvas getCanvas()
+  {
+    // return canvas (shows table headers & body cells + BLANK excess space) for table-view
+    return m_canvas;
+  }
+
+  /*********************************** getHorizontalScrollBar ************************************/
+  public TableScrollBar getHorizontalScrollBar()
+  {
+    // return horizontal scroll bar (will not be visible if not needed) for table-view
+    return m_horizontalScrollBar;
+  }
+
+  /************************************ getVerticalScrollBar *************************************/
+  public TableScrollBar getVerticalScrollBar()
+  {
+    // return vertical scroll bar (will not be visible if not needed) for table-view
+    return m_verticalScrollBar;
   }
 
   /*************************************** getColumnStartX ***************************************/

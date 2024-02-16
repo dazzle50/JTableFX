@@ -16,34 +16,9 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.demo;
+package rjc.table.view;
 
-import javafx.scene.control.Tab;
-import rjc.table.data.TableData;
-import rjc.table.view.TableView;
-
-/*************************************************************************************************/
-/**************************** Demonstrates the default table and view ****************************/
-/*************************************************************************************************/
-
-public class DemoTableDefault extends Tab
+public class TableAxis
 {
-  private TableData m_data; // data for the table view
-
-  /**************************************** constructor ******************************************/
-  public DemoTableDefault()
-  {
-    // create default table with default view
-    m_data = new TableData();
-    TableView view = new TableView( m_data, "Default" );
-
-    // make view only visible when tab is selected
-    view.visibleProperty().bind( selectedProperty() );
-
-    // configure the tab
-    setText( view.getId() );
-    setClosable( false );
-    setContent( view );
-  }
 
 }

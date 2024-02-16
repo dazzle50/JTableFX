@@ -18,7 +18,40 @@
 
 package rjc.table.view;
 
-public class TableCanvas
+import javafx.scene.canvas.Canvas;
+
+/*************************************************************************************************/
+/************** Canvas showing the table headers & body cells + BLANK excess space ***************/
+/*************************************************************************************************/
+
+public class TableCanvas extends Canvas
 {
+
+  /**************************************** constructor ******************************************/
+  public TableCanvas( TableView view )
+  {
+    // TODO Auto-generated constructor stub
+  }
+
+  /*************************************** getColumnAxis *****************************************/
+  public TableAxis getColumnAxis()
+  {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  /***************************************** getRowAxis ******************************************/
+  public TableAxis getRowAxis()
+  {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  /***************************************** getOverlay ******************************************/
+  public TableOverlay getOverlay()
+  {
+    // TODO Auto-generated method stub
+    return new TableOverlay();
+  }
 
 }

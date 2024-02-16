@@ -18,7 +18,15 @@
 
 package rjc.table.view;
 
-public class TableScrollBar
+import javafx.geometry.Orientation;
+import javafx.scene.control.ScrollBar;
+
+public class TableScrollBar extends ScrollBar
 {
+
+  public TableScrollBar( TableAxis columnAxis, Orientation horizontal )
+  {
+    // TODO Auto-generated constructor stub
+  }
 
 }
