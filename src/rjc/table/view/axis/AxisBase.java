@@ -16,27 +16,47 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.view;
+package rjc.table.view.axis;
 
-import javafx.geometry.Orientation;
-import javafx.scene.control.ScrollBar;
-import rjc.table.view.axis.TableAxis;
+import rjc.table.signal.ObservableInteger.ReadOnlyInteger;
 
 /*************************************************************************************************/
-/*************** Extended version of ScrollBar with special increment & decrement ****************/
+/************** Base class for table X or Y axis with count of body cells property ***************/
 /*************************************************************************************************/
 
-public class TableScrollBar extends ScrollBar
+public class AxisBase
 {
-  private TableAxis m_axis; // associated table axis
+  // axis index starts at 0 for table body, index of -1 is for axis header
+  final static public int INVALID   = -2;
+  final static public int HEADER    = -1;
+  final static public int FIRSTCELL = 0;
+  final static public int BEFORE    = Integer.MIN_VALUE + 1;
+  final static public int AFTER     = Integer.MAX_VALUE - 1;
+
+  // count of body cells on axis
+  private ReadOnlyInteger m_countProperty;
 
   /**************************************** constructor ******************************************/
-  public TableScrollBar( TableAxis axis, Orientation orientation )
+  public AxisBase( ReadOnlyInteger countProperty )
   {
-    // create scroll bar
-    m_axis = axis;
-    setOrientation( orientation );
+    // store count of body cells property - normally provided by table-data
+    if ( countProperty == null || countProperty.get() < 0 )
+      throw new IllegalArgumentException( "Bad body cell count = " + countProperty );
+    m_countProperty = countProperty;
+  }
 
+  /************************************** getCountProperty ***************************************/
+  final public ReadOnlyInteger getCountProperty()
+  {
+    // return count property for this axis
+    return m_countProperty;
+  }
+
+  /****************************************** getCount *******************************************/
+  final public int getCount()
+  {
+    // return count of body cells on this axis
+    return m_countProperty.get();
   }
 
 }

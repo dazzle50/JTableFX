@@ -16,26 +16,18 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.view;
-
-import javafx.geometry.Orientation;
-import javafx.scene.control.ScrollBar;
-import rjc.table.view.axis.TableAxis;
+package rjc.table.view.axis;
 
 /*************************************************************************************************/
-/*************** Extended version of ScrollBar with special increment & decrement ****************/
+/******************* Table axis cached start pixel coordinate from cell index ********************/
 /*************************************************************************************************/
 
-public class TableScrollBar extends ScrollBar
+public class PixelCache
 {
-  private TableAxis m_axis; // associated table axis
 
-  /**************************************** constructor ******************************************/
-  public TableScrollBar( TableAxis axis, Orientation orientation )
+  public void clear()
   {
-    // create scroll bar
-    m_axis = axis;
-    setOrientation( orientation );
+    // TODO Auto-generated method stub
 
   }
 

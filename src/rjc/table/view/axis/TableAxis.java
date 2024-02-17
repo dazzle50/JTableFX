@@ -16,27 +16,22 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.view;
+package rjc.table.view.axis;
 
-import javafx.geometry.Orientation;
-import javafx.scene.control.ScrollBar;
-import rjc.table.view.axis.TableAxis;
+import rjc.table.signal.ObservableInteger.ReadOnlyInteger;
 
 /*************************************************************************************************/
-/*************** Extended version of ScrollBar with special increment & decrement ****************/
+/**************************** Table X or Y axis with movement support ****************************/
 /*************************************************************************************************/
 
-public class TableScrollBar extends ScrollBar
+public class TableAxis
 {
-  private TableAxis m_axis; // associated table axis
 
   /**************************************** constructor ******************************************/
-  public TableScrollBar( TableAxis axis, Orientation orientation )
+  public TableAxis( ReadOnlyInteger countProperty )
   {
-    // create scroll bar
-    m_axis = axis;
-    setOrientation( orientation );
-
+    // pass count property to super class
+    // TODO
   }
 
 }

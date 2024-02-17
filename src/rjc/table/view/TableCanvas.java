@@ -19,6 +19,7 @@
 package rjc.table.view;
 
 import javafx.scene.canvas.Canvas;
+import rjc.table.view.axis.TableAxis;
 
 /*************************************************************************************************/
 /************** Canvas showing the table headers & body cells + BLANK excess space ***************/

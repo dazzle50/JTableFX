@@ -16,9 +16,13 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.view;
+package rjc.table.view.axis;
 
-public class TableAxis
+/*************************************************************************************************/
+/********************** Table axis array mapping data index from view index **********************/
+/*************************************************************************************************/
+
+public class IndexMapping
 {
 
 }

@@ -19,26 +19,26 @@
 package rjc.table.signal;
 
 /*************************************************************************************************/
-/**************************** Observable integer & read-only integer *****************************/
+/***************************** Observable double & read-only double ******************************/
 /*************************************************************************************************/
 
-public class ObservableInteger implements ISignal
+public class ObservableDouble implements ISignal
 {
-  private int             m_value;    // stored integer value
-  private ReadOnlyInteger m_readonly; // read-only version of this observable
+  private double         m_value;    // stored double value
+  private ReadOnlyDouble m_readonly; // read-only version of this observable
 
-  public class ReadOnlyInteger implements ISignal // provides read-only access
+  public class ReadOnlyDouble implements ISignal // provides read-only access
   {
-    private ObservableInteger m_observable;
+    private ObservableDouble m_observable;
 
-    public ReadOnlyInteger( ObservableInteger observable )
+    public ReadOnlyDouble( ObservableDouble observable )
     {
       // construct and propagate any signals
       m_observable = observable;
       m_observable.addListener( ( sender, oldValue ) -> signal( oldValue ) );
     }
 
-    public int get()
+    public double get()
     {
       // return value
       return m_observable.get();
@@ -53,43 +53,43 @@ public class ObservableInteger implements ISignal
   }
 
   /**************************************** constructor ******************************************/
-  public ObservableInteger()
+  public ObservableDouble()
   {
     // construct
   }
 
   /**************************************** constructor ******************************************/
-  public ObservableInteger( int value )
+  public ObservableDouble( double value )
   {
     // construct
     m_value = value;
   }
 
   /********************************************* get *********************************************/
-  public int get()
+  public double get()
   {
-    // return value of integer
+    // return value of double
     return m_value;
   }
 
   /********************************************* set *********************************************/
-  public void set( int newValue )
+  public void set( double newValue )
   {
-    // set value of integer, and signal (this, old value) if change
+    // set value of double, and signal if change
     if ( newValue != m_value )
     {
-      int oldValue = m_value;
+      double oldValue = m_value;
       m_value = newValue;
       signal( oldValue );
     }
   }
 
   /***************************************** getReadOnly *****************************************/
-  public ReadOnlyInteger getReadOnly()
+  public ReadOnlyDouble getReadOnly()
   {
-    // return read-only version of integer
+    // return read-only version of double
     if ( m_readonly == null )
-      m_readonly = new ReadOnlyInteger( this );
+      m_readonly = new ReadOnlyDouble( this );
     return m_readonly;
   }
 
