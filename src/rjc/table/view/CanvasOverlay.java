@@ -16,22 +16,38 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.view.axis;
+package rjc.table.view;
 
-import rjc.table.signal.ObservableInteger.ReadOnlyInteger;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.text.FontSmoothingType;
 
 /*************************************************************************************************/
-/**************************** Table X or Y axis with movement support ****************************/
+/****************** Canvas overlay for table-views (highlights selection etc) ********************/
 /*************************************************************************************************/
 
-public class TableAxis extends AxisSize
+public class CanvasOverlay extends Canvas
 {
+  private TableView       m_view;
+  private GraphicsContext m_gc;
+
+  final public static int MIN_COORD = -999;  // highlighting coordinate limit
+  final public static int MAX_COORD = 99999; // highlighting coordinate limit
 
   /**************************************** constructor ******************************************/
-  public TableAxis( ReadOnlyInteger countProperty )
+  public CanvasOverlay( TableView tableView )
   {
-    // TODO Auto-generated constructor stub
-    super( countProperty );
+    // prepare canvas overlay
+    m_view = tableView;
+    m_gc = getGraphicsContext2D();
+
+    m_gc.setFontSmoothingType( FontSmoothingType.LCD );
   }
 
+  /****************************************** redrawNow ******************************************/
+  public void redrawNow()
+  {
+    // clip overlay drawing to table body
+    // TODO
+  }
 }

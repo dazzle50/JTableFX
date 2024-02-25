@@ -142,35 +142,35 @@ public interface ISignal
   /************************************** addLaterListener ***************************************/
   default void addLaterListener( IListener listener )
   {
-    // default implementation for adding a listener to a signal sender
+    // default implementation for adding a later listener to a signal sender
     SignalHelper.addLaterListener( this, listener );
   }
 
   /*************************************** removeListener ****************************************/
   default void removeListener( IListener listener )
   {
-    // default implementation for removing a listener from a signal sender
+    // default implementation for removing a listener from a signal sender (later & not-later)
     SignalHelper.removeListener( this, listener );
   }
 
   /************************************* removeAllListeners **************************************/
   default void removeAllListeners()
   {
-    // default implementation for removing all listeners from a signal sender
+    // default implementation for removing all listeners from a signal sender (later & not-later)
     SignalHelper.removeAllListeners( this );
   }
 
   /**************************************** getListeners *****************************************/
   default ArrayList<IListener> getListeners()
   {
-    // default implementation for getting list of all listeners for a signal sender
+    // default implementation for getting list of all listeners for a signal sender (does not include later)
     return SignalHelper.getListeners( this );
   }
 
   /************************************** getLaterListeners **************************************/
   default ArrayList<IListener> getLaterListeners()
   {
-    // default implementation for getting list of all listeners for a signal sender
+    // default implementation for getting list of all listeners for a signal sender (does not include not-later)
     return SignalHelper.getLaterListeners( this );
   }
 

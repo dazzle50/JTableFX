@@ -18,20 +18,42 @@
 
 package rjc.table.view;
 
-import javafx.scene.canvas.Canvas;
 import rjc.table.view.axis.TableAxis;
 
 /*************************************************************************************************/
 /************** Canvas showing the table headers & body cells + BLANK excess space ***************/
 /*************************************************************************************************/
 
-public class TableCanvas extends Canvas
+public class TableCanvas extends TableCanvasDraw
 {
+  private TableView m_view;
 
   /**************************************** constructor ******************************************/
   public TableCanvas( TableView view )
   {
-    // TODO Auto-generated constructor stub
+    super( view );
+    m_view = view;
+
+    // when canvas size changes draw new areas
+    widthProperty().addListener( ( observable, oldW, newW ) -> widthChange( oldW.intValue(), newW.intValue() ) );
+    heightProperty().addListener( ( observable, oldH, newH ) -> heightChange( oldH.intValue(), newH.intValue() ) );
+
+    // ensure canvas visibility is same as parent table-view
+    visibleProperty().bind( view.visibleProperty() );
+  }
+
+  /***************************************** widthChange *****************************************/
+  public void widthChange( int oldWidth, int newWidth )
+  {
+    // only need to draw if new width is larger than old width
+    // TODO
+  }
+
+  /**************************************** heightChange *****************************************/
+  public void heightChange( int oldHeight, int newHeight )
+  {
+    // only need to draw if new height is larger than old height
+    // TODO
   }
 
   /*************************************** getColumnAxis *****************************************/
@@ -46,13 +68,6 @@ public class TableCanvas extends Canvas
   {
     // TODO Auto-generated method stub
     return null;
-  }
-
-  /***************************************** getOverlay ******************************************/
-  public TableOverlay getOverlay()
-  {
-    // TODO Auto-generated method stub
-    return new TableOverlay();
   }
 
 }

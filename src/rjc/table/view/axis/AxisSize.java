@@ -71,6 +71,89 @@ public class AxisSize extends AxisBase implements IListener
     Utils.trace( sender, msg );
   }
 
+  /************************************** getMinimumPixels ***************************************/
+  public int getMinimumPixels()
+  {
+    // return minimum cell size in pixels
+    return zoom( m_minimumSize );
+  }
+
+  /*************************************** getHeaderPixels ***************************************/
+  public int getHeaderPixels()
+  {
+    // return header cell size in pixels
+    return zoom( m_headerSize );
+  }
+
+  /**************************************** getIndexPixels ***************************************/
+  public double getIndexPixels( int viewIndex )
+  {
+    // TODO Auto-generated method stub
+    return 0;
+  }
+
+  /*************************************** setDefaultSize ****************************************/
+  public void setDefaultSize( int defaultSize )
+  {
+    // if requested new default size is smaller than minimum, increase new default to minimum
+    if ( defaultSize < m_minimumSize )
+      defaultSize = m_minimumSize;
+
+    // if different, set default cell size and invalidate the caches
+    if ( m_defaultSize != defaultSize )
+    {
+      // check requested new default size is at least one
+      if ( defaultSize < 1 )
+        throw new IllegalArgumentException( "Default size must be at least one " + defaultSize );
+
+      m_totalPixelsCache.set( INVALID );
+      m_startPixelCache.clear();
+      m_defaultSize = defaultSize;
+    }
+  }
+
+  /*************************************** setMinimumSize ****************************************/
+  public void setMinimumSize( int minSize )
+  {
+    // check requested new minimum size is at least zero
+    if ( minSize < 0 )
+      throw new IllegalArgumentException( "Minimum size must be at least zero " + minSize );
+
+    // if different, set minimum cell size and invalidate body size
+    if ( m_minimumSize != minSize )
+    {
+      // if default smaller than minimum, increase default to size
+      if ( m_defaultSize < minSize )
+        setDefaultSize( minSize );
+
+      // if minimum size increasing, check exceptions
+      if ( minSize > m_minimumSize )
+        m_sizeExceptions.setMinimumSize( minSize );
+
+      m_totalPixelsCache.set( INVALID );
+      m_startPixelCache.clear();
+      m_minimumSize = minSize;
+    }
+  }
+
+  /**************************************** setHeaderSize ****************************************/
+  public void setHeaderSize( int headerSize )
+  {
+    // check new size is valid
+    if ( headerSize < 0 || headerSize >= 65536 )
+      throw new IllegalArgumentException( "Header size must be at least zero " + headerSize );
+
+    // if new size is different, clear cell position start cache
+    if ( m_headerSize != headerSize )
+    {
+      if ( getTotalPixels() != INVALID )
+        m_totalPixelsCache.set( getTotalPixels() - getHeaderPixels() + zoom( headerSize ) );
+
+      m_startPixelCache.clear();
+      m_headerSize = headerSize;
+    }
+  }
+
   /*********************************** getTotalPixelsProperty ************************************/
   public ReadOnlyInteger getTotalPixelsProperty()
   {
@@ -116,6 +199,27 @@ public class AxisSize extends AxisBase implements IListener
       return size;
 
     return (int) ( size * m_zoomProperty.get() );
+  }
+
+  /***************************************** isResizable *****************************************/
+  public boolean isResizable( int index )
+  {
+    // overload this function if prevention of row/column resizing is wanted
+    return index > HEADER;
+  }
+
+  /****************************************** isHidden *******************************************/
+  public boolean isHidden( int index )
+  {
+    // overload this function if row/column hiding is wanted
+    return false;
+  }
+
+  /*************************************** isIndexVisible ****************************************/
+  public boolean isIndexVisible( int index )
+  {
+    // return true if cell is visible body cell
+    return index >= FIRSTCELL && index < getCount() && !isHidden( index );
   }
 
 }

@@ -18,6 +18,7 @@
 
 package rjc.table.view.cell;
 
+import javafx.scene.canvas.GraphicsContext;
 import rjc.table.view.TableView;
 
 /*************************************************************************************************/
@@ -26,14 +27,15 @@ import rjc.table.view.TableView;
 
 public class CellLocation
 {
-  public int       viewColumn; // cell column index
-  public int       viewRow;    // cell row index
+  public int             viewColumn; // cell column index
+  public int             viewRow;    // cell row index
 
-  public TableView view;       // table view
-  public int       x;          // start x coordinate of cell on canvas
-  public int       y;          // start y coordinate of cell on canvas
-  public int       w;          // width of cell on canvas
-  public int       h;          // height of cell on canvas
+  public TableView       view;       // table view
+  public GraphicsContext gc;         // graphics context drawing
+  public double          x;          // start x coordinate of cell on canvas
+  public double          y;          // start y coordinate of cell on canvas
+  public double          w;          // width of cell on canvas
+  public double          h;          // height of cell on canvas
 
   /**************************************** constructor ******************************************/
   public CellLocation()
@@ -56,6 +58,7 @@ public class CellLocation
     this.viewColumn = viewColumnIndex;
     this.viewRow = viewRowIndex;
 
+    gc = view.getCanvas().getGraphicsContext2D();
     x = view.getColumnStartX( viewColumnIndex );
     y = view.getRowStartY( viewRowIndex );
     w = view.getColumnStartX( viewColumnIndex + 1 ) - x;

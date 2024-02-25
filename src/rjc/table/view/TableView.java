@@ -21,6 +21,7 @@ package rjc.table.view;
 import javafx.geometry.Orientation;
 import javafx.scene.Parent;
 import rjc.table.data.TableData;
+import rjc.table.view.cell.CellDrawer;
 
 /*************************************************************************************************/
 /************** Base class for scrollable table-view to visualise a table-data model *************/
@@ -33,6 +34,8 @@ public class TableView extends Parent
   private TableCanvas    m_canvas;
   private TableScrollBar m_verticalScrollBar;
   private TableScrollBar m_horizontalScrollBar;
+
+  private CellDrawer     m_drawer;
 
   /**************************************** constructor ******************************************/
   public TableView( TableData data, String name )
@@ -47,6 +50,17 @@ public class TableView extends Parent
     m_horizontalScrollBar = new TableScrollBar( m_canvas.getColumnAxis(), Orientation.HORIZONTAL );
     m_verticalScrollBar = new TableScrollBar( m_canvas.getRowAxis(), Orientation.VERTICAL );
     getChildren().addAll( m_canvas, m_canvas.getOverlay(), m_horizontalScrollBar, m_verticalScrollBar );
+
+    // react to losing & gaining focus and visibility
+    focusedProperty().addListener( ( observable, oldFocus, newFocus ) -> redraw() );
+    visibleProperty().addListener( ( observable, oldVisibility, newVisibility ) -> redraw() );
+  }
+
+  /******************************************* redraw ********************************************/
+  public void redraw()
+  {
+    // request redraw of full visible table (headers and body)
+    getCanvas().redraw();
   }
 
   /****************************************** getData ********************************************/
@@ -103,6 +117,15 @@ public class TableView extends Parent
   {
     // return row index at specified y coordinate
     return 0; // TODO
+  }
+
+  /*************************************** getCellDrawer *****************************************/
+  public CellDrawer getCellDrawer()
+  {
+    // return class responsible for drawing the cells on canvas
+    if ( m_drawer == null )
+      m_drawer = new CellDrawer();
+    return m_drawer;
   }
 
   /****************************************** toString *******************************************/

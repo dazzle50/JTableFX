@@ -16,22 +16,9 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.view.axis;
+package rjc.table.view.cell;
 
-import rjc.table.signal.ObservableInteger.ReadOnlyInteger;
-
-/*************************************************************************************************/
-/**************************** Table X or Y axis with movement support ****************************/
-/*************************************************************************************************/
-
-public class TableAxis extends AxisSize
+public class CellDetails extends CellLocation
 {
-
-  /**************************************** constructor ******************************************/
-  public TableAxis( ReadOnlyInteger countProperty )
-  {
-    // TODO Auto-generated constructor stub
-    super( countProperty );
-  }
 
 }
