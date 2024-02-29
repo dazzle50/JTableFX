@@ -19,41 +19,48 @@
 package rjc.table.view;
 
 import javafx.geometry.Orientation;
-import javafx.scene.Parent;
+import rjc.table.Utils;
 import rjc.table.data.TableData;
+import rjc.table.signal.ObservableStatus;
+import rjc.table.undo.UndoStack;
 import rjc.table.view.cell.CellDrawer;
 
 /*************************************************************************************************/
 /************** Base class for scrollable table-view to visualise a table-data model *************/
 /*************************************************************************************************/
 
-public class TableView extends Parent
+public class TableView extends TableViewParent
 {
-  private TableData      m_data;
+  private TableData        m_data;
+  private UndoStack        m_undostack;
+  private ObservableStatus m_status;
 
-  private TableCanvas    m_canvas;
-  private TableScrollBar m_verticalScrollBar;
-  private TableScrollBar m_horizontalScrollBar;
+  private TableCanvas      m_canvas;
+  private TableScrollBar   m_verticalScrollBar;
+  private TableScrollBar   m_horizontalScrollBar;
 
-  private CellDrawer     m_drawer;
+  private CellDrawer       m_drawer;
 
   /**************************************** constructor ******************************************/
   public TableView( TableData data, String name )
   {
-    // set view name and construct the view
+    // construct the table view
     if ( data == null )
       throw new NullPointerException( "TableData must not be null" );
     m_data = data;
     setId( name );
 
     m_canvas = new TableCanvas( this );
-    m_horizontalScrollBar = new TableScrollBar( m_canvas.getColumnAxis(), Orientation.HORIZONTAL );
-    m_verticalScrollBar = new TableScrollBar( m_canvas.getRowAxis(), Orientation.VERTICAL );
+    m_horizontalScrollBar = new TableScrollBar( m_canvas.getColumnsAxis(), Orientation.HORIZONTAL );
+    m_verticalScrollBar = new TableScrollBar( m_canvas.getRowsAxis(), Orientation.VERTICAL );
     getChildren().addAll( m_canvas, m_canvas.getOverlay(), m_horizontalScrollBar, m_verticalScrollBar );
 
     // react to losing & gaining focus and visibility
     focusedProperty().addListener( ( observable, oldFocus, newFocus ) -> redraw() );
     visibleProperty().addListener( ( observable, oldVisibility, newVisibility ) -> redraw() );
+
+    // react to data model signals TODO
+    m_data.addListener( ( sender, msg ) -> Utils.trace( sender, msg ) );
   }
 
   /******************************************* redraw ********************************************/
@@ -68,6 +75,20 @@ public class TableView extends Parent
   {
     // return data model for table-view
     return m_data;
+  }
+
+  /**************************************** setUndostack *****************************************/
+  public void setUndostack( UndoStack undostack )
+  {
+    // set undo-stack for table-view
+    m_undostack = undostack == null ? new UndoStack() : undostack;
+  }
+
+  /***************************************** setStatus *******************************************/
+  public void setStatus( ObservableStatus status )
+  {
+    // set status for table-view
+    m_status = status == null ? new ObservableStatus() : status;
   }
 
   /***************************************** getCanvas *******************************************/
@@ -92,14 +113,14 @@ public class TableView extends Parent
   }
 
   /*************************************** getColumnStartX ***************************************/
-  public int getColumnStartX( int columnIndex )
+  public int getColumnStartX( int viewColumn )
   {
     // return x coordinate of cell start for specified column position
     return 0; // TODO
   }
 
   /**************************************** getRowStartY *****************************************/
-  public int getRowStartY( int rowIndex )
+  public int getRowStartY( int viewRow )
   {
     // return y coordinate of cell start for specified row position
     return 0; // TODO
@@ -119,13 +140,81 @@ public class TableView extends Parent
     return 0; // TODO
   }
 
-  /*************************************** getCellDrawer *****************************************/
+  /**************************************** getCellDrawer ****************************************/
   public CellDrawer getCellDrawer()
   {
     // return class responsible for drawing the cells on canvas
     if ( m_drawer == null )
       m_drawer = new CellDrawer();
     return m_drawer;
+  }
+
+  /**************************************** layoutDisplay ****************************************/
+  @Override
+  protected void layoutChildren()
+  {
+    // do nothing if not visible or width/height not set
+    if ( !isVisible() || getWidth() == prefWidth( 0 ) || getHeight() == prefHeight( 0 ) )
+      return;
+
+    // determine which scroll-bars should be visible
+    int tableHeight = m_canvas.getRowsAxis().getTotalPixels();
+    int tableWidth = m_canvas.getColumnsAxis().getTotalPixels();
+    int scrollbarSize = (int) getVerticalScrollBar().getWidth();
+
+    boolean isVSBvisible = getHeight() < tableHeight;
+    int canvasWidth = isVSBvisible ? getWidth() - scrollbarSize : getWidth();
+    boolean isHSBvisible = canvasWidth < tableWidth;
+    int canvasHeight = isHSBvisible ? getHeight() - scrollbarSize : getHeight();
+    isVSBvisible = canvasHeight < tableHeight;
+    canvasWidth = isVSBvisible ? getWidth() - scrollbarSize : getWidth();
+
+    // update vertical scroll bar
+    var sb = getVerticalScrollBar();
+    sb.setVisible( isVSBvisible );
+    if ( isVSBvisible )
+    {
+      sb.setPrefHeight( canvasHeight );
+      sb.relocate( getWidth() - scrollbarSize, 0.0 );
+
+      double max = tableHeight - canvasHeight;
+      sb.setMax( max );
+      sb.setVisibleAmount( max * canvasHeight / tableHeight );
+      sb.setBlockIncrement( canvasHeight - m_canvas.getRowsAxis().getHeaderPixels() );
+
+      if ( sb.getValue() > max )
+        sb.setValue( max );
+    }
+    else
+    {
+      sb.setValue( 0.0 );
+      sb.setMax( 0.0 );
+    }
+
+    // update horizontal scroll bar
+    sb = getHorizontalScrollBar();
+    sb.setVisible( isHSBvisible );
+    if ( isHSBvisible )
+    {
+      sb.setPrefWidth( canvasWidth );
+      sb.relocate( 0.0, getHeight() - scrollbarSize );
+
+      double max = tableWidth - canvasWidth;
+      sb.setMax( max );
+      sb.setVisibleAmount( max * canvasWidth / tableWidth );
+      sb.setBlockIncrement( canvasWidth - m_canvas.getColumnsAxis().getHeaderPixels() );
+
+      if ( sb.getValue() > max )
+        sb.setValue( max );
+    }
+    else
+    {
+      sb.setValue( 0.0 );
+      sb.setMax( 0.0 );
+    }
+
+    // update canvas size (table + blank excess space)
+    m_canvas.resize( canvasWidth, canvasHeight );
   }
 
   /****************************************** toString *******************************************/

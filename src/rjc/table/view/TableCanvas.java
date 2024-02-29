@@ -28,11 +28,18 @@ public class TableCanvas extends TableCanvasDraw
 {
   private TableView m_view;
 
+  private TableAxis m_columnsAxis; // columns (horizontal) axis
+  private TableAxis m_rowsAxis;    // rows (vertical) axis
+
   /**************************************** constructor ******************************************/
   public TableCanvas( TableView view )
   {
     super( view );
     m_view = view;
+
+    // construct the table-axis
+    m_columnsAxis = new TableAxis( m_view.getData().columnCountProperty() );
+    m_rowsAxis = new TableAxis( m_view.getData().rowCountProperty() );
 
     // when canvas size changes draw new areas
     widthProperty().addListener( ( observable, oldW, newW ) -> widthChange( oldW.intValue(), newW.intValue() ) );
@@ -56,18 +63,18 @@ public class TableCanvas extends TableCanvasDraw
     // TODO
   }
 
-  /*************************************** getColumnAxis *****************************************/
-  public TableAxis getColumnAxis()
+  /*************************************** getColumnsAxis ****************************************/
+  public TableAxis getColumnsAxis()
   {
-    // TODO Auto-generated method stub
-    return null;
+    // return columns (horizontal) axis for cell widths & x-coordinates
+    return m_columnsAxis;
   }
 
-  /***************************************** getRowAxis ******************************************/
-  public TableAxis getRowAxis()
+  /***************************************** getRowsAxis *****************************************/
+  public TableAxis getRowsAxis()
   {
-    // TODO Auto-generated method stub
-    return null;
+    // return rows (vertical) axis for cell heights & y-coordinates
+    return m_rowsAxis;
   }
 
 }

@@ -173,13 +173,13 @@ public class TableCanvasDraw extends Canvas
   }
 
   /****************************************** redrawNow ******************************************/
-  public void redrawNow()
+  private void redrawNow()
   {
     // request complete redraw of table canvas
     if ( isVisible() && getHeight() > 0.0 )
     {
       getGraphicsContext2D().clearRect( 0.0, 0.0, getWidth(), getHeight() );
-      int headerWidth = m_view.getCanvas().getColumnAxis().getHeaderPixels();
+      int headerWidth = m_view.getCanvas().getColumnsAxis().getHeaderPixels();
       int minColumnPos = m_view.getColumnIndex( headerWidth );
       int maxColumnPos = m_view.getColumnIndex( (int) getWidth() );
       redrawColumnsNow( minColumnPos, maxColumnPos );
@@ -188,7 +188,7 @@ public class TableCanvasDraw extends Canvas
   }
 
   /*************************************** redrawCellNow *****************************************/
-  public void redrawCellNow( int columnIndex, int rowIndex )
+  private void redrawCellNow( int columnIndex, int rowIndex )
   {
     // redraw table body or header cell
     CellDrawer cell = m_view.getCellDrawer();
@@ -200,7 +200,7 @@ public class TableCanvasDraw extends Canvas
   }
 
   /*************************************** redrawColumnNow ***************************************/
-  public void redrawColumnNow( int columnIndex )
+  private void redrawColumnNow( int columnIndex )
   {
     // redraw visible bit of column including header
     CellDrawer cell = m_view.getCellDrawer();
@@ -209,11 +209,11 @@ public class TableCanvasDraw extends Canvas
     cell.viewColumn = columnIndex;
 
     // calculate which rows are visible
-    int headerHeight = m_view.getCanvas().getRowAxis().getHeaderPixels();
+    int headerHeight = m_view.getCanvas().getRowsAxis().getHeaderPixels();
     int minRow = m_view.getRowIndex( headerHeight );
-    int maxRow = m_view.getRowIndex( (int) m_view.getCanvas().getHeight() );
+    int maxRow = m_view.getRowIndex( (int) getHeight() );
     cell.x = m_view.getColumnStartX( columnIndex );
-    cell.w = m_view.getCanvas().getColumnAxis().getIndexPixels( columnIndex );
+    cell.w = m_view.getCanvas().getColumnsAxis().getIndexPixels( columnIndex );
     if ( cell.w == 0.0 )
       return;
 
@@ -243,22 +243,22 @@ public class TableCanvasDraw extends Canvas
   }
 
   /**************************************** redrawRowNow *****************************************/
-  public void redrawRowNow( int rowIndex )
+  private void redrawRowNow( int rowIndex )
   {
     // redraw visible bit of row including header
     if ( isVisible() && rowIndex >= HEADER )
     {
       CellDrawer cell = m_view.getCellDrawer();
       cell.view = m_view;
-      cell.gc = m_view.getCanvas().getGraphicsContext2D();
+      cell.gc = getGraphicsContext2D();
       cell.viewRow = rowIndex;
 
       // calculate which columns are visible
-      int headerWidth = m_view.getCanvas().getColumnAxis().getHeaderPixels();
+      int headerWidth = m_view.getCanvas().getColumnsAxis().getHeaderPixels();
       int minColumn = m_view.getColumnIndex( headerWidth );
-      int maxColumn = m_view.getColumnIndex( (int) m_view.getCanvas().getWidth() );
+      int maxColumn = m_view.getColumnIndex( (int) getWidth() );
       cell.y = m_view.getRowStartY( rowIndex );
-      cell.h = m_view.getCanvas().getRowAxis().getIndexPixels( rowIndex );
+      cell.h = m_view.getCanvas().getRowsAxis().getIndexPixels( rowIndex );
 
       // redraw all body cells between min and max column positions inclusive
       int max = m_view.getData().getColumnCount() - 1;
@@ -287,7 +287,7 @@ public class TableCanvasDraw extends Canvas
   }
 
   /************************************* redrawColumnsNow ****************************************/
-  public void redrawColumnsNow( int minColumn, int maxColumn )
+  private void redrawColumnsNow( int minColumn, int maxColumn )
   {
     // redraw all table body columns between min and max column positions inclusive
     int max = m_view.getData().getColumnCount() - 1;
@@ -304,7 +304,7 @@ public class TableCanvasDraw extends Canvas
   }
 
   /*************************************** redrawRowsNow *****************************************/
-  public void redrawRowsNow( int minRow, int maxRow )
+  private void redrawRowsNow( int minRow, int maxRow )
   {
     // redraw all table body rows between min and max row positions inclusive
     int max = m_view.getData().getRowCount() - 1;
