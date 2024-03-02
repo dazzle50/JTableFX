@@ -18,7 +18,11 @@
 
 package rjc.table.view.axis;
 
-import rjc.table.Utils;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TreeSet;
+
 import rjc.table.signal.IListener;
 import rjc.table.signal.ISignal;
 import rjc.table.signal.ObservableDouble.ReadOnlyDouble;
@@ -32,17 +36,20 @@ import rjc.table.signal.ObservableInteger.ReadOnlyInteger;
 public class AxisSize extends AxisBase implements IListener
 {
   // variables defining default & minimum cell size (width or height) equals pixels if zoom is 1.0
-  private int               m_defaultSize;
-  private int               m_minimumSize;
-  private int               m_headerSize;
-  private ReadOnlyDouble    m_zoomProperty;
+  private int                   m_defaultSize;
+  private int                   m_minimumSize;
+  private int                   m_headerSize;
+  private ReadOnlyDouble        m_zoomProperty;
 
-  private SizeExceptions    m_sizeExceptions         = new SizeExceptions();
-  private PixelCache        m_startPixelCache        = new PixelCache();
-  private IndexMapping      m_dataIndexFromViewIndex = new IndexMapping();
+  // exceptions to default size (negative are hidden)
+  private Map<Integer, Integer> m_sizeExceptions   = new HashMap<>();
+  final static public int       HIDDEN_DEFAULT     = Integer.MIN_VALUE;
+
+  // cached cell index to start pixel coordinate
+  private ArrayList<Integer>    m_startPixelCache  = new ArrayList<>();
 
   // observable integer for cached axis size in pixels (includes header)
-  private ObservableInteger m_totalPixelsCache       = new ObservableInteger( INVALID );
+  private ObservableInteger     m_totalPixelsCache = new ObservableInteger( INVALID );
 
   /**************************************** constructor ******************************************/
   public AxisSize( ReadOnlyInteger countProperty )
@@ -54,7 +61,7 @@ public class AxisSize extends AxisBase implements IListener
   /******************************************** reset ********************************************/
   public void reset()
   {
-    // clear all axis position to index re-ordering
+    // set default axis index sizes
     m_defaultSize = 100;
     m_minimumSize = 20;
     m_headerSize = 50;
@@ -68,14 +75,30 @@ public class AxisSize extends AxisBase implements IListener
   public void slot( ISignal sender, Object... msg )
   {
     // listen to signals sent to axis
-    Utils.trace( sender, msg );
-  }
+    if ( sender == getCountProperty() )
+    {
+      // set cached axis size to invalid
+      m_totalPixelsCache.set( INVALID );
 
-  /************************************** getMinimumPixels ***************************************/
-  public int getMinimumPixels()
-  {
-    // return minimum cell size in pixels
-    return zoom( m_minimumSize );
+      // remove any exceptions beyond count
+      int oldCount = (int) msg[0];
+      int newCount = getCount();
+      if ( newCount < oldCount )
+        for ( int key : m_sizeExceptions.keySet() )
+          if ( key >= newCount )
+            m_sizeExceptions.remove( key );
+
+      // truncate cell start cache if new size smaller
+      if ( newCount < m_startPixelCache.size() )
+        m_startPixelCache.subList( newCount, m_startPixelCache.size() ).clear();
+    }
+
+    else if ( sender == m_zoomProperty )
+    {
+      // zoom value has changed so clear the pixel caches
+      m_startPixelCache.clear();
+      m_totalPixelsCache.set( INVALID );
+    }
   }
 
   /*************************************** getHeaderPixels ***************************************/
@@ -83,13 +106,6 @@ public class AxisSize extends AxisBase implements IListener
   {
     // return header cell size in pixels
     return zoom( m_headerSize );
-  }
-
-  /**************************************** getIndexPixels ***************************************/
-  public double getIndexPixels( int viewIndex )
-  {
-    // TODO Auto-generated method stub
-    return 0;
   }
 
   /*************************************** setDefaultSize ****************************************/
@@ -128,7 +144,14 @@ public class AxisSize extends AxisBase implements IListener
 
       // if minimum size increasing, check exceptions
       if ( minSize > m_minimumSize )
-        m_sizeExceptions.setMinimumSize( minSize );
+        for ( var exception : m_sizeExceptions.entrySet() )
+        {
+          int size = exception.getValue();
+          if ( size < 0 && size > -minSize )
+            exception.setValue( -minSize );
+          else if ( size > 0 && size < minSize )
+            exception.setValue( minSize );
+        }
 
       m_totalPixelsCache.set( INVALID );
       m_startPixelCache.clear();
@@ -154,13 +177,6 @@ public class AxisSize extends AxisBase implements IListener
     }
   }
 
-  /*********************************** getTotalPixelsProperty ************************************/
-  public ReadOnlyInteger getTotalPixelsProperty()
-  {
-    // return return read-only version of axis total pixels size
-    return m_totalPixelsCache.getReadOnly();
-  }
-
   /*************************************** getTotalPixels ****************************************/
   public int getTotalPixels()
   {
@@ -168,10 +184,157 @@ public class AxisSize extends AxisBase implements IListener
     if ( m_totalPixelsCache.get() == INVALID )
     {
       // cached size is invalid, so re-calculate
-      Utils.trace( "TODO - cached size is invalid, so re-calculate" );
+      int defaultCount = getCount() - m_sizeExceptions.size();
+
+      int pixels = getHeaderPixels();
+      for ( int size : m_sizeExceptions.values() )
+        if ( size > 0 /* not hidden */ )
+          pixels += zoom( size );
+
+      m_totalPixelsCache.set( pixels + defaultCount * zoom( m_defaultSize ) );
     }
 
     return m_totalPixelsCache.get();
+  }
+
+  /*********************************** getTotalPixelsProperty ************************************/
+  public ReadOnlyInteger getTotalPixelsProperty()
+  {
+    // return return read-only version of axis total pixels size
+    return m_totalPixelsCache.getReadOnly();
+  }
+
+  /*************************************** getIndexPixels ****************************************/
+  public int getIndexPixels( int index )
+  {
+    // return header size if that was requested
+    if ( index == HEADER )
+      return zoom( m_headerSize );
+
+    // return cell size from exception or default
+    int size = m_sizeExceptions.getOrDefault( index, m_defaultSize );
+    return size > 0 ? zoom( size ) : 0;
+  }
+
+  /**************************************** getStartPixel ****************************************/
+  public int getStartPixel( int index, int scroll )
+  {
+    // check index is valid
+    if ( index < HEADER )
+      throw new IndexOutOfBoundsException( "index=" + index + " but count=" + getCount() );
+    if ( index > getCount() )
+      index = getCount();
+
+    // if header, return zero
+    if ( index == HEADER )
+      return 0;
+
+    // if cell index is beyond cache, extend cache
+    if ( index >= m_startPixelCache.size() )
+    {
+      // index zero starts after header
+      if ( m_startPixelCache.isEmpty() )
+        m_startPixelCache.add( getHeaderPixels() );
+
+      int position = m_startPixelCache.size() - 1;
+      int start = m_startPixelCache.get( position );
+      while ( index > position )
+      {
+        start += getIndexPixels( position++ );
+        m_startPixelCache.add( start );
+      }
+    }
+
+    // return start pixel coordinate for cell index taking scroll into account
+    return m_startPixelCache.get( index ) - scroll;
+  }
+
+  /*********************************** getIndexFromCoordinate ************************************/
+  public int getIndexFromCoordinate( int coordinate, int scroll )
+  {
+    // check if before table
+    if ( coordinate < 0 )
+      return BEFORE;
+
+    // check if header
+    if ( coordinate < getHeaderPixels() )
+      return HEADER;
+
+    // check if after table
+    coordinate += scroll;
+    if ( coordinate >= getTotalPixels() )
+      return AFTER;
+
+    // check within start cache
+    int position = m_startPixelCache.size() - 1;
+    int start = position < 0 ? 0 : m_startPixelCache.get( position );
+    if ( coordinate > start )
+    {
+      while ( coordinate > start )
+      {
+        start += getIndexPixels( position++ );
+        m_startPixelCache.add( start );
+      }
+      return coordinate == start ? position : position - 1;
+    }
+
+    // find position by binary search of cache
+    int startPos = 0;
+    int endPos = m_startPixelCache.size();
+    while ( startPos != endPos )
+    {
+      int rowPos = ( endPos + startPos ) / 2;
+      if ( m_startPixelCache.get( rowPos ) <= coordinate )
+        startPos = rowPos + 1;
+      else
+        endPos = rowPos;
+    }
+    return startPos - 1;
+  }
+
+  /************************************* truncatePixelCaches *************************************/
+  protected void truncatePixelCaches( int newCacheSize, int deltaPixels )
+  {
+    // update body size cache if not invalid
+    if ( m_totalPixelsCache.get() != INVALID )
+      m_totalPixelsCache.set( m_totalPixelsCache.get() + deltaPixels );
+
+    // truncate cache length if greater than specified new size
+    if ( m_startPixelCache.size() > newCacheSize )
+      m_startPixelCache.subList( newCacheSize, m_startPixelCache.size() ).clear();
+  }
+
+  /************************************** reorderExceptions **************************************/
+  protected void reorderExceptions( ArrayList<Integer> movedSorted, int insertIndex )
+  {
+    // update size exceptions taking into account moves
+    var newSizeExceptions = new HashMap<Integer, Integer>();
+    for ( int exceptionIndex : new TreeSet<Integer>( m_sizeExceptions.keySet() ) )
+    {
+      int moved = movedSorted.indexOf( exceptionIndex );
+      if ( moved >= 0 )
+        // moved index
+        newSizeExceptions.put( insertIndex + moved, m_sizeExceptions.get( exceptionIndex ) );
+      else
+        // not-moved index
+        newSizeExceptions.put( adjustedIndex( exceptionIndex, insertIndex, movedSorted ),
+            m_sizeExceptions.get( exceptionIndex ) );
+    }
+    m_sizeExceptions = newSizeExceptions;
+  }
+
+  /**************************************** adjustedIndex ****************************************/
+  private Integer adjustedIndex( int exceptionIndex, int insertIndex, ArrayList<Integer> movedSorted )
+  {
+    // count of moved before exception index
+    int before = 0;
+    while ( movedSorted.size() > before && movedSorted.get( before ) < exceptionIndex )
+      before++;
+
+    if ( exceptionIndex < insertIndex + before )
+      return exceptionIndex - before;
+
+    return exceptionIndex - before + movedSorted.size();
   }
 
   /*************************************** setZoomProperty ***************************************/
@@ -208,18 +371,11 @@ public class AxisSize extends AxisBase implements IListener
     return index > HEADER;
   }
 
-  /****************************************** isHidden *******************************************/
-  public boolean isHidden( int index )
-  {
-    // overload this function if row/column hiding is wanted
-    return false;
-  }
-
   /*************************************** isIndexVisible ****************************************/
   public boolean isIndexVisible( int index )
   {
     // return true if cell is visible body cell
-    return index >= FIRSTCELL && index < getCount() && !isHidden( index );
+    return index >= FIRSTCELL && index < getCount() && m_sizeExceptions.getOrDefault( index, m_defaultSize ) > 0;
   }
 
 }

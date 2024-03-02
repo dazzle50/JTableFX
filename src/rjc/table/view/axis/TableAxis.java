@@ -24,14 +24,15 @@ import rjc.table.signal.ObservableInteger.ReadOnlyInteger;
 /**************************** Table X or Y axis with movement support ****************************/
 /*************************************************************************************************/
 
-public class TableAxis extends AxisSize
+public class TableAxis extends AxisMap
 {
 
   /**************************************** constructor ******************************************/
   public TableAxis( ReadOnlyInteger countProperty )
   {
-    // TODO Auto-generated constructor stub
+    // pass count property to super class, and call reset
     super( countProperty );
+    reset();
   }
 
 }
