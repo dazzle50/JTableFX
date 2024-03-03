@@ -18,36 +18,32 @@
 
 package rjc.table.view;
 
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.text.FontSmoothingType;
+import javafx.scene.paint.Color;
 
 /*************************************************************************************************/
-/****************** Canvas overlay for table-views (highlights selection etc) ********************/
+/************************** Miscellaneous utility public static colours **************************/
 /*************************************************************************************************/
 
-public class CanvasOverlay extends Canvas
+public class Colours
 {
-  private TableView       m_view;
-  private GraphicsContext m_gc;
+  // general gui colours
+  public static final Color SELECTED_HIGHLIGHT       = Color.rgb( 0, 150, 255, 0.3 ); // opaque blue
+  public static final Color SELECTED_BORDER          = Color.rgb( 0, 150, 255 );      // light blue
 
-  final public static int MIN_COORD = -999;  // highlighting coordinate limit
-  final public static int MAX_COORD = 99999; // highlighting coordinate limit
+  public static final Color CELL_BORDER              = Color.gray( 0.8 );
+  public static final Color CELL_DEFAULT_FILL        = Color.WHITE;
 
-  /**************************************** constructor ******************************************/
-  public CanvasOverlay( TableView tableView )
-  {
-    // prepare canvas overlay
-    m_view = tableView;
-    m_gc = getGraphicsContext2D();
+  public static final Color HEADER_DEFAULT_FILL      = Color.gray( 0.95 );
+  public static final Color HEADER_FOCUS_FILL        = Color.LIGHTYELLOW;
+  public static final Color HEADER_SELECTED_FILL     = Color.gray( 0.85 );
 
-    m_gc.setFontSmoothingType( FontSmoothingType.LCD );
-  }
+  public static final Color TEXT_DEFAULT             = Color.BLACK;
+  public static final Color TEXT_DEFAULT_BACKGROUND  = Color.WHITE;
+  public static final Color TEXT_SELECTED            = Color.WHITE;
+  public static final Color TEXT_SELECTED_BACKGROUND = Color.rgb( 51, 153, 255 );     // mid blue
 
-  /****************************************** redrawNow ******************************************/
-  public void redrawNow()
-  {
-    // clip overlay drawing to table body
-    // TODO
-  }
+  public static final Color BUTTON_ARROW             = Color.BLACK;
+  public static final Color BUTTON_BACKGROUND        = Color.gray( 0.85 );
+
+  public static final Color REORDER_LINE             = Color.RED;
 }

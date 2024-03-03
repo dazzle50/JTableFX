@@ -20,7 +20,7 @@ package rjc.table.view.cell;
 
 import rjc.table.view.TableView;
 
-public class CellDrawer extends CellDetails
+public class CellDrawer extends CellStyle
 {
 
   public void setIndex( TableView view, int viewColumn, int viewRow )

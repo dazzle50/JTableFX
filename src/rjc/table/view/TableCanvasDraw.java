@@ -34,7 +34,7 @@ import rjc.table.view.cell.CellDrawer;
 public class TableCanvasDraw extends Canvas
 {
   private TableView        m_view;
-  private CanvasOverlay    m_overlay;
+  private TableOverlay     m_overlay;
 
   private AtomicBoolean    m_redrawIsRequested;                      // flag if redraw has been scheduled
   private boolean          m_fullRedraw;                             // full view redraw (headers & body including overlay)
@@ -59,7 +59,7 @@ public class TableCanvasDraw extends Canvas
   {
     // prepare main & overlay canvas
     m_view = tableView;
-    m_overlay = new CanvasOverlay( tableView );
+    m_overlay = new TableOverlay( tableView );
     m_redrawIsRequested = new AtomicBoolean();
     m_columns = new HashSet<>();
     m_rows = new HashSet<>();
@@ -321,7 +321,7 @@ public class TableCanvasDraw extends Canvas
   }
 
   /***************************************** getOverlay ******************************************/
-  public CanvasOverlay getOverlay()
+  public TableOverlay getOverlay()
   {
     // return the table canvas overlay
     return m_overlay;

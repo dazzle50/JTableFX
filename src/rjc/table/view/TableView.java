@@ -21,9 +21,12 @@ package rjc.table.view;
 import javafx.geometry.Orientation;
 import rjc.table.Utils;
 import rjc.table.data.TableData;
+import rjc.table.signal.ObservableDouble;
 import rjc.table.signal.ObservableStatus;
 import rjc.table.undo.UndoStack;
 import rjc.table.view.cell.CellDrawer;
+import rjc.table.view.cell.CellSelection;
+import rjc.table.view.cell.ViewPosition;
 
 /*************************************************************************************************/
 /************** Base class for scrollable table-view to visualise a table-data model *************/
@@ -32,14 +35,19 @@ import rjc.table.view.cell.CellDrawer;
 public class TableView extends TableViewParent
 {
   private TableData        m_data;
-  private UndoStack        m_undostack;
-  private ObservableStatus m_status;
 
   private TableCanvas      m_canvas;
   private TableScrollBar   m_verticalScrollBar;
   private TableScrollBar   m_horizontalScrollBar;
 
   private CellDrawer       m_drawer;
+  private CellSelection    m_selection;
+  private UndoStack        m_undostack;
+  private ObservableStatus m_status;
+  private ObservableDouble m_zoom;
+
+  private ViewPosition     m_focusCell;
+  private ViewPosition     m_selectCell;
 
   /**************************************** constructor ******************************************/
   public TableView( TableData data, String name )
@@ -50,14 +58,24 @@ public class TableView extends TableViewParent
     m_data = data;
     setId( name );
 
+    // assemble the table-view components
     m_canvas = new TableCanvas( this );
     m_horizontalScrollBar = new TableScrollBar( m_canvas.getColumnsAxis(), Orientation.HORIZONTAL );
     m_verticalScrollBar = new TableScrollBar( m_canvas.getRowsAxis(), Orientation.VERTICAL );
     getChildren().addAll( m_canvas, m_canvas.getOverlay(), m_horizontalScrollBar, m_verticalScrollBar );
 
+    // handle zoom
+    m_zoom = new ObservableDouble( 1.0 );
+    m_canvas.getColumnsAxis().setZoomProperty( m_zoom.getReadOnly() );
+    m_canvas.getRowsAxis().setZoomProperty( m_zoom.getReadOnly() );
+
     // react to losing & gaining focus and visibility
     focusedProperty().addListener( ( observable, oldFocus, newFocus ) -> redraw() );
     visibleProperty().addListener( ( observable, oldVisibility, newVisibility ) -> redraw() );
+
+    // create the observable positions for focus & select
+    m_focusCell = new ViewPosition( this );
+    m_selectCell = new ViewPosition( this );
 
     // react to data model signals TODO
     m_data.addListener( ( sender, msg ) -> Utils.trace( sender, msg ) );
@@ -89,6 +107,34 @@ public class TableView extends TableViewParent
   {
     // set status for table-view
     m_status = status == null ? new ObservableStatus() : status;
+  }
+
+  /****************************************** getZoom ********************************************/
+  public ObservableDouble getZoom()
+  {
+    // return observable zoom factor (1.0 is normal 100% size) for table-view
+    return m_zoom;
+  }
+
+  /**************************************** getFocusCell *****************************************/
+  public ViewPosition getFocusCell()
+  {
+    // return observable focus cell position on table-view
+    return m_focusCell;
+  }
+
+  /**************************************** getSelectCell ****************************************/
+  public ViewPosition getSelectCell()
+  {
+    // return observable select cell position on table-view
+    return m_selectCell;
+  }
+
+  /**************************************** getSelection *****************************************/
+  public CellSelection getSelection()
+  {
+    // return selection model for table-view
+    return m_selection;
   }
 
   /***************************************** getCanvas *******************************************/

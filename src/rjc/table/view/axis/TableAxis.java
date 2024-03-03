@@ -35,4 +35,67 @@ public class TableAxis extends AxisMap
     reset();
   }
 
+  /****************************************** getVisible *******************************************/
+  public int getVisible( int index )
+  {
+    // return index if visible, otherwise find a visible index
+    if ( index < FIRSTCELL )
+      return getFirstVisible();
+    if ( index >= getCount() )
+      return getLastVisible();
+    if ( isIndexVisible( index ) )
+      return index;
+
+    return getNextVisible( index );
+  }
+
+  /************************************** getFirstVisible ****************************************/
+  public int getFirstVisible()
+  {
+    // return first visible body cell index
+    return getNextVisible( HEADER );
+  }
+
+  /*************************************** getLastVisible ****************************************/
+  public int getLastVisible()
+  {
+    // return last visible body cell index
+    return getPreviousVisible( getCount() );
+  }
+
+  /*************************************** getNextVisible ****************************************/
+  public int getNextVisible( int index )
+  {
+    // return next visible body cell index, or last if there isn't one
+    if ( index < HEADER )
+      index = HEADER;
+
+    int max = getCount();
+    for ( int check = index + 1; check < max; check++ )
+      if ( isIndexVisible( check ) )
+        return check;
+    for ( int check = index; check > HEADER; check-- )
+      if ( isIndexVisible( check ) )
+        return check;
+
+    return INVALID;
+  }
+
+  /************************************* getPreviousVisible **************************************/
+  public int getPreviousVisible( int index )
+  {
+    // return previous visible body cell index, or first if there isn't one
+    int max = getCount();
+    if ( index > max )
+      index = max;
+
+    for ( int check = index - 1; check > HEADER; check-- )
+      if ( isIndexVisible( check ) )
+        return check;
+    for ( int check = index; check < max; check++ )
+      if ( isIndexVisible( check ) )
+        return check;
+
+    return INVALID;
+  }
 }

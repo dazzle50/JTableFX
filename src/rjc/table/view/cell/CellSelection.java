@@ -18,7 +18,23 @@
 
 package rjc.table.view.cell;
 
-public class CellDetails extends CellLocation
+/*************************************************************************************************/
+/******************************** Table view selected cells/areas ********************************/
+/*************************************************************************************************/
+
+public class CellSelection
 {
+
+  public boolean hasColumnSelection( int viewColumn )
+  {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
+  public boolean hasRowSelection( int viewRow )
+  {
+    // TODO Auto-generated method stub
+    return false;
+  }
 
 }

@@ -19,8 +19,35 @@
 package rjc.table.view;
 
 import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.text.FontSmoothingType;
+
+/*************************************************************************************************/
+/****************** Canvas overlay for table-views (highlights selection etc) ********************/
+/*************************************************************************************************/
 
 public class TableOverlay extends Canvas
 {
+  private TableView       m_view;
+  private GraphicsContext m_gc;
 
+  final public static int MIN_COORD = -999;  // highlighting coordinate limit
+  final public static int MAX_COORD = 99999; // highlighting coordinate limit
+
+  /**************************************** constructor ******************************************/
+  public TableOverlay( TableView tableView )
+  {
+    // prepare canvas overlay
+    m_view = tableView;
+    m_gc = getGraphicsContext2D();
+
+    m_gc.setFontSmoothingType( FontSmoothingType.LCD );
+  }
+
+  /****************************************** redrawNow ******************************************/
+  public void redrawNow()
+  {
+    // clip overlay drawing to table body
+    // TODO
+  }
 }
