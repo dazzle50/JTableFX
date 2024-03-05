@@ -28,7 +28,9 @@ import rjc.table.view.axis.TableAxis;
 
 public class TableScrollBar extends ScrollBar
 {
-  private TableAxis m_axis; // associated table axis
+  private TableAxis       m_axis;    // associated table axis
+
+  final public static int SIZE = 18; // pixels
 
   /**************************************** constructor ******************************************/
   public TableScrollBar( TableAxis axis, Orientation orientation )
@@ -37,6 +39,19 @@ public class TableScrollBar extends ScrollBar
     m_axis = axis;
     setOrientation( orientation );
 
+    // set width/height
+    if ( orientation == Orientation.VERTICAL )
+    {
+      setMinWidth( SIZE );
+      setMinHeight( USE_PREF_SIZE );
+      setMaxHeight( USE_PREF_SIZE );
+    }
+    else
+    {
+      setMinWidth( USE_PREF_SIZE );
+      setMaxWidth( USE_PREF_SIZE );
+      setMinHeight( SIZE );
+    }
   }
 
 }

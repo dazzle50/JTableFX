@@ -73,6 +73,10 @@ public class TableView extends TableViewParent
     focusedProperty().addListener( ( observable, oldFocus, newFocus ) -> redraw() );
     visibleProperty().addListener( ( observable, oldVisibility, newVisibility ) -> redraw() );
 
+    // react to size changes (don't use layoutChildren as that gets called even when scrolling)
+    widthProperty().addListener( ( sender, msg ) -> layoutDisplay() );
+    heightProperty().addListener( ( sender, msg ) -> layoutDisplay() );
+
     // create the observable positions for focus & select
     m_focusCell = new ViewPosition( this );
     m_selectCell = new ViewPosition( this );
@@ -196,12 +200,13 @@ public class TableView extends TableViewParent
   }
 
   /**************************************** layoutDisplay ****************************************/
-  @Override
-  protected void layoutChildren()
+  protected void layoutDisplay()
   {
     // do nothing if not visible or width/height not set
     if ( !isVisible() || getWidth() == prefWidth( 0 ) || getHeight() == prefHeight( 0 ) )
       return;
+
+    Utils.trace( "===============", getId(), getWidth(), getHeight() );
 
     // determine which scroll-bars should be visible
     int tableHeight = m_canvas.getRowsAxis().getTotalPixels();

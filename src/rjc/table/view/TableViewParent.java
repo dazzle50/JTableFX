@@ -20,6 +20,8 @@ package rjc.table.view;
 
 import javafx.scene.Node;
 import javafx.scene.Parent;
+import rjc.table.signal.ObservableInteger;
+import rjc.table.signal.ObservableInteger.ReadOnlyInteger;
 
 /*************************************************************************************************/
 /****************************** JavaFX parent node for table views *******************************/
@@ -27,16 +29,16 @@ import javafx.scene.Parent;
 
 public class TableViewParent extends Parent
 {
-  private int m_height; // table node height
-  private int m_width;  // table node width
+  private ObservableInteger m_height = new ObservableInteger(); // table node height
+  private ObservableInteger m_width  = new ObservableInteger(); // table node width
 
   /******************************************* resize ********************************************/
   @Override
   public void resize( double width, double height )
   {
     // resize the table parent
-    m_width = (int) width;
-    m_height = (int) height;
+    m_width.set( (int) width );
+    m_height.set( (int) height );
   }
 
   /**************************************** isResizable ******************************************/
@@ -83,14 +85,28 @@ public class TableViewParent extends Parent
   public int getWidth()
   {
     // return table parent node width
-    return m_width;
+    return m_width.get();
   }
 
   /****************************************** getHeight ******************************************/
   public int getHeight()
   {
     // return table parent node height
-    return m_height;
+    return m_height.get();
+  }
+
+  /**************************************** widthProperty ****************************************/
+  public ReadOnlyInteger widthProperty()
+  {
+    // return table parent node width
+    return m_width.getReadOnly();
+  }
+
+  /**************************************** heightProperty ***************************************/
+  public ReadOnlyInteger heightProperty()
+  {
+    // return table parent node height
+    return m_height.getReadOnly();
   }
 
   /********************************************* add *********************************************/
