@@ -64,11 +64,23 @@ public class TableView extends TableViewParent
     m_verticalScrollBar = new TableScrollBar( m_canvas.getRowsAxis(), Orientation.VERTICAL );
     getChildren().addAll( m_canvas, m_canvas.getOverlay(), m_horizontalScrollBar, m_verticalScrollBar );
 
-    // handle zoom
+    // create observable zoom parameter, and tell the canvas axis
     m_zoom = new ObservableDouble( 1.0 );
     m_canvas.getColumnsAxis().setZoomProperty( m_zoom.getReadOnly() );
     m_canvas.getRowsAxis().setZoomProperty( m_zoom.getReadOnly() );
 
+    // create observable positions for focus & select, and cell-selection store
+    m_focusCell = new ViewPosition( this );
+    m_selectCell = new ViewPosition( this );
+    m_selection = new CellSelection( this );
+
+    // add event handlers
+    addEventHandlers();
+  }
+
+  /************************************** addEventHandlers ***************************************/
+  protected void addEventHandlers()
+  {
     // react to losing & gaining focus and visibility
     focusedProperty().addListener( ( observable, oldFocus, newFocus ) -> redraw() );
     visibleProperty().addListener( ( observable, oldVisibility, newVisibility ) -> redraw() );
@@ -77,12 +89,21 @@ public class TableView extends TableViewParent
     widthProperty().addListener( ( sender, msg ) -> layoutDisplay() );
     heightProperty().addListener( ( sender, msg ) -> layoutDisplay() );
 
-    // create the observable positions for focus & select
-    m_focusCell = new ViewPosition( this );
-    m_selectCell = new ViewPosition( this );
+    // react to scroll bar position value changes
+    m_horizontalScrollBar.valueProperty().addListener( ( observable, oldValue, newValue ) -> tableScrolled() );
+    m_verticalScrollBar.valueProperty().addListener( ( observable, oldValue, newValue ) -> tableScrolled() );
 
     // react to data model signals TODO
     m_data.addListener( ( sender, msg ) -> Utils.trace( sender, msg ) );
+  }
+
+  /**************************************** tableScrolled ****************************************/
+  private void tableScrolled()
+  {
+    // handle any actions needed due to view being modified usually scrolled
+    redraw();
+    // getMouseCell().checkXY();
+    // CellEditorBase.endEditing();
   }
 
   /******************************************* redraw ********************************************/
@@ -166,28 +187,28 @@ public class TableView extends TableViewParent
   public int getColumnStartX( int viewColumn )
   {
     // return x coordinate of cell start for specified column position
-    return 0; // TODO
+    return m_canvas.getColumnsAxis().getStartPixel( viewColumn, (int) getHorizontalScrollBar().getValue() );
   }
 
   /**************************************** getRowStartY *****************************************/
   public int getRowStartY( int viewRow )
   {
     // return y coordinate of cell start for specified row position
-    return 0; // TODO
+    return m_canvas.getRowsAxis().getStartPixel( viewRow, (int) getVerticalScrollBar().getValue() );
   }
 
   /*************************************** getColumnIndex ****************************************/
   public int getColumnIndex( int xCoordinate )
   {
     // return column index at specified x coordinate
-    return 0; // TODO
+    return m_canvas.getColumnsAxis().getIndexFromCoordinate( xCoordinate, (int) getHorizontalScrollBar().getValue() );
   }
 
   /***************************************** getRowIndex *****************************************/
   public int getRowIndex( int yCoordinate )
   {
     // return row index at specified y coordinate
-    return 0; // TODO
+    return m_canvas.getRowsAxis().getIndexFromCoordinate( yCoordinate, (int) getVerticalScrollBar().getValue() );
   }
 
   /**************************************** getCellDrawer ****************************************/

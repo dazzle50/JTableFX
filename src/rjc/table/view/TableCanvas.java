@@ -53,14 +53,50 @@ public class TableCanvas extends TableCanvasDraw
   public void widthChange( int oldWidth, int newWidth )
   {
     // only need to draw if new width is larger than old width
-    // TODO
+    if ( newWidth > oldWidth && isVisible() && oldWidth < m_columnsAxis.getTotalPixels() && getHeight() > 0.0 )
+    {
+      // clear background (+0.5 needed so anti-aliasing doesn't impact previous column)
+      getGraphicsContext2D().clearRect( oldWidth + 0.5, 0.0, newWidth, getHeight() );
+
+      // calculate which columns need to be redrawn
+      int minColumn = m_view.getColumnIndex( oldWidth );
+      if ( minColumn <= HEADER )
+        minColumn = m_view.getColumnIndex( m_columnsAxis.getHeaderPixels() );
+      int maxColumn = m_view.getColumnIndex( newWidth );
+      redrawColumnsNow( minColumn, maxColumn );
+
+      // check if row header needs to be redrawn
+      if ( oldWidth < m_columnsAxis.getHeaderPixels() )
+        redrawColumnNow( HEADER );
+
+      // draw table overlay
+      getOverlay().redrawNow();
+    }
   }
 
   /**************************************** heightChange *****************************************/
   public void heightChange( int oldHeight, int newHeight )
   {
     // only need to draw if new height is larger than old height
-    // TODO
+    if ( newHeight > oldHeight && isVisible() && oldHeight < m_rowsAxis.getTotalPixels() && getWidth() > 0.0 )
+    {
+      // clear background
+      getGraphicsContext2D().clearRect( 0.0, oldHeight + 0.5, getWidth(), newHeight );
+
+      // calculate which rows need to be redrawn, and redraw them
+      int minRow = m_view.getRowIndex( oldHeight );
+      if ( minRow <= HEADER )
+        minRow = m_view.getRowIndex( m_rowsAxis.getHeaderPixels() );
+      int maxRow = m_view.getRowIndex( newHeight );
+      redrawRowsNow( minRow, maxRow );
+
+      // check if column header needs to be redrawn
+      if ( oldHeight < m_rowsAxis.getHeaderPixels() )
+        redrawRowNow( HEADER );
+
+      // draw table overlay
+      getOverlay().redrawNow();
+    }
   }
 
   /*************************************** getColumnsAxis ****************************************/
@@ -75,6 +111,17 @@ public class TableCanvas extends TableCanvasDraw
   {
     // return rows (vertical) axis for cell heights & y-coordinates
     return m_rowsAxis;
+  }
+
+  /******************************************* resize ********************************************/
+  @Override
+  public void resize( double width, double height )
+  {
+    // resize the canvas and overlay
+    getOverlay().setWidth( width );
+    getOverlay().setHeight( height );
+    setWidth( width );
+    setHeight( height );
   }
 
 }

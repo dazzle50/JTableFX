@@ -200,7 +200,7 @@ public class TableCanvasDraw extends Canvas
   }
 
   /*************************************** redrawColumnNow ***************************************/
-  private void redrawColumnNow( int columnIndex )
+  protected void redrawColumnNow( int columnIndex )
   {
     // redraw visible bit of column including header
     CellDrawer cell = m_view.getCellDrawer();
@@ -243,7 +243,7 @@ public class TableCanvasDraw extends Canvas
   }
 
   /**************************************** redrawRowNow *****************************************/
-  private void redrawRowNow( int rowIndex )
+  protected void redrawRowNow( int rowIndex )
   {
     // redraw visible bit of row including header
     if ( isVisible() && rowIndex >= HEADER )
@@ -287,7 +287,7 @@ public class TableCanvasDraw extends Canvas
   }
 
   /************************************* redrawColumnsNow ****************************************/
-  private void redrawColumnsNow( int minColumn, int maxColumn )
+  protected void redrawColumnsNow( int minColumn, int maxColumn )
   {
     // redraw all table body columns between min and max column positions inclusive
     int max = m_view.getData().getColumnCount() - 1;
@@ -304,7 +304,7 @@ public class TableCanvasDraw extends Canvas
   }
 
   /*************************************** redrawRowsNow *****************************************/
-  private void redrawRowsNow( int minRow, int maxRow )
+  protected void redrawRowsNow( int minRow, int maxRow )
   {
     // redraw all table body rows between min and max row positions inclusive
     int max = m_view.getData().getRowCount() - 1;
