@@ -90,9 +90,10 @@ public class DemoContents extends GridPane
         ( observable, oldTab, newTab ) -> Platform.runLater( () -> ( newTab.getContent() ).requestFocus() ) );
 
     // create demo tab pane
-    tabs.getTabs().add( new DemoTableDefault() );
-    tabs.getTabs().add( new DemoTableLarge() );
-    tabs.getTabs().add( new DemoTableEditable() );
+    m_undostack = new UndoStack();
+    tabs.getTabs().add( new DemoTableDefault( m_undostack ) );
+    tabs.getTabs().add( new DemoTableLarge( m_undostack ) );
+    tabs.getTabs().add( new DemoTableEditable( m_undostack ) );
 
     return tabs;
   }

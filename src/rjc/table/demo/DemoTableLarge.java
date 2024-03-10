@@ -20,6 +20,7 @@ package rjc.table.demo;
 
 import javafx.scene.control.Tab;
 import rjc.table.data.TableData;
+import rjc.table.undo.UndoStack;
 import rjc.table.view.TableView;
 
 /*************************************************************************************************/
@@ -31,7 +32,7 @@ public class DemoTableLarge extends Tab
   private TableData m_data; // data for the table view
 
   /**************************************** constructor ******************************************/
-  public DemoTableLarge()
+  public DemoTableLarge( UndoStack undostack )
   {
     // create default table with default view
     m_data = new TableData();
@@ -39,6 +40,8 @@ public class DemoTableLarge extends Tab
     m_data.setRowCount( 1_000_000 );
 
     TableView view = new TableView( m_data, "Large" );
+    view.getCanvas().getColumnsAxis().setHeaderSize( 60 );
+    view.setUndostack( undostack );
 
     // make view only visible when tab is selected
     view.visibleProperty().bind( selectedProperty() );

@@ -21,6 +21,7 @@ package rjc.table.view;
 import javafx.geometry.Orientation;
 import rjc.table.Utils;
 import rjc.table.data.TableData;
+import rjc.table.data.TableData.Signal;
 import rjc.table.signal.ObservableDouble;
 import rjc.table.signal.ObservableStatus;
 import rjc.table.undo.UndoStack;
@@ -74,8 +75,9 @@ public class TableView extends TableViewParent
     m_selectCell = new ViewPosition( this );
     m_selection = new CellSelection( this );
 
-    // add event handlers
+    // add event handlers & reset table view to default settings
     addEventHandlers();
+    reset();
   }
 
   /************************************** addEventHandlers ***************************************/
@@ -83,7 +85,11 @@ public class TableView extends TableViewParent
   {
     // react to losing & gaining focus and visibility
     focusedProperty().addListener( ( observable, oldFocus, newFocus ) -> redraw() );
-    visibleProperty().addListener( ( observable, oldVisibility, newVisibility ) -> redraw() );
+    visibleProperty().addListener( ( observable, oldVisibility, newVisibility ) ->
+    {
+      layoutDisplay();
+      redraw();
+    } );
 
     // react to size changes (don't use layoutChildren as that gets called even when scrolling)
     widthProperty().addListener( ( sender, msg ) -> layoutDisplay() );
@@ -93,8 +99,19 @@ public class TableView extends TableViewParent
     m_horizontalScrollBar.valueProperty().addListener( ( observable, oldValue, newValue ) -> tableScrolled() );
     m_verticalScrollBar.valueProperty().addListener( ( observable, oldValue, newValue ) -> tableScrolled() );
 
-    // react to data model signals TODO
-    m_data.addListener( ( sender, msg ) -> Utils.trace( sender, msg ) );
+    // react to data model signals
+    m_data.addListener( ( sender, msg ) ->
+    {
+      Signal change = (Signal) msg[0];
+      if ( change == Signal.TABLE_VALUES_CHANGED )
+        redraw();
+      else if ( change == Signal.COLUMN_VALUES_CHANGED )
+        m_canvas.redrawColumn( (int) msg[1] );
+      else if ( change == Signal.ROW_VALUES_CHANGED )
+        m_canvas.redrawRow( (int) msg[1] );
+      else if ( change == Signal.CELL_VALUE_CHANGED )
+        m_canvas.redrawCell( (int) msg[1], (int) msg[2] );
+    } );
   }
 
   /**************************************** tableScrolled ****************************************/
@@ -104,6 +121,16 @@ public class TableView extends TableViewParent
     redraw();
     // getMouseCell().checkXY();
     // CellEditorBase.endEditing();
+  }
+
+  /******************************************** reset ********************************************/
+  public void reset()
+  {
+    // reset table view to default settings
+    m_canvas.getColumnsAxis().reset();
+    m_canvas.getRowsAxis().reset();
+    m_canvas.getRowsAxis().setDefaultSize( 20 );
+    m_canvas.getRowsAxis().setHeaderSize( 20 );
   }
 
   /******************************************* redraw ********************************************/

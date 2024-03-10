@@ -20,6 +20,7 @@ package rjc.table.demo;
 
 import javafx.scene.control.Tab;
 import rjc.table.data.TableData;
+import rjc.table.undo.UndoStack;
 import rjc.table.view.TableView;
 
 /*************************************************************************************************/
@@ -31,11 +32,12 @@ public class DemoTableEditable extends Tab
   private TableData m_data; // data for the table view
 
   /**************************************** constructor ******************************************/
-  public DemoTableEditable()
+  public DemoTableEditable( UndoStack undostack )
   {
     // create default table with default view
     m_data = new TableData();
     TableView view = new TableView( m_data, "Editable" );
+    view.setUndostack( undostack );
 
     // make view only visible when tab is selected
     view.visibleProperty().bind( selectedProperty() );

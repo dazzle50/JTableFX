@@ -18,14 +18,28 @@
 
 package rjc.table.undo;
 
+import javafx.scene.Scene;
 import javafx.stage.Stage;
+
+/*************************************************************************************************/
+/****************************** Window for undo-stack command list *******************************/
+/*************************************************************************************************/
 
 public class UndoStackWindow extends Stage
 {
 
-  public UndoStackWindow( UndoStack undostack )
+  /**************************************** constructor ******************************************/
+  public UndoStackWindow( UndoStack undoStack )
   {
-    // TODO Auto-generated constructor stub
+    // create undo-stack window
+    setTitle( "Undostack" );
+    setWidth( 250 );
+    setHeight( 300 );
+
+    // setup scene
+    UndoStackView control = new UndoStackView( undoStack );
+    Scene scene = new Scene( control );
+    setScene( scene );
   }
 
 }
