@@ -48,6 +48,13 @@ public class TableOverlay extends Canvas
     m_gc.setFontSmoothingType( FontSmoothingType.LCD );
   }
 
+  /******************************************* getView *******************************************/
+  public TableView getView()
+  {
+    // return the table-view for this overlay
+    return m_view;
+  }
+
   /****************************************** redrawNow ******************************************/
   public void redrawNow()
   {
@@ -55,11 +62,7 @@ public class TableOverlay extends Canvas
     m_gc.clearRect( 0.0, 0.0, getWidth(), getHeight() );
     m_gc.save();
     m_gc.beginPath();
-
-    int headerWidth = m_view.getCanvas().getColumnsAxis().getHeaderPixels();
-    int headerHeight = m_view.getCanvas().getRowsAxis().getHeaderPixels();
-    m_gc.rect( headerWidth - 1, headerHeight - 1, getWidth(), getHeight() );
-
+    m_gc.rect( m_view.getHeaderWidth() - 1, m_view.getHeaderHeight() - 1, getWidth(), getHeight() );
     m_gc.clip();
 
     // draw overlay

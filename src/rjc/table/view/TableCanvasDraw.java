@@ -179,8 +179,7 @@ public class TableCanvasDraw extends Canvas
     if ( isVisible() && getHeight() > 0.0 )
     {
       getGraphicsContext2D().clearRect( 0.0, 0.0, getWidth(), getHeight() );
-      int headerWidth = m_view.getCanvas().getColumnsAxis().getHeaderPixels();
-      int minColumnPos = m_view.getColumnIndex( headerWidth );
+      int minColumnPos = m_view.getColumnIndex( m_view.getHeaderWidth() );
       int maxColumnPos = m_view.getColumnIndex( (int) getWidth() );
       redrawColumnsNow( minColumnPos, maxColumnPos );
       redrawColumnNow( HEADER );
@@ -209,8 +208,7 @@ public class TableCanvasDraw extends Canvas
     cell.viewColumn = columnIndex;
 
     // calculate which rows are visible
-    int headerHeight = m_view.getCanvas().getRowsAxis().getHeaderPixels();
-    int minRow = m_view.getRowIndex( headerHeight );
+    int minRow = m_view.getRowIndex( m_view.getHeaderHeight() );
     int maxRow = m_view.getRowIndex( (int) getHeight() );
     cell.x = m_view.getColumnStartX( columnIndex );
     cell.w = m_view.getCanvas().getColumnsAxis().getIndexPixels( columnIndex );
@@ -238,7 +236,7 @@ public class TableCanvasDraw extends Canvas
     // redraw column header
     cell.viewRow = HEADER;
     cell.y = 0.0;
-    cell.h = headerHeight;
+    cell.h = m_view.getHeaderHeight();
     cell.draw();
   }
 
@@ -254,8 +252,7 @@ public class TableCanvasDraw extends Canvas
       cell.viewRow = rowIndex;
 
       // calculate which columns are visible
-      int headerWidth = m_view.getCanvas().getColumnsAxis().getHeaderPixels();
-      int minColumn = m_view.getColumnIndex( headerWidth );
+      int minColumn = m_view.getColumnIndex( m_view.getHeaderWidth() );
       int maxColumn = m_view.getColumnIndex( (int) getWidth() );
       cell.y = m_view.getRowStartY( rowIndex );
       cell.h = m_view.getCanvas().getRowsAxis().getIndexPixels( rowIndex );
@@ -281,7 +278,7 @@ public class TableCanvasDraw extends Canvas
       // redraw row header
       cell.viewColumn = HEADER;
       cell.x = 0.0;
-      cell.w = headerWidth;
+      cell.w = m_view.getHeaderWidth();
       cell.draw();
     }
   }

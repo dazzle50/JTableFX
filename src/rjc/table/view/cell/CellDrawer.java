@@ -41,8 +41,8 @@ public class CellDrawer extends CellStyle
       gc.rect( x, y, w, h );
     else
     {
-      int headerWidth = view.getCanvas().getColumnsAxis().getHeaderPixels();
-      int headerHeight = view.getCanvas().getRowsAxis().getHeaderPixels();
+      int headerWidth = view.getHeaderWidth();
+      int headerHeight = view.getHeaderHeight();
 
       double cx = x > headerWidth ? x : headerWidth;
       double cy = y > headerHeight ? y : headerHeight;

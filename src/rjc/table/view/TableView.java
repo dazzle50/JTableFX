@@ -18,37 +18,22 @@
 
 package rjc.table.view;
 
-import javafx.geometry.Orientation;
 import rjc.table.Utils;
 import rjc.table.data.TableData;
 import rjc.table.data.TableData.Signal;
-import rjc.table.signal.ObservableDouble;
-import rjc.table.signal.ObservableStatus;
-import rjc.table.undo.UndoStack;
 import rjc.table.view.cell.CellDrawer;
-import rjc.table.view.cell.CellSelection;
-import rjc.table.view.cell.ViewPosition;
+import rjc.table.view.events.KeyPressed;
+import rjc.table.view.events.KeyTyped;
+import rjc.table.view.events.MouseMoved;
 
 /*************************************************************************************************/
 /************** Base class for scrollable table-view to visualise a table-data model *************/
 /*************************************************************************************************/
 
-public class TableView extends TableViewParent
+public class TableView extends TableViewElements
 {
-  private TableData        m_data;
-
-  private TableCanvas      m_canvas;
-  private TableScrollBar   m_verticalScrollBar;
-  private TableScrollBar   m_horizontalScrollBar;
-
-  private CellDrawer       m_drawer;
-  private CellSelection    m_selection;
-  private UndoStack        m_undostack;
-  private ObservableStatus m_status;
-  private ObservableDouble m_zoom;
-
-  private ViewPosition     m_focusCell;
-  private ViewPosition     m_selectCell;
+  private TableData  m_data;
+  private CellDrawer m_drawer;
 
   /**************************************** constructor ******************************************/
   public TableView( TableData data, String name )
@@ -59,23 +44,8 @@ public class TableView extends TableViewParent
     m_data = data;
     setId( name );
 
-    // assemble the table-view components
-    m_canvas = new TableCanvas( this );
-    m_horizontalScrollBar = new TableScrollBar( m_canvas.getColumnsAxis(), Orientation.HORIZONTAL );
-    m_verticalScrollBar = new TableScrollBar( m_canvas.getRowsAxis(), Orientation.VERTICAL );
-    getChildren().addAll( m_canvas, m_canvas.getOverlay(), m_horizontalScrollBar, m_verticalScrollBar );
-
-    // create observable zoom parameter, and tell the canvas axis
-    m_zoom = new ObservableDouble( 1.0 );
-    m_canvas.getColumnsAxis().setZoomProperty( m_zoom.getReadOnly() );
-    m_canvas.getRowsAxis().setZoomProperty( m_zoom.getReadOnly() );
-
-    // create observable positions for focus & select, and cell-selection store
-    m_focusCell = new ViewPosition( this );
-    m_selectCell = new ViewPosition( this );
-    m_selection = new CellSelection( this );
-
     // add event handlers & reset table view to default settings
+    assembleElements();
     addEventHandlers();
     reset();
   }
@@ -96,8 +66,15 @@ public class TableView extends TableViewParent
     heightProperty().addListener( ( sender, msg ) -> layoutDisplay() );
 
     // react to scroll bar position value changes
-    m_horizontalScrollBar.valueProperty().addListener( ( observable, oldValue, newValue ) -> tableScrolled() );
-    m_verticalScrollBar.valueProperty().addListener( ( observable, oldValue, newValue ) -> tableScrolled() );
+    getHorizontalScrollBar().valueProperty().addListener( ( observable, oldValue, newValue ) -> tableScrolled() );
+    getVerticalScrollBar().valueProperty().addListener( ( observable, oldValue, newValue ) -> tableScrolled() );
+
+    // react to zoom values changes
+    getZoom().addListener( ( sender, msg ) ->
+    {
+      layoutDisplay();
+      tableScrolled();
+    } );
 
     // react to data model signals
     m_data.addListener( ( sender, msg ) ->
@@ -106,12 +83,28 @@ public class TableView extends TableViewParent
       if ( change == Signal.TABLE_VALUES_CHANGED )
         redraw();
       else if ( change == Signal.COLUMN_VALUES_CHANGED )
-        m_canvas.redrawColumn( (int) msg[1] );
+        getCanvas().redrawColumn( (int) msg[1] );
       else if ( change == Signal.ROW_VALUES_CHANGED )
-        m_canvas.redrawRow( (int) msg[1] );
+        getCanvas().redrawRow( (int) msg[1] );
       else if ( change == Signal.CELL_VALUE_CHANGED )
-        m_canvas.redrawCell( (int) msg[1], (int) msg[2] );
+        getCanvas().redrawCell( (int) msg[1], (int) msg[2] );
     } );
+
+    // react to keyboard events
+    setOnKeyPressed( new KeyPressed() );
+    setOnKeyTyped( new KeyTyped() );
+
+    // react to mouse events on table body top node (is the overlay)
+    var overlay = getCanvas().getOverlay();
+    overlay.setOnMouseMoved( new MouseMoved() );
+    // TODO overlay.setOnMouseClicked( new MouseClicked() );
+    // TODO overlay.setOnMousePressed( new MousePressed() );
+    // TODO overlay.setOnMouseReleased( new MouseReleased() );
+    // TODO overlay.setOnMouseExited( new MouseExited() );
+    // TODO overlay.setOnMouseEntered( new MouseEntered() );
+    // TODO overlay.setOnMouseDragged( new MouseDragged() );
+    // TODO overlay.setOnScroll( new MouseScroll() );
+    // TODO overlay.setOnContextMenuRequested( new ContextMenu() );
   }
 
   /**************************************** tableScrolled ****************************************/
@@ -127,10 +120,10 @@ public class TableView extends TableViewParent
   public void reset()
   {
     // reset table view to default settings
-    m_canvas.getColumnsAxis().reset();
-    m_canvas.getRowsAxis().reset();
-    m_canvas.getRowsAxis().setDefaultSize( 20 );
-    m_canvas.getRowsAxis().setHeaderSize( 20 );
+    getCanvas().getColumnsAxis().reset();
+    getCanvas().getRowsAxis().reset();
+    getCanvas().getRowsAxis().setDefaultSize( 20 );
+    getCanvas().getRowsAxis().setHeaderSize( 20 );
   }
 
   /******************************************* redraw ********************************************/
@@ -145,97 +138,6 @@ public class TableView extends TableViewParent
   {
     // return data model for table-view
     return m_data;
-  }
-
-  /**************************************** setUndostack *****************************************/
-  public void setUndostack( UndoStack undostack )
-  {
-    // set undo-stack for table-view
-    m_undostack = undostack == null ? new UndoStack() : undostack;
-  }
-
-  /***************************************** setStatus *******************************************/
-  public void setStatus( ObservableStatus status )
-  {
-    // set status for table-view
-    m_status = status == null ? new ObservableStatus() : status;
-  }
-
-  /****************************************** getZoom ********************************************/
-  public ObservableDouble getZoom()
-  {
-    // return observable zoom factor (1.0 is normal 100% size) for table-view
-    return m_zoom;
-  }
-
-  /**************************************** getFocusCell *****************************************/
-  public ViewPosition getFocusCell()
-  {
-    // return observable focus cell position on table-view
-    return m_focusCell;
-  }
-
-  /**************************************** getSelectCell ****************************************/
-  public ViewPosition getSelectCell()
-  {
-    // return observable select cell position on table-view
-    return m_selectCell;
-  }
-
-  /**************************************** getSelection *****************************************/
-  public CellSelection getSelection()
-  {
-    // return selection model for table-view
-    return m_selection;
-  }
-
-  /***************************************** getCanvas *******************************************/
-  public TableCanvas getCanvas()
-  {
-    // return canvas (shows table headers & body cells + BLANK excess space) for table-view
-    return m_canvas;
-  }
-
-  /*********************************** getHorizontalScrollBar ************************************/
-  public TableScrollBar getHorizontalScrollBar()
-  {
-    // return horizontal scroll bar (will not be visible if not needed) for table-view
-    return m_horizontalScrollBar;
-  }
-
-  /************************************ getVerticalScrollBar *************************************/
-  public TableScrollBar getVerticalScrollBar()
-  {
-    // return vertical scroll bar (will not be visible if not needed) for table-view
-    return m_verticalScrollBar;
-  }
-
-  /*************************************** getColumnStartX ***************************************/
-  public int getColumnStartX( int viewColumn )
-  {
-    // return x coordinate of cell start for specified column position
-    return m_canvas.getColumnsAxis().getStartPixel( viewColumn, (int) getHorizontalScrollBar().getValue() );
-  }
-
-  /**************************************** getRowStartY *****************************************/
-  public int getRowStartY( int viewRow )
-  {
-    // return y coordinate of cell start for specified row position
-    return m_canvas.getRowsAxis().getStartPixel( viewRow, (int) getVerticalScrollBar().getValue() );
-  }
-
-  /*************************************** getColumnIndex ****************************************/
-  public int getColumnIndex( int xCoordinate )
-  {
-    // return column index at specified x coordinate
-    return m_canvas.getColumnsAxis().getIndexFromCoordinate( xCoordinate, (int) getHorizontalScrollBar().getValue() );
-  }
-
-  /***************************************** getRowIndex *****************************************/
-  public int getRowIndex( int yCoordinate )
-  {
-    // return row index at specified y coordinate
-    return m_canvas.getRowsAxis().getIndexFromCoordinate( yCoordinate, (int) getVerticalScrollBar().getValue() );
   }
 
   /**************************************** getCellDrawer ****************************************/
@@ -257,8 +159,8 @@ public class TableView extends TableViewParent
     Utils.trace( "===============", getId(), getWidth(), getHeight() );
 
     // determine which scroll-bars should be visible
-    int tableHeight = m_canvas.getRowsAxis().getTotalPixels();
-    int tableWidth = m_canvas.getColumnsAxis().getTotalPixels();
+    int tableHeight = getTableHeight();
+    int tableWidth = getTableWidth();
     int scrollbarSize = (int) getVerticalScrollBar().getWidth();
 
     boolean isVSBvisible = getHeight() < tableHeight;
@@ -279,7 +181,7 @@ public class TableView extends TableViewParent
       double max = tableHeight - canvasHeight;
       sb.setMax( max );
       sb.setVisibleAmount( max * canvasHeight / tableHeight );
-      sb.setBlockIncrement( canvasHeight - m_canvas.getRowsAxis().getHeaderPixels() );
+      sb.setBlockIncrement( canvasHeight - getHeaderHeight() );
 
       if ( sb.getValue() > max )
         sb.setValue( max );
@@ -301,7 +203,7 @@ public class TableView extends TableViewParent
       double max = tableWidth - canvasWidth;
       sb.setMax( max );
       sb.setVisibleAmount( max * canvasWidth / tableWidth );
-      sb.setBlockIncrement( canvasWidth - m_canvas.getColumnsAxis().getHeaderPixels() );
+      sb.setBlockIncrement( canvasWidth - getHeaderWidth() );
 
       if ( sb.getValue() > max )
         sb.setValue( max );
@@ -313,7 +215,14 @@ public class TableView extends TableViewParent
     }
 
     // update canvas size (table + blank excess space)
-    m_canvas.resize( canvasWidth, canvasHeight );
+    getCanvas().resize( canvasWidth, canvasHeight );
+  }
+
+  /**************************************** getEventView *****************************************/
+  public static TableView getEventView( Object source )
+  {
+    // return the table-view from mouse event canvas-overlay source
+    return ( (TableOverlay) source ).getView();
   }
 
   /****************************************** toString *******************************************/
@@ -322,7 +231,7 @@ public class TableView extends TableViewParent
   {
     // return as string
     return getClass().getSimpleName() + "@" + Integer.toHexString( System.identityHashCode( this ) ) + "[ID=" + getId()
-        + " m_canvas=" + m_canvas + "]";
+        + " m_canvas=" + getCanvas() + "]";
   }
 
 }
