@@ -22,6 +22,7 @@ import javafx.application.Platform;
 import rjc.table.signal.ObservablePosition;
 import rjc.table.view.TableView;
 import rjc.table.view.axis.TableAxis;
+import rjc.table.view.cursor.Cursors;
 
 /*************************************************************************************************/
 /********************** Observable table-view cell position from mouse x-y ***********************/
@@ -168,7 +169,74 @@ public class MousePosition extends ObservablePosition
   /****************************************** setCursor ******************************************/
   private void setCursor()
   {
-    // TODO
+    // if over table headers corner, set cursor to default
+    int column = m_view.getMouseCell().getColumn();
+    int row = m_view.getMouseCell().getRow();
+
+    int headerHeight = m_view.getHeaderHeight();
+    int headerWidth = m_view.getHeaderWidth();
+
+    // if header corner cell
+    if ( m_x < headerWidth && m_y < headerHeight )
+    {
+      m_view.setCursor( Cursors.DEFAULT );
+      return;
+    }
+
+    // if beyond table cells, set cursor to default
+    if ( m_x >= m_view.getTableWidth() || m_y >= m_view.getTableHeight() )
+    {
+      m_view.setCursor( Cursors.DEFAULT );
+      return;
+    }
+
+    // if over column header, check if resize, move, or select
+    if ( m_y < headerHeight )
+    {
+      if ( ( m_x - m_cellXstart <= PROXIMITY && m_view.isColumnResizable( column - 1 ) )
+          || ( m_cellXend - m_x <= PROXIMITY && m_view.isColumnResizable( column ) ) )
+      {
+        m_view.setCursor( Cursors.H_RESIZE );
+        return;
+      }
+
+      // if column is selected, set cursor to move
+      if ( m_view.getSelection().isColumnSelected( column ) )
+      {
+        m_view.setCursor( Cursors.H_MOVE );
+        return;
+      }
+
+      // otherwise, set cursor to down-arrow for selecting
+      m_view.setCursor( Cursors.DOWNARROW );
+      return;
+    }
+
+    // if over vertical header, check if resize, move, or select
+    if ( m_x < headerWidth )
+    {
+      // if near row edge, set cursor to resize
+      if ( ( m_y - m_cellYstart <= PROXIMITY && m_view.isRowResizable( row - 1 ) )
+          || ( m_cellYend - m_y <= PROXIMITY && m_view.isRowResizable( row ) ) )
+      {
+        m_view.setCursor( Cursors.V_RESIZE );
+        return;
+      }
+
+      // if row is selected, set cursor to move
+      if ( m_view.getSelection().isRowSelected( row ) )
+      {
+        m_view.setCursor( Cursors.V_MOVE );
+        return;
+      }
+
+      // otherwise, set cursor to right-arrow for selecting
+      m_view.setCursor( Cursors.RIGHTARROW );
+      return;
+    }
+
+    // mouse over table body cells
+    m_view.setCursor( Cursors.CROSS );
   }
 
 }

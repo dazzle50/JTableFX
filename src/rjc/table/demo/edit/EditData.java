@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2023 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -16,37 +16,40 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.demo;
+package rjc.table.demo.edit;
 
-import javafx.scene.control.Tab;
+import rjc.table.data.IDataReorderRows;
 import rjc.table.data.TableData;
-import rjc.table.demo.edit.EditData;
-import rjc.table.undo.UndoStack;
-import rjc.table.view.TableView;
 
 /*************************************************************************************************/
-/********************** Demonstrates a table and view with editable values ***********************/
+/******************** Example customised table data source for editable table ********************/
 /*************************************************************************************************/
 
-public class DemoTableEditable extends Tab
+public class EditData extends TableData implements IDataReorderRows
 {
-  private TableData m_data; // data for the table view
+  public static final int SECTION_READONLY = 0;
+  public static final int SECTION_TEXT     = 1;
+  public static final int SECTION_INTEGER  = 2;
+  public static final int SECTION_DOUBLE   = 3;
+  public static final int SECTION_DATE     = 4;
+  public static final int SECTION_TIME     = 5;
+  public static final int SECTION_DATETIME = 6;
+  public static final int SECTION_CHOOSE   = 7;
+  public static final int SECTION_MAX      = SECTION_CHOOSE;
+
+  private final int       ROWS             = 30;
+
+  public enum Fruit
+  {
+    Apple, Banana, Pear, Plum, Orange, Cherry
+  }
 
   /**************************************** constructor ******************************************/
-  public DemoTableEditable( UndoStack undostack )
+  public EditData()
   {
-    // create default table with default view
-    m_data = new EditData();
-    TableView view = new TableView( m_data, "Editable" );
-    view.setUndostack( undostack );
-
-    // make view only visible when tab is selected
-    view.visibleProperty().bind( selectedProperty() );
-
-    // configure the tab
-    setText( view.getId() );
-    setClosable( false );
-    setContent( view );
+    // populate the private variables with table contents
+    setColumnCount( SECTION_MAX + 1 );
+    setRowCount( ROWS );
   }
 
 }

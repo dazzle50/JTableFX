@@ -16,37 +16,22 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.demo;
+package rjc.table.data;
 
-import javafx.scene.control.Tab;
-import rjc.table.data.TableData;
-import rjc.table.demo.edit.EditData;
-import rjc.table.undo.UndoStack;
-import rjc.table.view.TableView;
+import java.util.HashSet;
+
+import rjc.table.view.axis.AxisBase;
 
 /*************************************************************************************************/
-/********************** Demonstrates a table and view with editable values ***********************/
+/************************** Interface for reordering rows in table data **************************/
 /*************************************************************************************************/
 
-public class DemoTableEditable extends Tab
+public interface IDataReorderRows
 {
-  private TableData m_data; // data for the table view
-
-  /**************************************** constructor ******************************************/
-  public DemoTableEditable( UndoStack undostack )
+  /***************************************** reorderRows *****************************************/
+  default public int reorderRows( HashSet<Integer> fromIndexes, int insertIndex )
   {
-    // create default table with default view
-    m_data = new EditData();
-    TableView view = new TableView( m_data, "Editable" );
-    view.setUndostack( undostack );
-
-    // make view only visible when tab is selected
-    view.visibleProperty().bind( selectedProperty() );
-
-    // configure the tab
-    setText( view.getId() );
-    setClosable( false );
-    setContent( view );
+    // return start index of moved columns if reordering successful, otherwise return INVALID
+    return AxisBase.INVALID;
   }
-
 }

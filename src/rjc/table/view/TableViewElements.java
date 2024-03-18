@@ -193,4 +193,18 @@ public class TableViewElements extends TableViewParent
     return m_canvas.getColumnsAxis().getTotalPixels();
   }
 
+  /************************************** isColumnResizable **************************************/
+  public boolean isColumnResizable( int viewColumn )
+  {
+    // return if column is resizable
+    return true;
+  }
+
+  /*************************************** isRowResizable ****************************************/
+  public boolean isRowResizable( int viewRow )
+  {
+    // return if row is resizable
+    return true;
+  }
+
 }

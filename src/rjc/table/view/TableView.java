@@ -18,10 +18,12 @@
 
 package rjc.table.view;
 
-import rjc.table.Utils;
 import rjc.table.data.TableData;
 import rjc.table.data.TableData.Signal;
+import rjc.table.signal.ObservablePosition;
+import rjc.table.view.axis.TableAxis;
 import rjc.table.view.cell.CellDrawer;
+import rjc.table.view.cursor.Cursors;
 import rjc.table.view.events.KeyPressed;
 import rjc.table.view.events.KeyTyped;
 import rjc.table.view.events.MouseMoved;
@@ -68,6 +70,23 @@ public class TableView extends TableViewElements
     // react to scroll bar position value changes
     getHorizontalScrollBar().valueProperty().addListener( ( observable, oldValue, newValue ) -> tableScrolled() );
     getVerticalScrollBar().valueProperty().addListener( ( observable, oldValue, newValue ) -> tableScrolled() );
+
+    // react to select-cell position and changes to cell selections
+    getSelectCell().addLaterListener( ( sender, msg ) ->
+    {
+      getSelection().update();
+
+      // scroll to show select cell unless selecting using mouse which has its own scrolling behaviour
+      if ( getCursor() != Cursors.SELECTING_CELLS && getCursor() != Cursors.SELECTING_COLS
+          && getCursor() != Cursors.SELECTING_ROWS )
+        scrollTo( getSelectCell() );
+    } );
+    getSelection().addLaterListener( ( sender, msg ) ->
+    {
+      getCanvas().redrawColumn( TableAxis.HEADER );
+      getCanvas().redrawRow( TableAxis.HEADER );
+      getCanvas().redrawOverlay();
+    } );
 
     // react to zoom values changes
     getZoom().addListener( ( sender, msg ) ->
@@ -156,8 +175,6 @@ public class TableView extends TableViewElements
     if ( !isVisible() || getWidth() == prefWidth( 0 ) || getHeight() == prefHeight( 0 ) )
       return;
 
-    Utils.trace( "===============", getId(), getWidth(), getHeight() );
-
     // determine which scroll-bars should be visible
     int tableHeight = getTableHeight();
     int tableWidth = getTableWidth();
@@ -223,6 +240,19 @@ public class TableView extends TableViewElements
   {
     // return the table-view from mouse event canvas-overlay source
     return ( (TableOverlay) source ).getView();
+  }
+
+  /****************************************** scrollTo *******************************************/
+  public void scrollTo( ObservablePosition position )
+  {
+    // scroll view if necessary to show specified position
+    int column = position.getColumn();
+    if ( column >= TableAxis.FIRSTCELL && column < getData().getColumnCount() )
+      getHorizontalScrollBar().scrollToShowIndex( column );
+
+    int row = position.getRow();
+    if ( row >= TableAxis.FIRSTCELL && row < getData().getRowCount() )
+      getVerticalScrollBar().scrollToShowIndex( row );
   }
 
   /****************************************** toString *******************************************/

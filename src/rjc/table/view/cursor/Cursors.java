@@ -16,37 +16,35 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.demo;
+package rjc.table.view.cursor;
 
-import javafx.scene.control.Tab;
-import rjc.table.data.TableData;
-import rjc.table.demo.edit.EditData;
-import rjc.table.undo.UndoStack;
-import rjc.table.view.TableView;
+import javafx.scene.Cursor;
+import javafx.scene.ImageCursor;
+import javafx.scene.image.Image;
 
 /*************************************************************************************************/
-/********************** Demonstrates a table and view with editable values ***********************/
+/************************** Mouse cursors available for the table views **************************/
 /*************************************************************************************************/
 
-public class DemoTableEditable extends Tab
+public final class Cursors
 {
-  private TableData m_data; // data for the table view
+  public static final Cursor H_RESIZE        = Cursor.H_RESIZE;
+  public static final Cursor V_RESIZE        = Cursor.V_RESIZE;
+  public static final Cursor DEFAULT         = Cursor.DEFAULT;
 
-  /**************************************** constructor ******************************************/
-  public DemoTableEditable( UndoStack undostack )
+  public static final Cursor DOWNARROW       = makeCursor( "arrowdown.png", 7, 16 );
+  public static final Cursor SELECTING_COLS  = makeCursor( "arrowdown.png", 7, 16 );
+  public static final Cursor RIGHTARROW      = makeCursor( "arrowright.png", 16, 24 );
+  public static final Cursor SELECTING_ROWS  = makeCursor( "arrowright.png", 16, 24 );
+  public static final Cursor CROSS           = makeCursor( "cross.png", 16, 20 );
+  public static final Cursor SELECTING_CELLS = makeCursor( "cross.png", 16, 20 );
+  public static final Cursor H_MOVE          = makeCursor( "move.png", 16, 16 );
+  public static final Cursor V_MOVE          = makeCursor( "move.png", 16, 16 );
+
+  /***************************************** makeCursor ******************************************/
+  private static Cursor makeCursor( String file, int x, int y )
   {
-    // create default table with default view
-    m_data = new EditData();
-    TableView view = new TableView( m_data, "Editable" );
-    view.setUndostack( undostack );
-
-    // make view only visible when tab is selected
-    view.visibleProperty().bind( selectedProperty() );
-
-    // configure the tab
-    setText( view.getId() );
-    setClosable( false );
-    setContent( view );
+    // return a cursor based on image file with specified x & y hot spot
+    return new ImageCursor( new Image( Cursors.class.getResourceAsStream( file ) ), x, y );
   }
-
 }
