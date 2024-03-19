@@ -20,7 +20,7 @@ package rjc.table.demo;
 
 import javafx.scene.control.Tab;
 import rjc.table.data.TableData;
-import rjc.table.demo.edit.EditData;
+import rjc.table.demo.edit.TableDataEditable;
 import rjc.table.undo.UndoStack;
 import rjc.table.view.TableView;
 
@@ -35,8 +35,10 @@ public class DemoTableEditable extends Tab
   /**************************************** constructor ******************************************/
   public DemoTableEditable( UndoStack undostack )
   {
-    // create default table with default view
-    m_data = new EditData();
+    // create customised table
+    m_data = new TableDataEditable();
+
+    // create default view (but TODO)
     TableView view = new TableView( m_data, "Editable" );
     view.setUndostack( undostack );
 

@@ -83,26 +83,26 @@ public class TableData implements ISignal
   }
 
   /****************************************** getValue *******************************************/
-  public Object getValue( int columnIndex, int rowIndex )
+  public Object getValue( int dataColumn, int dataRow )
   {
     // return header corner cell value
-    if ( columnIndex == HEADER && rowIndex == HEADER )
+    if ( dataColumn == HEADER && dataRow == HEADER )
       return "-";
 
     // return row value for specified row index
-    if ( columnIndex == HEADER )
-      return "R" + rowIndex;
+    if ( dataColumn == HEADER )
+      return "R" + dataRow;
 
     // return column value for specified column index
-    if ( rowIndex == HEADER )
-      return "C" + columnIndex;
+    if ( dataRow == HEADER )
+      return "C" + dataColumn;
 
     // return cell value for specified cell index
-    return "{" + columnIndex + "," + rowIndex + "}";
+    return "{" + dataColumn + "," + dataRow + "}";
   }
 
   /****************************************** setValue *******************************************/
-  public String setValue( int columnIndex, int rowIndex, Object newValue, Boolean... check )
+  public String setValue( int dataColumn, int dataRow, Object newValue, Boolean... check )
   {
     // returns null if cell value successfully set to new-value for specified cell index
     // returns non-null reason description string if failed to set cell value
@@ -111,24 +111,24 @@ public class TableData implements ISignal
   }
 
   /************************************** signalCellChanged **************************************/
-  public void signalCellChanged( int column, int row )
+  public void signalCellChanged( int dataColumn, int dataRow )
   {
     // signal that a table cell value has changed (usually to trigger cell redraw)
-    signal( Signal.CELL_VALUE_CHANGED, column, row );
+    signal( Signal.CELL_VALUE_CHANGED, dataColumn, dataRow );
   }
 
   /************************************* signalColumnChanged *************************************/
-  public void signalColumnChanged( int column )
+  public void signalColumnChanged( int dataColumn )
   {
     // signal that table column values have changed (usually to trigger column redraw)
-    signal( Signal.COLUMN_VALUES_CHANGED, column );
+    signal( Signal.COLUMN_VALUES_CHANGED, dataColumn );
   }
 
   /*************************************** signalRowChanged **************************************/
-  public void signalRowChanged( int row )
+  public void signalRowChanged( int dataRow )
   {
     // signal that table row values have changed (usually to trigger row redraw)
-    signal( Signal.ROW_VALUES_CHANGED, row );
+    signal( Signal.ROW_VALUES_CHANGED, dataRow );
   }
 
   /************************************** signalTableChanged *************************************/

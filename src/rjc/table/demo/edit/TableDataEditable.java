@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2023 by Richard Crook                                   *
+ *  Copyright (C) 2024 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -18,38 +18,51 @@
 
 package rjc.table.demo.edit;
 
+import java.util.ArrayList;
+
 import rjc.table.data.IDataReorderRows;
 import rjc.table.data.TableData;
+import rjc.table.demo.edit.RowData.RowDataColumns;
 
 /*************************************************************************************************/
 /******************** Example customised table data source for editable table ********************/
 /*************************************************************************************************/
 
-public class EditData extends TableData implements IDataReorderRows
+public class TableDataEditable extends TableData implements IDataReorderRows
 {
-  public static final int SECTION_READONLY = 0;
-  public static final int SECTION_TEXT     = 1;
-  public static final int SECTION_INTEGER  = 2;
-  public static final int SECTION_DOUBLE   = 3;
-  public static final int SECTION_DATE     = 4;
-  public static final int SECTION_TIME     = 5;
-  public static final int SECTION_DATETIME = 6;
-  public static final int SECTION_CHOOSE   = 7;
-  public static final int SECTION_MAX      = SECTION_CHOOSE;
+  private final int          COLUMN_COUNT = RowDataColumns.MAX.ordinal();
+  private final int          ROW_COUNT    = 30;
 
-  private final int       ROWS             = 30;
-
-  public enum Fruit
-  {
-    Apple, Banana, Pear, Plum, Orange, Cherry
-  }
+  private ArrayList<RowData> m_rows       = new ArrayList<>();
 
   /**************************************** constructor ******************************************/
-  public EditData()
+  public TableDataEditable()
   {
     // populate the private variables with table contents
-    setColumnCount( SECTION_MAX + 1 );
-    setRowCount( ROWS );
+    setColumnCount( COLUMN_COUNT );
+    setRowCount( ROW_COUNT );
+
+    for ( int row = 0; row < ROW_COUNT; row++ )
+      m_rows.add( new RowData( row ) );
   }
 
+  /****************************************** getValue *******************************************/
+  @Override
+  public Object getValue( int dataColumn, int dataRow )
+  {
+    // return header corner cell value
+    if ( dataColumn == HEADER && dataRow == HEADER )
+      return null;
+
+    // return row value for specified row index
+    if ( dataColumn == HEADER )
+      return String.valueOf( dataRow + 1 );
+
+    // return column value for specified column index
+    if ( dataRow == HEADER )
+      return RowDataColumns.values()[dataColumn];
+
+    // return cell value for specified cell index
+    return m_rows.get( dataRow ).getValue( dataColumn );
+  }
 }

@@ -34,11 +34,12 @@ public class DemoTableLarge extends Tab
   /**************************************** constructor ******************************************/
   public DemoTableLarge( UndoStack undostack )
   {
-    // create default table with default view
+    // create default table (but with many rows & columns)
     m_data = new TableData();
     m_data.setColumnCount( 1_000_000 );
     m_data.setRowCount( 1_000_000 );
 
+    // create default view (but with slightly wider header column)
     TableView view = new TableView( m_data, "Large" );
     view.getCanvas().getColumnsAxis().setHeaderSize( 60 );
     view.setUndostack( undostack );
