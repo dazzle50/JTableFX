@@ -16,39 +16,41 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.demo;
+package rjc.table.demo.edit;
 
-import javafx.scene.control.Tab;
-import rjc.table.data.TableData;
-import rjc.table.demo.edit.TableDataEditable;
-import rjc.table.demo.edit.TableViewEditable;
-import rjc.table.undo.UndoStack;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import rjc.table.view.axis.TableAxis;
+import rjc.table.view.cell.CellDrawer;
 
 /*************************************************************************************************/
-/********************** Demonstrates a table and view with editable values ***********************/
+/******************************** Example customised cell drawer *********************************/
 /*************************************************************************************************/
 
-public class DemoTableEditable extends Tab
+public class CellDrawerEditable extends CellDrawer
 {
-  private TableData m_data; // data for the table view
+  protected final static Insets CELL_TEXT_INSERTS = new Insets( 0.0, 5.0, 1.0, 4.0 );
 
-  /**************************************** constructor ******************************************/
-  public DemoTableEditable( UndoStack undostack )
+  /************************************ getTextAlignment *************************************/
+  @Override
+  protected Pos getTextAlignment()
   {
-    // create customised table
-    m_data = new TableDataEditable();
+    // return left alignment for the two text columns
+    int dataColumn = getDataColumn();
+    if ( viewRow > TableAxis.HEADER )
+      if ( dataColumn == RowData.Column.ReadOnly.ordinal() || dataColumn == RowData.Column.Text.ordinal() )
+        return Pos.CENTER_LEFT;
 
-    // create customised view
-    TableViewEditable view = new TableViewEditable( m_data, "Editable" );
-    view.setUndostack( undostack );
+    // otherwise centre alignment
+    return Pos.CENTER;
+  }
 
-    // make view only visible when tab is selected
-    view.visibleProperty().bind( selectedProperty() );
-
-    // configure the tab
-    setText( view.getId() );
-    setClosable( false );
-    setContent( view );
+  /************************************** getTextInsets **************************************/
+  @Override
+  protected Insets getTextInsets()
+  {
+    // return cell text insets with wider right & left margins to give nicer look
+    return CELL_TEXT_INSERTS;
   }
 
 }

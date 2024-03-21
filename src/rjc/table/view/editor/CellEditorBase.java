@@ -16,39 +16,13 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.demo;
-
-import javafx.scene.control.Tab;
-import rjc.table.data.TableData;
-import rjc.table.demo.edit.TableDataEditable;
-import rjc.table.demo.edit.TableViewEditable;
-import rjc.table.undo.UndoStack;
+package rjc.table.view.editor;
 
 /*************************************************************************************************/
-/********************** Demonstrates a table and view with editable values ***********************/
+/****************************** Base class for a table cell editor *******************************/
 /*************************************************************************************************/
 
-public class DemoTableEditable extends Tab
+public class CellEditorBase
 {
-  private TableData m_data; // data for the table view
-
-  /**************************************** constructor ******************************************/
-  public DemoTableEditable( UndoStack undostack )
-  {
-    // create customised table
-    m_data = new TableDataEditable();
-
-    // create customised view
-    TableViewEditable view = new TableViewEditable( m_data, "Editable" );
-    view.setUndostack( undostack );
-
-    // make view only visible when tab is selected
-    view.visibleProperty().bind( selectedProperty() );
-
-    // configure the tab
-    setText( view.getId() );
-    setClosable( false );
-    setContent( view );
-  }
 
 }

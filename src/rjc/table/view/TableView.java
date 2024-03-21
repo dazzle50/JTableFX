@@ -23,7 +23,9 @@ import rjc.table.data.TableData.Signal;
 import rjc.table.signal.ObservablePosition;
 import rjc.table.view.axis.TableAxis;
 import rjc.table.view.cell.CellDrawer;
+import rjc.table.view.cell.CellLocation;
 import rjc.table.view.cursor.Cursors;
+import rjc.table.view.editor.CellEditorBase;
 import rjc.table.view.events.KeyPressed;
 import rjc.table.view.events.KeyTyped;
 import rjc.table.view.events.MouseMoved;
@@ -159,6 +161,13 @@ public class TableView extends TableViewElements
     return m_data;
   }
 
+  /**************************************** setCellDrawer ****************************************/
+  public void setCellDrawer( CellDrawer drawer )
+  {
+    // set class responsible for drawing the cells on canvas
+    m_drawer = drawer;
+  }
+
   /**************************************** getCellDrawer ****************************************/
   public CellDrawer getCellDrawer()
   {
@@ -166,6 +175,13 @@ public class TableView extends TableViewElements
     if ( m_drawer == null )
       m_drawer = new CellDrawer();
     return m_drawer;
+  }
+
+  /**************************************** getCellEditor ****************************************/
+  public CellEditorBase getCellEditor( CellLocation cell )
+  {
+    // return cell editor control (or null if cell is read-only)
+    return null;
   }
 
   /**************************************** layoutDisplay ****************************************/

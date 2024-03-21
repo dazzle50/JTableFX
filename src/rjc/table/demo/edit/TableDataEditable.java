@@ -22,7 +22,7 @@ import java.util.ArrayList;
 
 import rjc.table.data.IDataReorderRows;
 import rjc.table.data.TableData;
-import rjc.table.demo.edit.RowData.RowDataColumns;
+import rjc.table.demo.edit.RowData.Column;
 
 /*************************************************************************************************/
 /******************** Example customised table data source for editable table ********************/
@@ -30,7 +30,7 @@ import rjc.table.demo.edit.RowData.RowDataColumns;
 
 public class TableDataEditable extends TableData implements IDataReorderRows
 {
-  private final int          COLUMN_COUNT = RowDataColumns.MAX.ordinal();
+  private final int          COLUMN_COUNT = Column.MAX.ordinal();
   private final int          ROW_COUNT    = 30;
 
   private ArrayList<RowData> m_rows       = new ArrayList<>();
@@ -60,7 +60,7 @@ public class TableDataEditable extends TableData implements IDataReorderRows
 
     // return column value for specified column index
     if ( dataRow == HEADER )
-      return RowDataColumns.values()[dataColumn];
+      return Column.values()[dataColumn];
 
     // return cell value for specified cell index
     return m_rows.get( dataRow ).getValue( dataColumn );

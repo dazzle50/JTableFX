@@ -65,4 +65,25 @@ public class CellLocation
     h = view.getRowStartY( viewRowIndex + 1 ) - y;
   }
 
+  /**************************************** getDataColumn ****************************************/
+  public int getDataColumn()
+  {
+    // return data-model column for this cell
+    return view.getCanvas().getColumnsAxis().getDataIndex( viewColumn );
+  }
+
+  /***************************************** getDataRow ******************************************/
+  public int getDataRow()
+  {
+    // return data-model row for this cell
+    return view.getCanvas().getRowsAxis().getDataIndex( viewRow );
+  }
+
+  /****************************************** getData ********************************************/
+  public Object getData()
+  {
+    // return data-model object for this cell
+    return view.getData().getValue( getDataColumn(), getDataRow() );
+  }
+
 }

@@ -28,7 +28,7 @@ import rjc.table.data.types.Time;
 
 public class RowData
 {
-  public enum RowDataColumns
+  public enum Column
   {
     ReadOnly, Text, Integer, Double, Date, Time, DateTime, Select, MAX
   }
@@ -67,7 +67,7 @@ public class RowData
   public Object getValue( int dataColumn )
   {
     // return row value for specified column index
-    switch ( RowDataColumns.values()[dataColumn] )
+    switch ( Column.values()[dataColumn] )
     {
       case ReadOnly:
         return m_readonly;

@@ -33,30 +33,15 @@ import rjc.table.view.axis.TableAxis;
 
 public class CellStyle extends CellLocation
 {
+  // text insets to avoid the border lines (which are on right & bottom)
   protected final static Insets CELL_TEXT_INSERTS = new Insets( 0.0, 1.0, 1.0, 0.0 );
 
   /****************************************** getText ********************************************/
   protected String getText()
   {
     // return cell value as string
-    return getText( viewColumn, viewRow );
-  }
-
-  /****************************************** getText ********************************************/
-  public String getText( int viewColumn, int viewRow )
-  {
-    // return cell value as string for specified cell index
-    Object value = getData( viewColumn, viewRow );
+    Object value = getData();
     return value == null ? null : value.toString();
-  }
-
-  /****************************************** getData ********************************************/
-  public Object getData( int viewColumn, int viewRow )
-  {
-    // return data-model object for specified view index
-    int dataColumn = view.getCanvas().getColumnsAxis().getDataIndex( viewColumn );
-    int dataRow = view.getCanvas().getRowsAxis().getDataIndex( viewRow );
-    return view.getData().getValue( dataColumn, dataRow );
   }
 
   /************************************** getTextAlignment ***************************************/

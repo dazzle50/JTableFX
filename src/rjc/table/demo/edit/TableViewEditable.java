@@ -16,39 +16,49 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.demo;
+package rjc.table.demo.edit;
 
-import javafx.scene.control.Tab;
 import rjc.table.data.TableData;
-import rjc.table.demo.edit.TableDataEditable;
-import rjc.table.demo.edit.TableViewEditable;
-import rjc.table.undo.UndoStack;
+import rjc.table.view.TableView;
+import rjc.table.view.cell.CellLocation;
+import rjc.table.view.editor.CellEditorBase;
 
 /*************************************************************************************************/
-/********************** Demonstrates a table and view with editable values ***********************/
+/*********************** Example customised table view for editable table ************************/
 /*************************************************************************************************/
 
-public class DemoTableEditable extends Tab
+public class TableViewEditable extends TableView
 {
-  private TableData m_data; // data for the table view
 
   /**************************************** constructor ******************************************/
-  public DemoTableEditable( UndoStack undostack )
+  public TableViewEditable( TableData data, String name )
   {
-    // create customised table
-    m_data = new TableDataEditable();
+    // construct the table view
+    super( data, name );
+    setCellDrawer( new CellDrawerEditable() );
+  }
 
-    // create customised view
-    TableViewEditable view = new TableViewEditable( m_data, "Editable" );
-    view.setUndostack( undostack );
+  /******************************************** reset ********************************************/
+  @Override
+  public void reset()
+  {
+    // reset table view to custom settings
+    super.reset();
 
-    // make view only visible when tab is selected
-    view.visibleProperty().bind( selectedProperty() );
+    var axis = getCanvas().getColumnsAxis();
+    axis.setIndexSize( RowData.Column.ReadOnly.ordinal(), 120 );
+    axis.setIndexSize( RowData.Column.Text.ordinal(), 120 );
+    axis.setIndexSize( RowData.Column.Integer.ordinal(), 80 );
+    axis.setIndexSize( RowData.Column.Double.ordinal(), 80 );
+    axis.setIndexSize( RowData.Column.DateTime.ordinal(), 180 );
+  }
 
-    // configure the tab
-    setText( view.getId() );
-    setClosable( false );
-    setContent( view );
+  /**************************************** getCellEditor ****************************************/
+  @Override
+  public CellEditorBase getCellEditor( CellLocation cell )
+  {
+    // determine editor appropriate for cell
+    return null;
   }
 
 }

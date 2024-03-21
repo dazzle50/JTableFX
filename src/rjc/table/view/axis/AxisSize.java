@@ -177,6 +177,26 @@ public class AxisSize extends AxisBase implements IListener
     }
   }
 
+  /**************************************** setIndexSize *****************************************/
+  public void setIndexSize( int index, int newSize )
+  {
+    // check cell index is valid
+    if ( index < FIRSTCELL || index >= getCount() )
+      throw new IndexOutOfBoundsException( "Index=" + index + " but count=" + getCount() );
+
+    // make sure size is not below minimum
+    if ( newSize < m_minimumSize )
+      newSize = m_minimumSize;
+
+    // create a size exception (even if same as default)
+    int oldSize = m_sizeExceptions.getOrDefault( index, m_defaultSize );
+    m_sizeExceptions.put( index, newSize );
+
+    // if new size is different, update body size and truncate cell position start cache if needed
+    if ( newSize != oldSize )
+      truncatePixelCaches( index, zoom( newSize ) - zoom( oldSize ) );
+  }
+
   /*************************************** getTotalPixels ****************************************/
   public int getTotalPixels()
   {
