@@ -34,7 +34,7 @@ import rjc.table.view.events.MouseMoved;
 /************** Base class for scrollable table-view to visualise a table-data model *************/
 /*************************************************************************************************/
 
-public class TableView extends TableViewElements
+public class TableView extends TableViewAssemble
 {
   private TableData  m_data;
   private CellDrawer m_drawer;
@@ -49,9 +49,8 @@ public class TableView extends TableViewElements
     setId( name );
 
     // add event handlers & reset table view to default settings
-    assembleElements();
+    assembleView();
     addEventHandlers();
-    reset();
   }
 
   /************************************** addEventHandlers ***************************************/
@@ -135,16 +134,6 @@ public class TableView extends TableViewElements
     redraw();
     // getMouseCell().checkXY();
     // CellEditorBase.endEditing();
-  }
-
-  /******************************************** reset ********************************************/
-  public void reset()
-  {
-    // reset table view to default settings
-    getCanvas().getColumnsAxis().reset();
-    getCanvas().getRowsAxis().reset();
-    getCanvas().getRowsAxis().setDefaultSize( 20 );
-    getCanvas().getRowsAxis().setHeaderSize( 20 );
   }
 
   /******************************************* redraw ********************************************/

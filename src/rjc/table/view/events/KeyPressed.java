@@ -23,6 +23,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import rjc.table.Utils;
 import rjc.table.view.TableView;
+import rjc.table.view.action.Zoom;
 
 /*************************************************************************************************/
 /************************ Handles keyboard pressed events for table-view *************************/
@@ -57,11 +58,11 @@ public class KeyPressed implements EventHandler<KeyEvent>
       switch ( event.getCode() )
       {
         case Z: // undo command (Ctrl-Z)
-          // TODO m_view.getUndoStack().undo();
+          m_view.getUndoStack().undo();
           return;
 
         case Y: // redo command (Ctrl-Y)
-          // TODO m_view.getUndoStack().redo();
+          m_view.getUndoStack().redo();
           return;
 
         default:
@@ -82,17 +83,17 @@ public class KeyPressed implements EventHandler<KeyEvent>
     {
       case MINUS: // zoom out (Ctrl-minus)
       case SUBTRACT:
-        // TODO Zoom.setZoom( m_view, m_view.getZoom().get() / Math.pow( 2.0, 0.0625 ) );
+        Zoom.setZoom( m_view, m_view.getZoom().get() / Math.pow( 2.0, 1.0 / 16.0 ) );
         return true;
 
       case EQUALS: // zoom in (Ctrl-plus)
       case ADD:
-        // TODO Zoom.setZoom( m_view, m_view.getZoom().get() * Math.pow( 2.0, 0.0625 ) );
+        Zoom.setZoom( m_view, m_view.getZoom().get() * Math.pow( 2.0, 1.0 / 16.0 ) );
         return true;
 
       case DIGIT0: // reset zoom 1:1 (Ctrl-0)
       case NUMPAD0:
-        // TODO Zoom.setZoom( m_view, 1.0 );
+        Zoom.setZoom( m_view, 1.0 );
         return true;
 
       default:

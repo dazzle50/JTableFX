@@ -30,7 +30,7 @@ import rjc.table.view.cell.ViewPosition;
 /************** Base class for scrollable table-view to visualise a table-data model *************/
 /*************************************************************************************************/
 
-public class TableViewElements extends TableViewParent
+public class TableViewAssemble extends TableViewParent
 {
   private TableCanvas      m_canvas;
   private TableScrollBar   m_verticalScrollBar;
@@ -46,7 +46,7 @@ public class TableViewElements extends TableViewParent
   private MousePosition    m_mouseCell;
 
   /************************************** assembleElements ***************************************/
-  void assembleElements()
+  void assembleView()
   {
     // assemble the table-view components
     TableView view = (TableView) this;
@@ -65,6 +65,19 @@ public class TableViewElements extends TableViewParent
     m_focusCell = new ViewPosition( view );
     m_selectCell = new ViewPosition( view );
     m_selection = new CellSelection( view );
+
+    // call reset to set view to default settings
+    reset();
+  }
+
+  /******************************************** reset ********************************************/
+  public void reset()
+  {
+    // reset table view to default settings
+    getCanvas().getColumnsAxis().reset();
+    getCanvas().getRowsAxis().reset();
+    getCanvas().getRowsAxis().setDefaultSize( 20 );
+    getCanvas().getRowsAxis().setHeaderSize( 20 );
   }
 
   /**************************************** setUndostack *****************************************/
@@ -72,6 +85,15 @@ public class TableViewElements extends TableViewParent
   {
     // set undo-stack for table-view
     m_undostack = undostack == null ? new UndoStack() : undostack;
+  }
+
+  /***************************************** getUndoStack ****************************************/
+  public UndoStack getUndoStack()
+  {
+    // return undo-stack for table-view (create if necessary)
+    if ( m_undostack == null )
+      m_undostack = new UndoStack();
+    return m_undostack;
   }
 
   /***************************************** setStatus *******************************************/

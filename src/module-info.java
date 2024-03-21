@@ -6,5 +6,4 @@ module JTableFX
   requires javafx.controls;
 
   exports rjc.table.demo;
-  exports rjc.table.undo;
 }
