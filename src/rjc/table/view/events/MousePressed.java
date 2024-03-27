@@ -19,20 +19,64 @@
 package rjc.table.view.events;
 
 import javafx.scene.input.MouseEvent;
+import rjc.table.Utils;
+import rjc.table.view.cursor.Cursors;
 
 /*************************************************************************************************/
-/************************** Handles mouse move events from table-view ****************************/
+/********************** Handles mouse button pressed events from table-view **********************/
 /*************************************************************************************************/
 
-public class MouseMoved extends MouseEventHandler
+public class MousePressed extends MouseEventHandler
 {
   /******************************************* handle ********************************************/
   @Override
   public void handle( MouseEvent event )
   {
-    // update mouse cell position and cursor
+    // clear status, request focus & update mouse cell position and cursor
     super.handle( event );
+    view.requestFocus();
     mouse.setXY( x, y, true );
+
+    // depending on cursor
+    if ( cursor == Cursors.CROSS )
+      handleCrossCursor();
+    else if ( cursor == Cursors.H_RESIZE )
+      handleHortizontalResizeCursor();
+    else if ( cursor == Cursors.V_RESIZE )
+      handleVerticalResizeCursor();
+    else
+      Utils.trace( "Unhandled mouse pressed cursor " + cursor );
+  }
+
+  /********************************* handleVerticalResizeCursor **********************************/
+  private void handleVerticalResizeCursor()
+  {
+    // TODO Auto-generated method stub
+    Utils.trace( "V RESIZE " + cursor.toString() );
+  }
+
+  /******************************** handleHortizontalResizeCursor ********************************/
+  private void handleHortizontalResizeCursor()
+  {
+    // TODO Auto-generated method stub
+    Utils.trace( "H RESIZE " + cursor.toString() );
+  }
+
+  /************************************* handleCrossCursor ***************************************/
+  private void handleCrossCursor()
+  {
+    // clear previous selections unless shift xor control pressed
+    if ( shift == control )
+      view.getSelection().clear();
+
+    // update select & focus cell positions and selections
+    view.setCursor( Cursors.SELECTING_CELLS );
+    if ( !shift || control )
+    {
+      view.getSelection().select();
+      focus.setPosition( mouse );
+    }
+    select.setPosition( mouse );
   }
 
 }

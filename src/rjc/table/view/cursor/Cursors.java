@@ -47,4 +47,11 @@ public final class Cursors
     // return a cursor based on image file with specified x & y hot spot
     return new ImageCursor( new Image( Cursors.class.getResourceAsStream( file ) ), x, y );
   }
+
+  /***************************************** isSelecting *****************************************/
+  public static boolean isSelecting( Cursor cursor )
+  {
+    // return true is cursor is for selecting table cells/rows/columns
+    return cursor == SELECTING_CELLS || cursor == SELECTING_COLS || cursor == SELECTING_ROWS;
+  }
 }

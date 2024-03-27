@@ -18,21 +18,50 @@
 
 package rjc.table.view.events;
 
+import javafx.event.EventHandler;
+import javafx.scene.Cursor;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import rjc.table.view.TableView;
+import rjc.table.view.cell.MousePosition;
+import rjc.table.view.cell.ViewPosition;
 
 /*************************************************************************************************/
-/************************** Handles mouse move events from table-view ****************************/
+/***************************** Collect data for mouse event handlers *****************************/
 /*************************************************************************************************/
 
-public class MouseMoved extends MouseEventHandler
+public class MouseEventHandler implements EventHandler<MouseEvent>
 {
+  public int           x;
+  public int           y;
+  public TableView     view;
+  public MouseButton   button;
+  public ViewPosition  select;
+  public ViewPosition  focus;
+  public MousePosition mouse;
+  public Cursor        cursor;
+  public boolean       shift;
+  public boolean       control;
+  public boolean       alt;
+  public MouseEvent    event;
+
   /******************************************* handle ********************************************/
   @Override
-  public void handle( MouseEvent event )
+  public void handle( MouseEvent mouseEvent )
   {
-    // update mouse cell position and cursor
-    super.handle( event );
-    mouse.setXY( x, y, true );
+    // collect data for mouse event handlers
+    mouseEvent.consume();
+    x = (int) mouseEvent.getX();
+    y = (int) mouseEvent.getY();
+    view = TableView.getEventView( mouseEvent.getSource() );
+    button = mouseEvent.getButton();
+    select = view.getSelectCell();
+    focus = view.getFocusCell();
+    mouse = view.getMouseCell();
+    cursor = view.getCursor();
+    shift = mouseEvent.isShiftDown();
+    control = mouseEvent.isControlDown();
+    alt = mouseEvent.isAltDown();
+    event = mouseEvent;
   }
-
 }

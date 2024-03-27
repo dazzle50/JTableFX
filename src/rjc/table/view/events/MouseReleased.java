@@ -18,21 +18,32 @@
 
 package rjc.table.view.events;
 
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 
 /*************************************************************************************************/
-/************************** Handles mouse move events from table-view ****************************/
+/********************* Handles mouse button released events from table-view **********************/
 /*************************************************************************************************/
 
-public class MouseMoved extends MouseEventHandler
+public class MouseReleased extends MouseEventHandler
 {
   /******************************************* handle ********************************************/
   @Override
   public void handle( MouseEvent event )
   {
-    // update mouse cell position and cursor
+    // check for ending resize before updating cursor
     super.handle( event );
-    mouse.setXY( x, y, true );
+    if ( button == MouseButton.PRIMARY )
+    {
+      // check if ending resize column or row
+
+      // check if ending column/row reordering
+    }
+
+    // update mouse cell position and cursor
+    view.getMouseCell().setXY( x, y, true );
+    view.getHorizontalScrollBar().stopAnimationStartEnd();
+    view.getVerticalScrollBar().stopAnimationStartEnd();
   }
 
 }
