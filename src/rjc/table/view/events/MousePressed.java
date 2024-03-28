@@ -18,8 +18,10 @@
 
 package rjc.table.view.events;
 
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import rjc.table.Utils;
+import rjc.table.view.axis.TableAxis;
 import rjc.table.view.cursor.Cursors;
 
 /*************************************************************************************************/
@@ -37,6 +39,14 @@ public class MousePressed extends MouseEventHandler
     view.requestFocus();
     mouse.setXY( x, y, true );
 
+    // if primary mouse button not pressed, don't do anything else
+    if ( button != MouseButton.PRIMARY )
+      return;
+
+    // clear previous selections unless shift xor control pressed
+    if ( shift == control )
+      view.getSelection().clear();
+
     // depending on cursor
     if ( cursor == Cursors.CROSS )
       handleCrossCursor();
@@ -44,8 +54,42 @@ public class MousePressed extends MouseEventHandler
       handleHortizontalResizeCursor();
     else if ( cursor == Cursors.V_RESIZE )
       handleVerticalResizeCursor();
+    else if ( cursor == Cursors.DOWNARROW )
+      handleDownArrowCursor();
+    else if ( cursor == Cursors.RIGHTARROW )
+      handleRightArrowCursor();
     else
       Utils.trace( "Unhandled mouse pressed cursor " + cursor );
+  }
+
+  /************************************ handleDownArrowCursor ************************************/
+  private void handleDownArrowCursor()
+  {
+    // update select & focus cell positions and selections
+    view.setCursor( Cursors.SELECTING_COLS );
+    if ( !shift || control )
+    {
+      view.getSelection().select();
+      int topRow = view.getRowIndex( view.getHeaderHeight() );
+      focus.setPosition( mouse.getColumn(), topRow );
+      view.scrollTo( focus );
+    }
+    select.setPosition( mouse.getColumn(), TableAxis.AFTER );
+  }
+
+  /*********************************** handleRightArrowCursor ************************************/
+  private void handleRightArrowCursor()
+  {
+    // update select & focus cell positions and selections
+    view.setCursor( Cursors.SELECTING_ROWS );
+    if ( !shift || control )
+    {
+      view.getSelection().select();
+      int leftColumn = view.getColumnIndex( view.getHeaderWidth() );
+      focus.setPosition( leftColumn, mouse.getRow() );
+      view.scrollTo( focus );
+    }
+    select.setPosition( TableAxis.AFTER, mouse.getRow() );
   }
 
   /********************************* handleVerticalResizeCursor **********************************/
@@ -65,10 +109,6 @@ public class MousePressed extends MouseEventHandler
   /************************************* handleCrossCursor ***************************************/
   private void handleCrossCursor()
   {
-    // clear previous selections unless shift xor control pressed
-    if ( shift == control )
-      view.getSelection().clear();
-
     // update select & focus cell positions and selections
     view.setCursor( Cursors.SELECTING_CELLS );
     if ( !shift || control )

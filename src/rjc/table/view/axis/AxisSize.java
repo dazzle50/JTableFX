@@ -19,6 +19,7 @@
 package rjc.table.view.axis;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeSet;
@@ -35,7 +36,7 @@ import rjc.table.signal.ObservableInteger.ReadOnlyInteger;
 
 public class AxisSize extends AxisBase implements IListener
 {
-  // variables defining default & minimum cell size (width or height) equals pixels if zoom is 1.0
+  // variables defining nominal default & minimum cell size (width or height) equals pixels if zoom is 1.0
   private int                   m_defaultSize;
   private int                   m_minimumSize;
   private int                   m_headerSize;
@@ -106,6 +107,13 @@ public class AxisSize extends AxisBase implements IListener
   {
     // return header cell size in pixels
     return zoom( m_headerSize );
+  }
+
+  /*************************************** getDefaultSize ****************************************/
+  public int getDefaultSize()
+  {
+    // return default cell nominal size
+    return m_defaultSize;
   }
 
   /*************************************** setDefaultSize ****************************************/
@@ -322,6 +330,37 @@ public class AxisSize extends AxisBase implements IListener
     // truncate cache length if greater than specified new size
     if ( m_startPixelCache.size() > newCacheSize )
       m_startPixelCache.subList( newCacheSize, m_startPixelCache.size() ).clear();
+  }
+
+  /************************************** getSizeExceptions **************************************/
+  public Map<Integer, Integer> getSizeExceptions()
+  {
+    // return size exceptions
+    return Collections.unmodifiableMap( m_sizeExceptions );
+  }
+
+  /************************************* clearSizeExceptions *************************************/
+  public void clearSizeExceptions()
+  {
+    // clear all size exceptions
+    m_sizeExceptions.clear();
+    m_startPixelCache.clear();
+    m_totalPixelsCache.set( INVALID );
+  }
+
+  /*************************************** clearIndexSize ****************************************/
+  public void clearIndexSize( int cellIndex )
+  {
+    // check cell index is valid
+    if ( cellIndex < FIRSTCELL || cellIndex >= getCount() )
+      throw new IndexOutOfBoundsException( "cell index=" + cellIndex + " but count=" + getCount() );
+
+    // remove cell index size exception if exists
+    if ( m_sizeExceptions.remove( cellIndex ) != null )
+    {
+      m_totalPixelsCache.set( INVALID );
+      m_startPixelCache.clear();
+    }
   }
 
   /************************************** reorderExceptions **************************************/

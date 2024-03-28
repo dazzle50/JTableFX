@@ -251,7 +251,7 @@ public class TableView extends TableViewAssemble
   }
 
   /**************************************** layoutDisplay ****************************************/
-  protected void layoutDisplay()
+  public void layoutDisplay()
   {
     // do nothing if not visible or width/height not set
     if ( !isVisible() || getWidth() == prefWidth( 0 ) || getHeight() == prefHeight( 0 ) )
