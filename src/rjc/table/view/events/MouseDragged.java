@@ -21,6 +21,7 @@ package rjc.table.view.events;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import rjc.table.view.TableScrollBar;
+import rjc.table.view.action.Resize;
 import rjc.table.view.cursor.Cursors;
 
 /*************************************************************************************************/
@@ -44,6 +45,12 @@ public class MouseDragged extends MouseEventHandler
 
     // update mouse cell position
     mouse.setXY( x, y, false );
+
+    // check if resizing columns or rows
+    if ( cursor == Cursors.H_RESIZE )
+      Resize.drag( x );
+    if ( cursor == Cursors.V_RESIZE )
+      Resize.drag( y );
   }
 
   /************************************* horizontalScrolling *************************************/
@@ -76,7 +83,7 @@ public class MouseDragged extends MouseEventHandler
         || cursor == Cursors.SELECTING_ROWS;
 
     // update or stop view scrolling depending on mouse position
-    if ( scroll & y >= height && scrollbar.getValue() < scrollbar.getMax() )
+    if ( scroll && y >= height && scrollbar.getValue() < scrollbar.getMax() )
       scrollbar.scrollToEnd( y - height );
     else if ( scroll && y < header && scrollbar.getValue() > 0.0 )
       scrollbar.scrollToStart( header - y );

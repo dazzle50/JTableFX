@@ -20,6 +20,8 @@ package rjc.table.view.events;
 
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import rjc.table.view.action.Resize;
+import rjc.table.view.cursor.Cursors;
 
 /*************************************************************************************************/
 /********************* Handles mouse button released events from table-view **********************/
@@ -36,6 +38,8 @@ public class MouseReleased extends MouseEventHandler
     if ( button == MouseButton.PRIMARY )
     {
       // check if ending resize column or row
+      if ( cursor == Cursors.H_RESIZE || cursor == Cursors.V_RESIZE )
+        Resize.end();
 
       // check if ending column/row reordering
     }

@@ -59,7 +59,7 @@ public class CellDrawer extends CellStyle
   }
 
   /**************************************** drawUnclipped ****************************************/
-  public void drawUnclipped()
+  protected void drawUnclipped()
   {
     // draw table body or header cell
     drawBackground();

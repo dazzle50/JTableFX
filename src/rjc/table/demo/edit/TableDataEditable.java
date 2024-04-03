@@ -31,7 +31,7 @@ import rjc.table.demo.edit.RowData.Column;
 public class TableDataEditable extends TableData implements IDataReorderRows
 {
   private final int          COLUMN_COUNT = Column.MAX.ordinal();
-  private final int          ROW_COUNT    = 30;
+  private final int          ROW_COUNT    = 20;
 
   private ArrayList<RowData> m_rows       = new ArrayList<>();
 

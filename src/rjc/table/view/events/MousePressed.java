@@ -21,6 +21,7 @@ package rjc.table.view.events;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import rjc.table.Utils;
+import rjc.table.view.action.Resize;
 import rjc.table.view.axis.TableAxis;
 import rjc.table.view.cursor.Cursors;
 
@@ -39,31 +40,32 @@ public class MousePressed extends MouseEventHandler
     view.requestFocus();
     mouse.setXY( x, y, true );
 
+    // clear previous selections unless shift xor control pressed
+    if ( shift == control
+        && ( cursor == Cursors.CROSS || cursor == Cursors.DOWNARROW || cursor == Cursors.RIGHTARROW ) )
+      view.getSelection().clear();
+
     // if primary mouse button not pressed, don't do anything else
     if ( button != MouseButton.PRIMARY )
       return;
 
-    // clear previous selections unless shift xor control pressed
-    if ( shift == control )
-      view.getSelection().clear();
-
     // depending on cursor
     if ( cursor == Cursors.CROSS )
-      handleCrossCursor();
-    else if ( cursor == Cursors.H_RESIZE )
-      handleHortizontalResizeCursor();
-    else if ( cursor == Cursors.V_RESIZE )
-      handleVerticalResizeCursor();
+      startSelectingCells();
     else if ( cursor == Cursors.DOWNARROW )
-      handleDownArrowCursor();
+      startSelectingColumns();
     else if ( cursor == Cursors.RIGHTARROW )
-      handleRightArrowCursor();
+      startSelectingRows();
+    else if ( cursor == Cursors.H_RESIZE )
+      Resize.startColumns( view, x );
+    else if ( cursor == Cursors.V_RESIZE )
+      Resize.startRows( view, y );
     else
       Utils.trace( "Unhandled mouse pressed cursor " + cursor );
   }
 
-  /************************************ handleDownArrowCursor ************************************/
-  private void handleDownArrowCursor()
+  /************************************ startSelectingColumns ************************************/
+  private void startSelectingColumns()
   {
     // update select & focus cell positions and selections
     view.setCursor( Cursors.SELECTING_COLS );
@@ -77,8 +79,8 @@ public class MousePressed extends MouseEventHandler
     select.setPosition( mouse.getColumn(), TableAxis.AFTER );
   }
 
-  /*********************************** handleRightArrowCursor ************************************/
-  private void handleRightArrowCursor()
+  /************************************* startSelectingRows **************************************/
+  private void startSelectingRows()
   {
     // update select & focus cell positions and selections
     view.setCursor( Cursors.SELECTING_ROWS );
@@ -92,22 +94,8 @@ public class MousePressed extends MouseEventHandler
     select.setPosition( TableAxis.AFTER, mouse.getRow() );
   }
 
-  /********************************* handleVerticalResizeCursor **********************************/
-  private void handleVerticalResizeCursor()
-  {
-    // TODO Auto-generated method stub
-    Utils.trace( "V RESIZE " + cursor.toString() );
-  }
-
-  /******************************** handleHortizontalResizeCursor ********************************/
-  private void handleHortizontalResizeCursor()
-  {
-    // TODO Auto-generated method stub
-    Utils.trace( "H RESIZE " + cursor.toString() );
-  }
-
-  /************************************* handleCrossCursor ***************************************/
-  private void handleCrossCursor()
+  /************************************ startSelectingCells **************************************/
+  private void startSelectingCells()
   {
     // update select & focus cell positions and selections
     view.setCursor( Cursors.SELECTING_CELLS );
