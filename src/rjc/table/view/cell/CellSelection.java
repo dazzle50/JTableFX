@@ -250,6 +250,22 @@ public class CellSelection implements ISignal
     return false;
   }
 
+  /************************************* getResizableColumns **************************************/
+  public HashSet<Integer> getResizableColumns()
+  {
+    // return list of selected columns with non-resizable removed
+    var columns = getSelectedColumns();
+    if ( columns != null )
+    {
+      var column = columns.iterator();
+      while ( column.hasNext() )
+        if ( !m_view.isColumnResizable( column.next() ) )
+          column.remove();
+    }
+
+    return columns;
+  }
+
   /************************************* getSelectedColumns **************************************/
   public HashSet<Integer> getSelectedColumns()
   {
@@ -276,6 +292,22 @@ public class CellSelection implements ISignal
     }
 
     return columns;
+  }
+
+  /************************************** getResizableRows ***************************************/
+  public HashSet<Integer> getResizableRows()
+  {
+    // return list of selected rows with non-resizable removed
+    var rows = getSelectedRows();
+    if ( rows != null )
+    {
+      var row = rows.iterator();
+      while ( row.hasNext() )
+        if ( !m_view.isRowResizable( row.next() ) )
+          row.remove();
+    }
+
+    return rows;
   }
 
   /*************************************** getSelectedRows ***************************************/

@@ -179,7 +179,7 @@ public class MousePosition extends ObservablePosition
     // if header corner cell
     if ( m_x < headerWidth && m_y < headerHeight )
     {
-      m_view.setCursor( Cursors.DEFAULT );
+      m_view.setCursor( Cursors.CORNER_CELL );
       return;
     }
 

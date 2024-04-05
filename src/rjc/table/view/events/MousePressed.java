@@ -52,6 +52,8 @@ public class MousePressed extends MouseEventHandler
     // depending on cursor
     if ( cursor == Cursors.CROSS )
       startSelectingCells();
+    else if ( cursor == Cursors.CORNER_CELL )
+      view.getSelection().selectAll();
     else if ( cursor == Cursors.DOWNARROW )
       startSelectingColumns();
     else if ( cursor == Cursors.RIGHTARROW )

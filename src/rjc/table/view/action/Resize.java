@@ -51,7 +51,7 @@ public class Resize
     m_scrollbar = view.getHorizontalScrollBar();
 
     // if selected is "null" means all indexes selected
-    var selected = view.getSelection().getSelectedColumns();
+    var selected = view.getSelection().getResizableColumns();
     if ( selected == null )
       startAll( coordinate );
     else
@@ -67,7 +67,7 @@ public class Resize
     m_scrollbar = view.getVerticalScrollBar();
 
     // if selected is "null" means all indexes selected
-    var selected = view.getSelection().getSelectedRows();
+    var selected = view.getSelection().getResizableRows();
     if ( selected == null )
       startAll( coordinate );
     else
@@ -87,7 +87,7 @@ public class Resize
       selected.add( index );
 
     // count visible selected sections before and adjust offset
-    m_offset += m_axis.getStartPixel( index + 1, 0 );
+    m_offset = m_axis.getStartPixel( index + 1, 0 );
     m_before = 0;
     for ( int section : selected )
       if ( section <= index && m_axis.isIndexVisible( section ) )
@@ -108,10 +108,11 @@ public class Resize
   {
     // resizing all indexes, count visible sections before and including resize index
     int index = getSelectedIndex( coordinate );
+    m_offset = m_axis.getIndexPixels( TableAxis.HEADER );
+    m_before = 0;
     for ( int section = 0; section <= index; section++ )
       if ( m_axis.isIndexVisible( index ) )
         m_before++;
-    m_offset += m_axis.getIndexPixels( TableAxis.HEADER );
 
     // prepare resize command (if selected is null = all)
     m_command = new CommandResizeAll( m_view, m_axis );

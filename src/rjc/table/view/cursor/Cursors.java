@@ -31,6 +31,7 @@ public final class Cursors
   public static final Cursor H_RESIZE        = Cursor.H_RESIZE;
   public static final Cursor V_RESIZE        = Cursor.V_RESIZE;
   public static final Cursor DEFAULT         = Cursor.DEFAULT;
+  public static final Cursor CORNER_CELL     = Cursor.DISAPPEAR;
 
   public static final Cursor DOWNARROW       = makeCursor( "arrowdown.png", 7, 16 );
   public static final Cursor SELECTING_COLS  = makeCursor( "arrowdown.png", 7, 16 );

@@ -57,6 +57,10 @@ public class KeyPressed implements EventHandler<KeyEvent>
     if ( m_ctrl && !m_alt )
       switch ( event.getCode() )
       {
+        case A: // select whole table (Ctrl-A)
+          m_view.getSelection().selectAll();
+          return;
+
         case Z: // undo command (Ctrl-Z)
           m_view.getUndoStack().undo();
           return;
