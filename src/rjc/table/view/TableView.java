@@ -33,6 +33,7 @@ import rjc.table.view.events.MouseDragged;
 import rjc.table.view.events.MouseMoved;
 import rjc.table.view.events.MousePressed;
 import rjc.table.view.events.MouseReleased;
+import rjc.table.view.events.MouseScroll;
 
 /*************************************************************************************************/
 /************** Base class for scrollable table-view to visualise a table-data model *************/
@@ -129,7 +130,7 @@ public class TableView extends TableViewAssemble
     // TODO overlay.setOnMouseClicked( new MouseClicked() );
     // TODO overlay.setOnMouseExited( new MouseExited() );
     // TODO overlay.setOnMouseEntered( new MouseEntered() );
-    // TODO overlay.setOnScroll( new MouseScroll() );
+    overlay.setOnScroll( new MouseScroll() );
     // TODO overlay.setOnContextMenuRequested( new ContextMenu() );
   }
 

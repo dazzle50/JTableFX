@@ -103,6 +103,13 @@ public class TableViewAssemble extends TableViewParent
     m_status = status == null ? new ObservableStatus() : status;
   }
 
+  /***************************************** getStatus *******************************************/
+  public ObservableStatus getStatus()
+  {
+    // return status object for table-view
+    return m_status;
+  }
+
   /****************************************** getZoom ********************************************/
   public ObservableDouble getZoom()
   {

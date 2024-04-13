@@ -27,7 +27,6 @@ import rjc.table.view.axis.TableAxis;
 public class Selection
 {
   final static private int FIRSTCELL = TableAxis.FIRSTCELL;
-  final static private int AFTER     = TableAxis.AFTER;
 
   public int               c1;                             // smallest column index
   public int               r1;                             // smallest row index

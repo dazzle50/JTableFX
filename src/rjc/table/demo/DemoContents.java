@@ -40,7 +40,7 @@ import rjc.table.undo.UndoStackWindow;
 
 public class DemoContents extends GridPane
 {
-  private ObservableStatus m_status;     // status associated with status bar
+  private ObservableStatus m_status;     // shared status for whole demo application & shown on status bar
 
   private UndoStack        m_undostack;  // shared undostack for whole demo application
   private UndoStackWindow  m_undoWindow; // window to interact with undo-stack
@@ -82,18 +82,19 @@ public class DemoContents extends GridPane
   }
 
   /******************************************* getTabs *******************************************/
-  private Node getTabs()
+  private TabPane getTabs()
   {
     // when selected tab changes, request focus for the newly selected tab contents
     TabPane tabs = new TabPane();
     tabs.getSelectionModel().selectedItemProperty().addListener(
         ( observable, oldTab, newTab ) -> Platform.runLater( () -> ( newTab.getContent() ).requestFocus() ) );
 
-    // create demo tab pane
+    // create demo tabs with shared undostack & status
     m_undostack = new UndoStack();
-    tabs.getTabs().add( new DemoTableDefault( m_undostack ) );
-    tabs.getTabs().add( new DemoTableLarge( m_undostack ) );
-    tabs.getTabs().add( new DemoTableEditable( m_undostack ) );
+    m_status = new ObservableStatus();
+    tabs.getTabs().add( new DemoTableDefault( m_undostack, m_status ) );
+    tabs.getTabs().add( new DemoTableLarge( m_undostack, m_status ) );
+    tabs.getTabs().add( new DemoTableEditable( m_undostack, m_status ) );
 
     return tabs;
   }
@@ -102,7 +103,6 @@ public class DemoContents extends GridPane
   private TextField getStatusBar()
   {
     // create status-bar for displaying status messages
-    m_status = new ObservableStatus();
     TextField statusBar = new TextField();
     statusBar.setFocusTraversable( false );
     statusBar.setEditable( false );

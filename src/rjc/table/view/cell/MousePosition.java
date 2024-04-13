@@ -30,21 +30,19 @@ import rjc.table.view.cursor.Cursors;
 
 public class MousePosition extends ObservablePosition
 {
-  private TableView        m_view;                         // associated table-view
+  private TableView        m_view;                       // associated table-view
 
-  private int              m_x;                            // latest event mouse x coordinate
-  private int              m_y;                            // latest event mouse y coordinate
-  private int              m_cellXstart;                   // current mouse cell X start
-  private int              m_cellXend;                     // current mouse cell X end
-  private int              m_cellYstart;                   // current mouse cell Y start
-  private int              m_cellYend;                     // current mouse cell Y end
+  private int              m_x;                          // latest event mouse x coordinate
+  private int              m_y;                          // latest event mouse y coordinate
+  private int              m_cellXstart;                 // current mouse cell X start
+  private int              m_cellXend;                   // current mouse cell X end
+  private int              m_cellYstart;                 // current mouse cell Y start
+  private int              m_cellYend;                   // current mouse cell Y end
 
-  final static private int PROXIMITY = 4;                  // used to distinguish resize from reorder
+  final static private int PROXIMITY = 4;                // used to distinguish resize from reorder
 
   final static private int HEADER    = TableAxis.HEADER;
-  final static private int FIRSTCELL = TableAxis.FIRSTCELL;
   final static private int BEFORE    = TableAxis.BEFORE;
-  final static private int AFTER     = TableAxis.AFTER;
   final static private int INVALID   = TableAxis.INVALID;
 
   /**************************************** constructor ******************************************/

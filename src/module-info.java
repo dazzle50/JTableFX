@@ -7,4 +7,5 @@ module JTableFX
 
   exports rjc.table.demo;
   exports rjc.table.undo;
+  exports rjc.table.signal;
 }

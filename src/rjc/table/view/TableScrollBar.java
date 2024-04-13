@@ -21,6 +21,7 @@ package rjc.table.view;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
+import javafx.application.Platform;
 import javafx.geometry.Orientation;
 import javafx.scene.control.ScrollBar;
 import javafx.scene.input.MouseEvent;
@@ -130,6 +131,17 @@ public class TableScrollBar extends ScrollBar
     } );
     m_timeline.play();
     m_animation = Animation.TO_POSITION;
+  }
+
+  /************************************* laterScrollToValue **************************************/
+  public void laterScrollToValue( int newValue )
+  {
+    // finish any existing animation and scroll to new value (later)
+    Platform.runLater( () ->
+    {
+      finishAnimation();
+      scrollToValue( newValue, TableScrollBar.SCROLL_TO_DURATION );
+    } );
   }
 
   /***************************************** scrollToEnd *****************************************/

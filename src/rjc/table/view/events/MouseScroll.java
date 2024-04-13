@@ -16,38 +16,40 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.demo;
+package rjc.table.view.events;
 
-import javafx.scene.control.Tab;
-import rjc.table.data.TableData;
-import rjc.table.signal.ObservableStatus;
-import rjc.table.undo.UndoStack;
+import javafx.event.EventHandler;
+import javafx.scene.input.ScrollEvent;
 import rjc.table.view.TableView;
 
 /*************************************************************************************************/
-/**************************** Demonstrates the default table and view ****************************/
+/************************** Handles mouse scroll events from table-view **************************/
 /*************************************************************************************************/
 
-public class DemoTableDefault extends Tab
+public class MouseScroll implements EventHandler<ScrollEvent>
 {
-  private TableData m_data; // data for the table view
 
-  /**************************************** constructor ******************************************/
-  public DemoTableDefault( UndoStack undostack, ObservableStatus status )
+  /******************************************* handle ********************************************/
+  @Override
+  public void handle( ScrollEvent event )
   {
-    // create default table with default view
-    m_data = new TableData();
-    TableView view = new TableView( m_data, "Default" );
-    view.setUndostack( undostack );
-    view.setStatus( status );
+    // scroll up or down depending on mouse wheel scroll event
+    var view = TableView.getEventView( event.getSource() );
+    var scrollbar = view.getVerticalScrollBar();
 
-    // make view only visible when tab is selected
-    view.visibleProperty().bind( selectedProperty() );
-
-    // configure the tab
-    setText( view.getId() );
-    setClosable( false );
-    setContent( view );
+    if ( scrollbar.isVisible() )
+    {
+      if ( event.getDeltaY() > 0 )
+      {
+        scrollbar.finishAnimation();
+        scrollbar.decrement();
+      }
+      else
+      {
+        scrollbar.finishAnimation();
+        scrollbar.increment();
+      }
+    }
   }
 
 }
