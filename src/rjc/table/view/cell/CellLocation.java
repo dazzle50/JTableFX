@@ -69,14 +69,14 @@ public class CellLocation
   public int getDataColumn()
   {
     // return data-model column for this cell
-    return view.getCanvas().getColumnsAxis().getDataIndex( viewColumn );
+    return view.getColumnsAxis().getDataIndex( viewColumn );
   }
 
   /***************************************** getDataRow ******************************************/
   public int getDataRow()
   {
     // return data-model row for this cell
-    return view.getCanvas().getRowsAxis().getDataIndex( viewRow );
+    return view.getRowsAxis().getDataIndex( viewRow );
   }
 
   /****************************************** getData ********************************************/

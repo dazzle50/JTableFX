@@ -42,7 +42,7 @@ public class DemoTableLarge extends Tab
 
     // create default view (but with slightly wider header column)
     TableView view = new TableView( m_data, "Large" );
-    view.getCanvas().getColumnsAxis().setHeaderSize( 60 );
+    view.getColumnsAxis().setHeaderSize( 60 );
     view.setUndostack( undostack );
     view.setStatus( status );
 

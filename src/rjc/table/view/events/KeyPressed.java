@@ -234,31 +234,34 @@ public class KeyPressed implements EventHandler<KeyEvent>
     // scroll table down one page
     checkSelectToFocus();
     var scrollbar = m_view.getVerticalScrollBar();
-    var canvas = m_view.getCanvas();
-    int headerHeight = m_view.getHeaderHeight();
+    scrollbar.finishAnimation();
     int value = (int) scrollbar.getValue();
 
     if ( scrollbar.isVisible() && value < scrollbar.getMax() )
     {
       // bottom of table not visible
-      int newValue = value + (int) canvas.getHeight() - headerHeight;
-      int topIndex = m_view.getRowIndex( newValue );
+      var axis = m_view.getRowsAxis();
+      int header = m_view.getHeaderHeight();
+      int height = (int) m_view.getCanvas().getHeight();
+      int newTopRow = m_view.getRowIndex( height + 1 );
 
-      // make sure scroll down at least one row
-      if ( topIndex == m_view.getRowIndex( headerHeight ) )
-        topIndex = canvas.getRowsAxis().getNextVisible( topIndex );
-      newValue = m_view.getRowStartY( topIndex );
+      // ensure scroll down at least one row
+      if ( newTopRow == m_view.getRowIndex( header ) )
+        newTopRow = axis.getNextVisible( newTopRow );
+      int newValue = newTopRow < TableAxis.AFTER ? axis.getStartPixel( newTopRow, 0 ) - header
+          : (int) scrollbar.getMax();
 
       // determine new position for select cell
       m_view.getSelectCell().moveToVisible();
-      int selectY = m_view.getRowStartY( m_view.getSelectCell().getRow() );
-      selectY = selectY - value + newValue;
+      int row = m_view.getSelectCell().getRow();
+      int selectY = ( m_view.getRowStartY( row ) + m_view.getRowStartY( row + 1 ) ) / 2 + height - header;
       int newRow = m_view.getRowIndex( selectY );
       if ( newRow < TableAxis.AFTER )
         m_view.getSelectCell().setRow( newRow );
       else
-        m_view.getSelectCell().setRow( canvas.getRowsAxis().getLastVisible() );
+        m_view.getSelectCell().setRow( axis.getLastVisible() );
 
+      // scroll down
       checkFocusToSelect();
       scrollbar.laterScrollToValue( newValue );
     }
@@ -276,30 +279,36 @@ public class KeyPressed implements EventHandler<KeyEvent>
     // scroll table up one page
     checkSelectToFocus();
     var scrollbar = m_view.getVerticalScrollBar();
-    var canvas = m_view.getCanvas();
-    int headerHeight = m_view.getHeaderHeight();
+    scrollbar.finishAnimation();
     int value = (int) scrollbar.getValue();
 
-    if ( scrollbar.isVisible() && value > 0 )
+    if ( scrollbar.isVisible() && value > scrollbar.getMin() )
     {
       // top of table not visible
-      int newValue = value - (int) canvas.getHeight() + headerHeight;
-      int topIndex = m_view.getRowIndex( newValue );
-      newValue = m_view.getRowStartY( canvas.getRowsAxis().getNextVisible( topIndex ) );
-      if ( newValue < scrollbar.getMin() )
-        newValue = (int) scrollbar.getMin();
+      var axis = m_view.getRowsAxis();
+      int height = (int) m_view.getCanvas().getHeight();
+      int header = m_view.getHeaderHeight();
+      int oldTop = m_view.getRowIndex( header );
+      int newValue = Utils.clamp( value - height + header, (int) scrollbar.getMin(), (int) scrollbar.getMax() );
+      m_view.getSelectCell().moveToVisible();
+      int row = m_view.getSelectCell().getRow();
+      int selectY = ( m_view.getRowStartY( row ) + m_view.getRowStartY( row + 1 ) ) / 2;
+      scrollbar.setValue( newValue );
+      int newTop = m_view.getRowIndex( header );
+      if ( m_view.getRowStartY( newTop ) < header )
+        newTop = axis.getNextVisible( newTop );
+
+      // ensure scroll up at least one row
+      if ( oldTop == newTop )
+        newTop = axis.getPreviousVisible( newTop );
+      newValue = axis.getStartPixel( newTop, 0 ) - header;
 
       // determine new position for select cell
-      m_view.getSelectCell().moveToVisible();
-      int selectY = m_view.getRowStartY( m_view.getSelectCell().getRow() );
-      scrollbar.setValue( newValue );
       int newRow = m_view.getRowIndex( selectY );
+      m_view.getSelectCell().setRow( newRow );
       scrollbar.setValue( value );
-      if ( newRow > TableAxis.HEADER )
-        m_view.getSelectCell().setRow( newRow );
-      else
-        m_view.getSelectCell().setRow( canvas.getRowsAxis().getFirstVisible() );
 
+      // scroll up
       checkFocusToSelect();
       scrollbar.laterScrollToValue( newValue );
     }

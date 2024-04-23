@@ -18,8 +18,6 @@
 
 package rjc.table.view;
 
-import rjc.table.view.axis.TableAxis;
-
 /*************************************************************************************************/
 /************** Canvas showing the table headers & body cells + BLANK excess space ***************/
 /*************************************************************************************************/
@@ -28,18 +26,11 @@ public class TableCanvas extends TableCanvasDraw
 {
   private TableView m_view;
 
-  private TableAxis m_columnsAxis; // columns (horizontal) axis
-  private TableAxis m_rowsAxis;    // rows (vertical) axis
-
   /**************************************** constructor ******************************************/
   public TableCanvas( TableView view )
   {
     super( view );
     m_view = view;
-
-    // construct the table-axis
-    m_columnsAxis = new TableAxis( m_view.getData().columnCountProperty() );
-    m_rowsAxis = new TableAxis( m_view.getData().rowCountProperty() );
 
     // when canvas size changes draw new areas
     widthProperty().addListener( ( observable, oldW, newW ) -> widthChange( oldW.intValue(), newW.intValue() ) );
@@ -53,7 +44,7 @@ public class TableCanvas extends TableCanvasDraw
   public void widthChange( int oldWidth, int newWidth )
   {
     // only need to draw if new width is larger than old width
-    if ( newWidth > oldWidth && isVisible() && oldWidth < m_columnsAxis.getTotalPixels() && getHeight() > 0.0 )
+    if ( newWidth > oldWidth && isVisible() && oldWidth < m_view.getTableWidth() && getHeight() > 0.0 )
     {
       // clear background (+0.5 needed so anti-aliasing doesn't impact previous column)
       getGraphicsContext2D().clearRect( oldWidth + 0.5, 0.0, newWidth, getHeight() );
@@ -61,12 +52,12 @@ public class TableCanvas extends TableCanvasDraw
       // calculate which columns need to be redrawn
       int minColumn = m_view.getColumnIndex( oldWidth );
       if ( minColumn <= HEADER )
-        minColumn = m_view.getColumnIndex( m_columnsAxis.getHeaderPixels() );
+        minColumn = m_view.getColumnIndex( m_view.getHeaderWidth() );
       int maxColumn = m_view.getColumnIndex( newWidth );
       redrawColumnsNow( minColumn, maxColumn );
 
       // check if row header needs to be redrawn
-      if ( oldWidth < m_columnsAxis.getHeaderPixels() )
+      if ( oldWidth < m_view.getHeaderWidth() )
         redrawColumnNow( HEADER );
 
       // draw table overlay
@@ -78,7 +69,7 @@ public class TableCanvas extends TableCanvasDraw
   public void heightChange( int oldHeight, int newHeight )
   {
     // only need to draw if new height is larger than old height
-    if ( newHeight > oldHeight && isVisible() && oldHeight < m_rowsAxis.getTotalPixels() && getWidth() > 0.0 )
+    if ( newHeight > oldHeight && isVisible() && oldHeight < m_view.getTableHeight() && getWidth() > 0.0 )
     {
       // clear background
       getGraphicsContext2D().clearRect( 0.0, oldHeight + 0.5, getWidth(), newHeight );
@@ -86,31 +77,17 @@ public class TableCanvas extends TableCanvasDraw
       // calculate which rows need to be redrawn, and redraw them
       int minRow = m_view.getRowIndex( oldHeight );
       if ( minRow <= HEADER )
-        minRow = m_view.getRowIndex( m_rowsAxis.getHeaderPixels() );
+        minRow = m_view.getRowIndex( m_view.getHeaderHeight() );
       int maxRow = m_view.getRowIndex( newHeight );
       redrawRowsNow( minRow, maxRow );
 
       // check if column header needs to be redrawn
-      if ( oldHeight < m_rowsAxis.getHeaderPixels() )
+      if ( oldHeight < m_view.getHeaderHeight() )
         redrawRowNow( HEADER );
 
       // draw table overlay
       getOverlay().redrawNow();
     }
-  }
-
-  /*************************************** getColumnsAxis ****************************************/
-  public TableAxis getColumnsAxis()
-  {
-    // return columns (horizontal) axis for cell widths & x-coordinates
-    return m_columnsAxis;
-  }
-
-  /***************************************** getRowsAxis *****************************************/
-  public TableAxis getRowsAxis()
-  {
-    // return rows (vertical) axis for cell heights & y-coordinates
-    return m_rowsAxis;
   }
 
   /******************************************* resize ********************************************/

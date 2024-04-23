@@ -39,7 +39,7 @@ import rjc.table.view.events.MouseScroll;
 /************** Base class for scrollable table-view to visualise a table-data model *************/
 /*************************************************************************************************/
 
-public class TableView extends TableViewAssemble
+public class TableView extends TableViewComponents
 {
   private TableData  m_data;
   private CellDrawer m_drawer;
@@ -151,7 +151,7 @@ public class TableView extends TableViewAssemble
   private int checkColumnPosition()
   {
     // if mouse is beyond the table, limit to last visible column/row
-    var axis = getCanvas().getColumnsAxis();
+    var axis = getColumnsAxis();
     int column = Math.min( axis.getLastVisible(), getMouseCell().getColumn() );
 
     // if selecting rows ignore mouse column
@@ -177,7 +177,7 @@ public class TableView extends TableViewAssemble
   private int checkRowPosition()
   {
     // if mouse is beyond the table, limit to last visible column/row
-    var rowAxis = getCanvas().getRowsAxis();
+    var rowAxis = getRowsAxis();
     int row = Math.min( rowAxis.getLastVisible(), getMouseCell().getRow() );
 
     // if selecting columns ignore mouse row

@@ -105,7 +105,7 @@ public class CommandResize implements ICommandResize
     if ( m_text == null )
     {
       m_text = "Resized " + m_indexes.size();
-      m_text += m_axis == m_view.getCanvas().getColumnsAxis() ? " column" : " row";
+      m_text += m_axis == m_view.getColumnsAxis() ? " column" : " row";
       m_text += m_indexes.size() > 1 ? "s" : "";
 
       if ( m_view.getId() != null )

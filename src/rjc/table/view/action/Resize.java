@@ -47,7 +47,7 @@ public class Resize
   {
     // static method to support column resizing
     m_view = view;
-    m_axis = view.getCanvas().getColumnsAxis();
+    m_axis = view.getColumnsAxis();
     m_scrollbar = view.getHorizontalScrollBar();
 
     // if selected is "null" means all indexes selected
@@ -63,7 +63,7 @@ public class Resize
   {
     // static method to support row resizing
     m_view = view;
-    m_axis = view.getCanvas().getRowsAxis();
+    m_axis = view.getRowsAxis();
     m_scrollbar = view.getVerticalScrollBar();
 
     // if selected is "null" means all indexes selected

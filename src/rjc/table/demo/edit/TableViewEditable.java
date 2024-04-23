@@ -45,7 +45,7 @@ public class TableViewEditable extends TableView
     // reset table view to custom settings
     super.reset();
 
-    var axis = getCanvas().getColumnsAxis();
+    var axis = getColumnsAxis();
     axis.setIndexSize( RowData.Column.ReadOnly.ordinal(), 120 );
     axis.setIndexSize( RowData.Column.Text.ordinal(), 120 );
     axis.setIndexSize( RowData.Column.Integer.ordinal(), 80 );

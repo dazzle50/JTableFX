@@ -22,19 +22,23 @@ import javafx.geometry.Orientation;
 import rjc.table.signal.ObservableDouble;
 import rjc.table.signal.ObservableStatus;
 import rjc.table.undo.UndoStack;
+import rjc.table.view.axis.TableAxis;
 import rjc.table.view.cell.CellSelection;
 import rjc.table.view.cell.MousePosition;
 import rjc.table.view.cell.ViewPosition;
 
 /*************************************************************************************************/
-/************** Base class for scrollable table-view to visualise a table-data model *************/
+/************** Table-view components to visualise & interact with table-data model **************/
 /*************************************************************************************************/
 
-public class TableViewAssemble extends TableViewParent
+public class TableViewComponents extends TableViewParent
 {
   private TableCanvas      m_canvas;
   private TableScrollBar   m_verticalScrollBar;
   private TableScrollBar   m_horizontalScrollBar;
+
+  private TableAxis        m_columnsAxis;        // columns (horizontal) axis
+  private TableAxis        m_rowsAxis;           // rows (vertical) axis
 
   private UndoStack        m_undostack;
   private ObservableStatus m_status;
@@ -50,15 +54,17 @@ public class TableViewAssemble extends TableViewParent
   {
     // assemble the table-view components
     TableView view = (TableView) this;
+    m_columnsAxis = new TableAxis( view.getData().columnCountProperty() );
+    m_rowsAxis = new TableAxis( view.getData().rowCountProperty() );
     m_canvas = new TableCanvas( view );
-    m_horizontalScrollBar = new TableScrollBar( m_canvas.getColumnsAxis(), Orientation.HORIZONTAL );
-    m_verticalScrollBar = new TableScrollBar( m_canvas.getRowsAxis(), Orientation.VERTICAL );
+    m_horizontalScrollBar = new TableScrollBar( m_columnsAxis, Orientation.HORIZONTAL );
+    m_verticalScrollBar = new TableScrollBar( m_rowsAxis, Orientation.VERTICAL );
     getChildren().addAll( m_canvas, m_canvas.getOverlay(), m_horizontalScrollBar, m_verticalScrollBar );
 
     // create observable zoom parameter, and tell the canvas axis
     m_zoom = new ObservableDouble( 1.0 );
-    m_canvas.getColumnsAxis().setZoomProperty( m_zoom.getReadOnly() );
-    m_canvas.getRowsAxis().setZoomProperty( m_zoom.getReadOnly() );
+    m_columnsAxis.setZoomProperty( m_zoom.getReadOnly() );
+    m_rowsAxis.setZoomProperty( m_zoom.getReadOnly() );
 
     // create observable positions for mouse, focus & select, and cell-selection store
     m_mouseCell = new MousePosition( view );
@@ -74,10 +80,10 @@ public class TableViewAssemble extends TableViewParent
   public void reset()
   {
     // reset table view to default settings
-    getCanvas().getColumnsAxis().reset();
-    getCanvas().getRowsAxis().reset();
-    getCanvas().getRowsAxis().setDefaultSize( 20 );
-    getCanvas().getRowsAxis().setHeaderSize( 20 );
+    getColumnsAxis().reset();
+    getRowsAxis().reset();
+    getRowsAxis().setDefaultSize( 20 );
+    getRowsAxis().setHeaderSize( 20 );
   }
 
   /**************************************** setUndostack *****************************************/
@@ -152,6 +158,20 @@ public class TableViewAssemble extends TableViewParent
     return m_canvas;
   }
 
+  /*************************************** getColumnsAxis ****************************************/
+  public TableAxis getColumnsAxis()
+  {
+    // return columns (horizontal) axis for cell widths & x-coordinates
+    return m_columnsAxis;
+  }
+
+  /***************************************** getRowsAxis *****************************************/
+  public TableAxis getRowsAxis()
+  {
+    // return rows (vertical) axis for cell heights & y-coordinates
+    return m_rowsAxis;
+  }
+
   /*********************************** getHorizontalScrollBar ************************************/
   public TableScrollBar getHorizontalScrollBar()
   {
@@ -170,56 +190,56 @@ public class TableViewAssemble extends TableViewParent
   public int getColumnStartX( int viewColumn )
   {
     // return x coordinate of cell start for specified column position
-    return m_canvas.getColumnsAxis().getStartPixel( viewColumn, (int) getHorizontalScrollBar().getValue() );
+    return m_columnsAxis.getStartPixel( viewColumn, (int) getHorizontalScrollBar().getValue() );
   }
 
   /**************************************** getRowStartY *****************************************/
   public int getRowStartY( int viewRow )
   {
     // return y coordinate of cell start for specified row position
-    return m_canvas.getRowsAxis().getStartPixel( viewRow, (int) getVerticalScrollBar().getValue() );
+    return m_rowsAxis.getStartPixel( viewRow, (int) getVerticalScrollBar().getValue() );
   }
 
   /*************************************** getColumnIndex ****************************************/
   public int getColumnIndex( int xCoordinate )
   {
     // return column index at specified x coordinate
-    return m_canvas.getColumnsAxis().getIndexFromCoordinate( xCoordinate, (int) getHorizontalScrollBar().getValue() );
+    return m_columnsAxis.getIndexFromCoordinate( xCoordinate, (int) getHorizontalScrollBar().getValue() );
   }
 
   /***************************************** getRowIndex *****************************************/
   public int getRowIndex( int yCoordinate )
   {
     // return row index at specified y coordinate
-    return m_canvas.getRowsAxis().getIndexFromCoordinate( yCoordinate, (int) getVerticalScrollBar().getValue() );
+    return m_rowsAxis.getIndexFromCoordinate( yCoordinate, (int) getVerticalScrollBar().getValue() );
   }
 
   /*************************************** getHeaderHeight ***************************************/
   public int getHeaderHeight()
   {
     // return table header height in pixels
-    return m_canvas.getRowsAxis().getHeaderPixels();
+    return m_rowsAxis.getHeaderPixels();
   }
 
   /*************************************** getHeaderWidth ****************************************/
   public int getHeaderWidth()
   {
     // return table header width in pixels
-    return m_canvas.getColumnsAxis().getHeaderPixels();
+    return m_columnsAxis.getHeaderPixels();
   }
 
   /**************************************** getTableHeight ***************************************/
   public int getTableHeight()
   {
     // return whole table (including header) height in pixels
-    return m_canvas.getRowsAxis().getTotalPixels();
+    return m_rowsAxis.getTotalPixels();
   }
 
   /**************************************** getTableWidth ****************************************/
   public int getTableWidth()
   {
     // return whole table (including header) width in pixels
-    return m_canvas.getColumnsAxis().getTotalPixels();
+    return m_columnsAxis.getTotalPixels();
   }
 
   /************************************** isColumnResizable **************************************/

@@ -211,7 +211,7 @@ public class TableCanvasDraw extends Canvas
     int minRow = m_view.getRowIndex( m_view.getHeaderHeight() );
     int maxRow = m_view.getRowIndex( (int) getHeight() );
     cell.x = m_view.getColumnStartX( columnIndex );
-    cell.w = m_view.getCanvas().getColumnsAxis().getIndexPixels( columnIndex );
+    cell.w = m_view.getColumnsAxis().getIndexPixels( columnIndex );
     if ( cell.w == 0.0 )
       return;
 
@@ -255,7 +255,7 @@ public class TableCanvasDraw extends Canvas
       int minColumn = m_view.getColumnIndex( m_view.getHeaderWidth() );
       int maxColumn = m_view.getColumnIndex( (int) getWidth() );
       cell.y = m_view.getRowStartY( rowIndex );
-      cell.h = m_view.getCanvas().getRowsAxis().getIndexPixels( rowIndex );
+      cell.h = m_view.getRowsAxis().getIndexPixels( rowIndex );
 
       // redraw all body cells between min and max column positions inclusive
       int max = m_view.getData().getColumnCount() - 1;

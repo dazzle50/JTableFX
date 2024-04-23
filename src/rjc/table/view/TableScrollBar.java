@@ -204,7 +204,10 @@ public class TableScrollBar extends ScrollBar
   {
     // finish animation by jumping to end
     if ( m_timeline != null )
+    {
       m_timeline.jumpTo( "end" );
+      setValue( m_scrollingTo );
+    }
   }
 
   /**************************************** stopAnimation ****************************************/

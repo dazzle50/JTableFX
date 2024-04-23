@@ -186,7 +186,7 @@ public class CellSelection implements ISignal
   public boolean isColumnSelected( int columnIndex )
   {
     // return true if all visible cells in specified column are selected
-    TableAxis axis = m_view.getCanvas().getRowsAxis();
+    TableAxis axis = m_view.getRowsAxis();
     int top = axis.getFirstVisible();
     int bottom = axis.getLastVisible();
 
@@ -209,7 +209,7 @@ public class CellSelection implements ISignal
   public boolean isRowSelected( int rowIndex )
   {
     // return true if all visible cells in specified row are selected
-    TableAxis axis = m_view.getCanvas().getColumnsAxis();
+    TableAxis axis = m_view.getColumnsAxis();
     int left = axis.getFirstVisible();
     int right = axis.getLastVisible();
 
@@ -271,10 +271,10 @@ public class CellSelection implements ISignal
   {
     // return return list of selected columns, null = all, empty-set = none
     var columns = new HashSet<Integer>();
-    int first = m_view.getCanvas().getColumnsAxis().getFirstVisible();
-    int last = m_view.getCanvas().getColumnsAxis().getLastVisible();
-    int top = m_view.getCanvas().getRowsAxis().getFirstVisible();
-    int bottom = m_view.getCanvas().getRowsAxis().getLastVisible();
+    int first = m_view.getColumnsAxis().getFirstVisible();
+    int last = m_view.getColumnsAxis().getLastVisible();
+    int top = m_view.getRowsAxis().getFirstVisible();
+    int bottom = m_view.getRowsAxis().getLastVisible();
 
     // loop through the selected areas
     for ( var area : m_selected )
@@ -315,10 +315,10 @@ public class CellSelection implements ISignal
   {
     // return return list of selected rows, null = all, empty-set = none
     var rows = new HashSet<Integer>();
-    int first = m_view.getCanvas().getColumnsAxis().getFirstVisible();
-    int last = m_view.getCanvas().getColumnsAxis().getLastVisible();
-    int top = m_view.getCanvas().getRowsAxis().getFirstVisible();
-    int bottom = m_view.getCanvas().getRowsAxis().getLastVisible();
+    int first = m_view.getColumnsAxis().getFirstVisible();
+    int last = m_view.getColumnsAxis().getLastVisible();
+    int top = m_view.getRowsAxis().getFirstVisible();
+    int bottom = m_view.getRowsAxis().getLastVisible();
 
     // loop through the selected areas
     for ( var area : m_selected )
@@ -342,8 +342,8 @@ public class CellSelection implements ISignal
   public ArrayList<int[]> getAreas()
   {
     // return list of selected areas - used by CanvasOverlay to draw the highlighting
-    int maxColumn = m_view.getCanvas().getColumnsAxis().getCount() - 1;
-    int maxRow = m_view.getCanvas().getRowsAxis().getCount() - 1;
+    int maxColumn = m_view.getColumnsAxis().getCount() - 1;
+    int maxRow = m_view.getRowsAxis().getCount() - 1;
     var areas = new ArrayList<int[]>();
 
     // construct the list

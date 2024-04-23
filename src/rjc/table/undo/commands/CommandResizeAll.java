@@ -92,7 +92,7 @@ public class CommandResizeAll implements ICommandResize
     // command description
     if ( m_text == null )
     {
-      m_text = "Resized all" + ( m_axis == m_view.getCanvas().getColumnsAxis() ? " columns" : " rows" );
+      m_text = "Resized all" + ( m_axis == m_view.getColumnsAxis() ? " columns" : " rows" );
 
       if ( m_view.getId() != null )
         m_text = m_view.getId() + " - " + m_text;

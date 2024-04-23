@@ -41,8 +41,8 @@ public class ViewPosition extends ObservablePosition
   public Object getData()
   {
     // return data-model object for specified view index
-    int dataColumn = m_view.getCanvas().getColumnsAxis().getDataIndex( getColumn() );
-    int dataRow = m_view.getCanvas().getRowsAxis().getDataIndex( getRow() );
+    int dataColumn = m_view.getColumnsAxis().getDataIndex( getColumn() );
+    int dataRow = m_view.getRowsAxis().getDataIndex( getRow() );
     return m_view.getData().getValue( dataColumn, dataRow );
   }
 
@@ -50,16 +50,15 @@ public class ViewPosition extends ObservablePosition
   public boolean isVisible()
   {
     // return true if position is visible
-    return m_view.getCanvas().getColumnsAxis().isIndexVisible( getColumn() )
-        && m_view.getCanvas().getRowsAxis().isIndexVisible( getRow() );
+    return m_view.getColumnsAxis().isIndexVisible( getColumn() ) && m_view.getRowsAxis().isIndexVisible( getRow() );
   }
 
   /**************************************** moveToVisible ****************************************/
   public void moveToVisible()
   {
     // if position is not visible, move to a visible
-    int column = m_view.getCanvas().getColumnsAxis().getVisible( getColumn() );
-    int row = m_view.getCanvas().getRowsAxis().getVisible( getRow() );
+    int column = m_view.getColumnsAxis().getVisible( getColumn() );
+    int row = m_view.getRowsAxis().getVisible( getRow() );
     setPosition( column, row );
   }
 
@@ -67,8 +66,8 @@ public class ViewPosition extends ObservablePosition
   public void moveRight()
   {
     // move position right one visible column
-    int column = m_view.getCanvas().getColumnsAxis().getNextVisible( getColumn() );
-    int row = m_view.getCanvas().getRowsAxis().getVisible( getRow() );
+    int column = m_view.getColumnsAxis().getNextVisible( getColumn() );
+    int row = m_view.getRowsAxis().getVisible( getRow() );
     setPosition( column, row );
   }
 
@@ -76,8 +75,8 @@ public class ViewPosition extends ObservablePosition
   public void moveRightEdge()
   {
     // move position to right-most visible column
-    int column = m_view.getCanvas().getColumnsAxis().getLastVisible();
-    int row = m_view.getCanvas().getRowsAxis().getVisible( getRow() );
+    int column = m_view.getColumnsAxis().getLastVisible();
+    int row = m_view.getRowsAxis().getVisible( getRow() );
     setPosition( column, row );
   }
 
@@ -85,8 +84,8 @@ public class ViewPosition extends ObservablePosition
   public void moveLeft()
   {
     // move position left one visible column
-    int column = m_view.getCanvas().getColumnsAxis().getPreviousVisible( getColumn() );
-    int row = m_view.getCanvas().getRowsAxis().getVisible( getRow() );
+    int column = m_view.getColumnsAxis().getPreviousVisible( getColumn() );
+    int row = m_view.getRowsAxis().getVisible( getRow() );
     setPosition( column, row );
   }
 
@@ -94,8 +93,8 @@ public class ViewPosition extends ObservablePosition
   public void moveLeftEdge()
   {
     // move position to left-most visible column
-    int column = m_view.getCanvas().getColumnsAxis().getFirstVisible();
-    int row = m_view.getCanvas().getRowsAxis().getVisible( getRow() );
+    int column = m_view.getColumnsAxis().getFirstVisible();
+    int row = m_view.getRowsAxis().getVisible( getRow() );
     setPosition( column, row );
   }
 
@@ -103,8 +102,8 @@ public class ViewPosition extends ObservablePosition
   public void moveUp()
   {
     // move position up one visible row
-    int column = m_view.getCanvas().getColumnsAxis().getVisible( getColumn() );
-    int row = m_view.getCanvas().getRowsAxis().getPreviousVisible( getRow() );
+    int column = m_view.getColumnsAxis().getVisible( getColumn() );
+    int row = m_view.getRowsAxis().getPreviousVisible( getRow() );
     setPosition( column, row );
   }
 
@@ -112,8 +111,8 @@ public class ViewPosition extends ObservablePosition
   public void moveTop()
   {
     // move position to top-most visible row
-    int column = m_view.getCanvas().getColumnsAxis().getVisible( getColumn() );
-    int row = m_view.getCanvas().getRowsAxis().getFirstVisible();
+    int column = m_view.getColumnsAxis().getVisible( getColumn() );
+    int row = m_view.getRowsAxis().getFirstVisible();
     setPosition( column, row );
   }
 
@@ -121,8 +120,8 @@ public class ViewPosition extends ObservablePosition
   public void moveDown()
   {
     // move position down one visible row
-    int column = m_view.getCanvas().getColumnsAxis().getVisible( getColumn() );
-    int row = m_view.getCanvas().getRowsAxis().getNextVisible( getRow() );
+    int column = m_view.getColumnsAxis().getVisible( getColumn() );
+    int row = m_view.getRowsAxis().getNextVisible( getRow() );
     setPosition( column, row );
   }
 
@@ -130,8 +129,8 @@ public class ViewPosition extends ObservablePosition
   public void moveBottom()
   {
     // move position to bottom visible row
-    int column = m_view.getCanvas().getColumnsAxis().getVisible( getColumn() );
-    int row = m_view.getCanvas().getRowsAxis().getLastVisible();
+    int column = m_view.getColumnsAxis().getVisible( getColumn() );
+    int row = m_view.getRowsAxis().getLastVisible();
     setPosition( column, row );
   }
 
@@ -139,14 +138,14 @@ public class ViewPosition extends ObservablePosition
   public boolean isColumnAfter()
   {
     // return true if column position is after
-    return getColumn() >= m_view.getCanvas().getColumnsAxis().getCount();
+    return getColumn() >= m_view.getColumnsAxis().getCount();
   }
 
   /***************************************** isRowAfter ******************************************/
   public boolean isRowAfter()
   {
     // return true if row position is after
-    return getRow() >= m_view.getCanvas().getRowsAxis().getCount();
+    return getRow() >= m_view.getRowsAxis().getCount();
   }
 
 }
