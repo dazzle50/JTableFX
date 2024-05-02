@@ -1,4 +1,3 @@
-
 /**************************************************************************
  *  Copyright (C) 2024 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *

@@ -29,6 +29,7 @@ import rjc.table.view.cursor.Cursors;
 import rjc.table.view.editor.CellEditorBase;
 import rjc.table.view.events.KeyPressed;
 import rjc.table.view.events.KeyTyped;
+import rjc.table.view.events.MouseClicked;
 import rjc.table.view.events.MouseDragged;
 import rjc.table.view.events.MouseMoved;
 import rjc.table.view.events.MousePressed;
@@ -127,11 +128,8 @@ public class TableView extends TableViewComponents
     overlay.setOnMousePressed( new MousePressed() );
     overlay.setOnMouseDragged( new MouseDragged() );
     overlay.setOnMouseReleased( new MouseReleased() );
-    // TODO overlay.setOnMouseClicked( new MouseClicked() );
-    // TODO overlay.setOnMouseExited( new MouseExited() );
-    // TODO overlay.setOnMouseEntered( new MouseEntered() );
+    overlay.setOnMouseClicked( new MouseClicked() );
     overlay.setOnScroll( new MouseScroll() );
-    // TODO overlay.setOnContextMenuRequested( new ContextMenu() );
   }
 
   /************************************* checkSelectPosition *************************************/
@@ -240,7 +238,7 @@ public class TableView extends TableViewComponents
   {
     // return class responsible for drawing the cells on canvas
     if ( m_drawer == null )
-      m_drawer = new CellDrawer();
+      m_drawer = new CellDrawer( this );
     return m_drawer;
   }
 
@@ -249,6 +247,24 @@ public class TableView extends TableViewComponents
   {
     // return cell editor control (or null if cell is read-only)
     return null;
+  }
+
+  /***************************************** openEditor ******************************************/
+  public void openEditor()
+  {
+    // open editor for focus cell with current value
+    openEditor( getFocusCell().getData() );
+  }
+
+  /***************************************** openEditor ******************************************/
+  public void openEditor( Object value )
+  {
+    // open editor for focus cell with specified value
+    var cell = getCellDrawer();
+    cell.setIndex( getFocusCell().getColumn(), getFocusCell().getRow() );
+    var editor = getCellEditor( cell );
+    if ( editor != null )
+      editor.open( value, cell );
   }
 
   /**************************************** layoutDisplay ****************************************/

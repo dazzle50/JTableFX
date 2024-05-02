@@ -38,23 +38,23 @@ public class CellLocation
   public double          h;          // height of cell on canvas
 
   /**************************************** constructor ******************************************/
-  public CellLocation()
+  protected CellLocation()
   {
-    // create empty table cell location
+    // create empty table cell location - protected, don't use
   }
 
   /**************************************** constructor ******************************************/
   public CellLocation( TableView view, int viewColumnIndex, int viewRowIndex )
   {
     // create new table cell location
-    setIndex( view, viewColumnIndex, viewRowIndex );
+    this.view = view;
+    setIndex( viewColumnIndex, viewRowIndex );
   }
 
   /****************************************** setIndex *******************************************/
-  public void setIndex( TableView view, int viewColumnIndex, int viewRowIndex )
+  public void setIndex( int viewColumnIndex, int viewRowIndex )
   {
     // set cell location for cell index
-    this.view = view;
     this.viewColumn = viewColumnIndex;
     this.viewRow = viewRowIndex;
 

@@ -16,54 +16,49 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.demo.edit;
+package rjc.table.view.editor;
 
-import rjc.table.data.TableData;
-import rjc.table.view.TableView;
-import rjc.table.view.cell.CellLocation;
-import rjc.table.view.editor.CellEditorBase;
-import rjc.table.view.editor.EditorText;
+import rjc.table.control.XTextField;
 
 /*************************************************************************************************/
-/*********************** Example customised table view for editable table ************************/
+/******************************* Table cell editor for simple text *******************************/
 /*************************************************************************************************/
 
-public class TableViewEditable extends TableView
+public class EditorText extends CellEditorBase
 {
+  private XTextField editor = new XTextField();
 
   /**************************************** constructor ******************************************/
-  public TableViewEditable( TableData data, String name )
+  public EditorText()
   {
-    // construct the table view
-    super( data, name );
-    setCellDrawer( new CellDrawerEditable() );
+    // create text table cell editor
+    super();
+    setControl( editor );
   }
 
-  /******************************************** reset ********************************************/
+  /******************************************* getValue ******************************************/
   @Override
-  public void reset()
+  public Object getValue()
   {
-    // reset table view to custom settings
-    super.reset();
-
-    var axis = getColumnsAxis();
-    axis.setIndexSize( RowData.Column.ReadOnly.ordinal(), 120 );
-    axis.setIndexSize( RowData.Column.Text.ordinal(), 120 );
-    axis.setIndexSize( RowData.Column.Integer.ordinal(), 80 );
-    axis.setIndexSize( RowData.Column.Double.ordinal(), 80 );
-    axis.setIndexSize( RowData.Column.DateTime.ordinal(), 180 );
+    // get editor text
+    return editor.getText();
   }
 
-  /**************************************** getCellEditor ****************************************/
+  /******************************************* setValue ******************************************/
   @Override
-  public CellEditorBase getCellEditor( CellLocation cell )
+  public void setValue( Object value )
   {
-    // determine editor appropriate for cell
-    int column = cell.getDataColumn();
-    if ( column == RowData.Column.Text.ordinal() )
-      return new EditorText();
+    // set editor text
+    String str = value == null ? "" : value.toString();
+    editor.setText( str );
+    editor.positionCaret( str.length() );
+  }
 
-    return null;
+  /****************************************** setAllowed *****************************************/
+  public void setAllowed( String regex )
+  {
+    // regular expression that limits what can be entered into editor
+    editor.setAllowed( regex );
   }
 
 }

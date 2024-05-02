@@ -18,57 +18,50 @@
 
 package rjc.table.view.events;
 
-import javafx.event.EventHandler;
-import javafx.scene.input.KeyEvent;
-import rjc.table.view.TableView;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
+import rjc.table.Utils;
+import rjc.table.view.cursor.Cursors;
 
 /*************************************************************************************************/
-/************************* Handles keyboard typed events for table-view **************************/
+/************************* Handles mouse clicked events from table-view **************************/
 /*************************************************************************************************/
 
-public class KeyTyped implements EventHandler<KeyEvent>
+public class MouseClicked extends MouseEventHandler
 {
-
   /******************************************* handle ********************************************/
   @Override
-  public void handle( KeyEvent event )
+  public void handle( MouseEvent event )
   {
-    // user typed using keyboard
-    event.consume();
-    var view = (TableView) event.getSource();
-    var focus = view.getFocusCell();
-    var select = view.getSelectCell();
+    // user has clicked the table
+    super.handle( event );
 
-    // move editor right or left when tab typed
-    char key = event.getCharacter().charAt( 0 );
-    if ( key == '\t' )
-      if ( event.isShiftDown() )
-      {
-        focus.moveLeft();
-        select.setPosition( focus );
-      }
-      else
-      {
-        focus.moveRight();
-        select.setPosition( focus );
-      }
+    // double-click on table body to start cell editor with cell contents
+    boolean doubleClick = event.getClickCount() == 2 && event.getButton() == MouseButton.PRIMARY;
+    if ( doubleClick && cursor == Cursors.CROSS )
+      view.openEditor();
 
-    // move editor up or down when carriage return typed
-    if ( key == '\r' )
-      if ( event.isShiftDown() )
-      {
-        focus.moveUp();
-        select.setPosition( focus );
-      }
-      else
-      {
-        focus.moveDown();
-        select.setPosition( focus );
-      }
+    // double-click on column header resize to autofit
+    if ( doubleClick && cursor == Cursors.H_RESIZE )
+      autofitColumnWidth();
 
-    // open cell editor if key typed is suitable
-    if ( !Character.isISOControl( key ) && focus.isVisible() )
-      view.openEditor( event.getCharacter() );
+    // double-click on row header resize to autofit
+    if ( doubleClick && cursor == Cursors.V_RESIZE )
+      autofitRowHeight();
+  }
+
+  /************************************* autofitColumnWidth **************************************/
+  private void autofitColumnWidth()
+  {
+    // TODO Auto-generated method stub
+    Utils.trace( "TODO - not yet implemented" );
+  }
+
+  /************************************** autofitRowHeight ***************************************/
+  private void autofitRowHeight()
+  {
+    // TODO Auto-generated method stub
+    Utils.trace( "TODO - not yet implemented" );
   }
 
 }
