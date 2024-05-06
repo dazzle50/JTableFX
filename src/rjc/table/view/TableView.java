@@ -24,7 +24,6 @@ import rjc.table.signal.ObservablePosition;
 import rjc.table.view.TableScrollBar.Animation;
 import rjc.table.view.axis.TableAxis;
 import rjc.table.view.cell.CellDrawer;
-import rjc.table.view.cell.CellLocation;
 import rjc.table.view.cursor.Cursors;
 import rjc.table.view.editor.CellEditorBase;
 import rjc.table.view.events.KeyPressed;
@@ -42,8 +41,7 @@ import rjc.table.view.events.MouseScroll;
 
 public class TableView extends TableViewComponents
 {
-  private TableData  m_data;
-  private CellDrawer m_drawer;
+  private TableData m_data;
 
   /**************************************** constructor ******************************************/
   public TableView( TableData data, String name )
@@ -226,26 +224,17 @@ public class TableView extends TableViewComponents
     return m_data;
   }
 
-  /**************************************** setCellDrawer ****************************************/
-  public void setCellDrawer( CellDrawer drawer )
-  {
-    // set class responsible for drawing the cells on canvas
-    m_drawer = drawer;
-  }
-
   /**************************************** getCellDrawer ****************************************/
   public CellDrawer getCellDrawer()
   {
-    // return class responsible for drawing the cells on canvas
-    if ( m_drawer == null )
-      m_drawer = new CellDrawer( this );
-    return m_drawer;
+    // return new instance of class responsible for drawing the cells on canvas
+    return new CellDrawer( this );
   }
 
   /**************************************** getCellEditor ****************************************/
-  public CellEditorBase getCellEditor( CellLocation cell )
+  public CellEditorBase getCellEditor( CellDrawer cell )
   {
-    // return cell editor control (or null if cell is read-only)
+    // return cell editor for specified cell (or null if cell is read-only)
     return null;
   }
 
@@ -261,7 +250,7 @@ public class TableView extends TableViewComponents
   {
     // open editor for focus cell with specified value
     var cell = getCellDrawer();
-    cell.setIndex( getFocusCell().getColumn(), getFocusCell().getRow() );
+    cell.setIndex( this, getFocusCell().getColumn(), getFocusCell().getRow() );
     var editor = getCellEditor( cell );
     if ( editor != null )
       editor.open( value, cell );

@@ -193,7 +193,7 @@ public class TableCanvasDraw extends Canvas
     CellDrawer cell = m_view.getCellDrawer();
     if ( isVisible() && columnIndex >= HEADER && rowIndex >= HEADER )
     {
-      cell.setIndex( columnIndex, rowIndex );
+      cell.setIndex( m_view, columnIndex, rowIndex );
       cell.draw();
     }
   }

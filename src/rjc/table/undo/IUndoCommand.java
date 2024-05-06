@@ -33,4 +33,9 @@ public interface IUndoCommand
   // returns short text string describing this command, e.g. "insert text"
   public String text();
 
+  // returns true if command valid and ready to be pushed onto undo-stack
+  default public boolean isValid()
+  {
+    return true;
+  }
 }

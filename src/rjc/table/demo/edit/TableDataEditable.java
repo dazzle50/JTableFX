@@ -65,4 +65,20 @@ public class TableDataEditable extends TableData implements IDataReorderRows
     // return cell value for specified cell index
     return m_rows.get( dataRow ).getValue( dataColumn );
   }
+
+  /***************************************** attemptValue ****************************************/
+  @Override
+  protected String attemptValue( int dataColumn, int dataRow, Object newValue, Boolean setValue )
+  {
+    // check specified column & row are in range
+    if ( dataColumn <= HEADER || dataColumn >= getColumnCount() || dataRow <= HEADER || dataRow >= getRowCount() )
+      return "Out of range " + dataColumn + " " + dataRow;
+
+    // test if value can/could be set
+    String decline = m_rows.get( dataRow ).attemptValue( dataColumn, newValue, setValue );
+    if ( decline == null && setValue )
+      signalCellChanged( dataColumn, dataRow );
+    return decline;
+  }
+
 }

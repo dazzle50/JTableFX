@@ -95,6 +95,10 @@ public class UndoStack implements ISignal
   /******************************************** push *********************************************/
   private boolean push( IUndoCommand command, boolean redo )
   {
+    // if command not valid, then return false and don't push on stack
+    if ( !command.isValid() )
+      return false;
+
     // remove any commands from stack that haven't been actioned (i.e. above index)
     if ( m_stack.size() > m_index )
     {

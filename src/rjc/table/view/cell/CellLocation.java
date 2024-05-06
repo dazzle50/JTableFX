@@ -37,26 +37,13 @@ public class CellLocation
   public double          w;          // width of cell on canvas
   public double          h;          // height of cell on canvas
 
-  /**************************************** constructor ******************************************/
-  protected CellLocation()
-  {
-    // create empty table cell location - protected, don't use
-  }
-
-  /**************************************** constructor ******************************************/
-  public CellLocation( TableView view, int viewColumnIndex, int viewRowIndex )
-  {
-    // create new table cell location
-    this.view = view;
-    setIndex( viewColumnIndex, viewRowIndex );
-  }
-
   /****************************************** setIndex *******************************************/
-  public void setIndex( int viewColumnIndex, int viewRowIndex )
+  public void setIndex( TableView tableView, int viewColumnIndex, int viewRowIndex )
   {
-    // set cell location for cell index
-    this.viewColumn = viewColumnIndex;
-    this.viewRow = viewRowIndex;
+    // set cell location for table-view cell index
+    view = tableView;
+    viewColumn = viewColumnIndex;
+    viewRow = viewRowIndex;
 
     gc = view.getCanvas().getGraphicsContext2D();
     x = view.getColumnStartX( viewColumnIndex );
@@ -86,4 +73,11 @@ public class CellLocation
     return view.getData().getValue( getDataColumn(), getDataRow() );
   }
 
+  /****************************************** toString *******************************************/
+  @Override
+  public String toString()
+  {
+    return getClass().getSimpleName() + "@" + Integer.toHexString( System.identityHashCode( this ) ) + "[viewColumn="
+        + viewColumn + ", viewRow=" + viewRow + ", x=" + x + ", y=" + y + ", w=" + w + ", h=" + h + "]";
+  }
 }

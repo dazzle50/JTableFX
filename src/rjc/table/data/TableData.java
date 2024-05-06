@@ -102,11 +102,25 @@ public class TableData implements ISignal
   }
 
   /****************************************** setValue *******************************************/
-  public String setValue( int dataColumn, int dataRow, Object newValue, Boolean... check )
+  final public String setValue( int dataColumn, int dataRow, Object newValue )
   {
-    // returns null if cell value successfully set to new-value for specified cell index
-    // returns non-null reason description string if failed to set cell value
-    // if optional check is true, cell value not set but still validated and returns null or reason
+    // attempts to set cell value, returns null if successful, otherwise returns String reason (final method)
+    return attemptValue( dataColumn, dataRow, newValue, true );
+  }
+
+  /****************************************** testValue ******************************************/
+  final public String testValue( int dataColumn, int dataRow, Object newValue )
+  {
+    // checks if possible to set cell value but does not set, returns string reason if not possible (final method)
+    return attemptValue( dataColumn, dataRow, newValue, false );
+  }
+
+  /***************************************** attemptValue ****************************************/
+  protected String attemptValue( int dataColumn, int dataRow, Object newValue, Boolean setValue )
+  {
+    // returns null if cell value can be set to new-value for specified data index
+    // returns non-null decline reason String if cannot set cell value
+    // cell value is only set if setValue is true, but value is always validated to return correct reason
     return "Not implemented";
   }
 

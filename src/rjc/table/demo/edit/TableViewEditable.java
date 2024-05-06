@@ -20,7 +20,7 @@ package rjc.table.demo.edit;
 
 import rjc.table.data.TableData;
 import rjc.table.view.TableView;
-import rjc.table.view.cell.CellLocation;
+import rjc.table.view.cell.CellDrawer;
 import rjc.table.view.editor.CellEditorBase;
 import rjc.table.view.editor.EditorText;
 
@@ -36,7 +36,6 @@ public class TableViewEditable extends TableView
   {
     // construct the table view
     super( data, name );
-    setCellDrawer( new CellDrawerEditable() );
   }
 
   /******************************************** reset ********************************************/
@@ -56,7 +55,7 @@ public class TableViewEditable extends TableView
 
   /**************************************** getCellEditor ****************************************/
   @Override
-  public CellEditorBase getCellEditor( CellLocation cell )
+  public CellEditorBase getCellEditor( CellDrawer cell )
   {
     // determine editor appropriate for cell
     int column = cell.getDataColumn();
@@ -64,6 +63,14 @@ public class TableViewEditable extends TableView
       return new EditorText();
 
     return null;
+  }
+
+  /**************************************** getCellDrawer ****************************************/
+  @Override
+  public CellDrawer getCellDrawer()
+  {
+    // return new instance of class responsible for drawing the cells on canvas
+    return new CellDrawerEditable();
   }
 
 }

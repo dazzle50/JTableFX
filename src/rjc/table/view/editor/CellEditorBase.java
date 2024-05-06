@@ -21,7 +21,6 @@ package rjc.table.view.editor;
 import javafx.scene.control.Control;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import rjc.table.Utils;
 import rjc.table.control.XTextField;
 import rjc.table.data.TableData;
 import rjc.table.undo.commands.CommandSetValue;
@@ -42,10 +41,7 @@ public class CellEditorBase
   /******************************************** open *********************************************/
   public void open( Object value, CellDrawer cell )
   {
-    // open editor
-    Utils.trace( value, cell, m_control );
-
-    // check editor is set
+    // open editor - check editor is set
     if ( m_control == null )
       throw new IllegalStateException( "Editor control not set" );
 
@@ -116,7 +112,6 @@ public class CellEditorBase
     int dataRow = m_cell.getDataRow();
 
     // push new command on undo-stack to update cell value
-    Utils.trace( data, dataColumn, dataRow, getValue() );
     var command = new CommandSetValue( data, dataColumn, dataRow, getValue() );
     return m_cell.view.getUndoStack().push( command );
   }

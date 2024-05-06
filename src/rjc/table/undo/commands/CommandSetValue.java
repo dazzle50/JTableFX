@@ -86,4 +86,11 @@ public class CommandSetValue implements IUndoCommand
     return m_text;
   }
 
+  /******************************************* isValid *******************************************/
+  @Override
+  public boolean isValid()
+  {
+    // command is only ready and valid when pointer to data is set
+    return m_data != null;
+  }
 }

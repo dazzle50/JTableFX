@@ -90,4 +90,26 @@ public class RowData
     }
   }
 
+  /***************************************** attemptValue ****************************************/
+  public String attemptValue( int dataColumn, Object newValue, Boolean setValue )
+  {
+    // set/check field value and return null if successful/possible
+    switch ( Column.values()[dataColumn] )
+    {
+      case ReadOnly:
+        // can never set ReadOnly field
+        return "Read-only";
+
+      case Text:
+        // can always set Text field
+        if ( setValue )
+          m_text = newValue == null ? null : newValue.toString();
+        return null;
+
+      default:
+        return "Not implemented";
+    }
+
+  }
+
 }

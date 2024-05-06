@@ -97,7 +97,7 @@ public class KeyPressed implements EventHandler<KeyEvent>
           return;
 
         case F2: // F2 key - open cell editor with current focus cell contents
-          openEditor();
+          m_view.openEditor();
           return;
 
         case F5: // F5 key - redraw table
@@ -342,13 +342,6 @@ public class KeyPressed implements EventHandler<KeyEvent>
     if ( m_ctrl )
       m_view.getSelectCell().moveBottom();
     checkFocusToSelect();
-  }
-
-  /***************************************** openEditor ******************************************/
-  private void openEditor()
-  {
-    // open cell editor with current focus cell contents
-    Utils.trace( "TODO open editor" );
   }
 
 }
