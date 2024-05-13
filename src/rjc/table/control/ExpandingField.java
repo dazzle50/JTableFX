@@ -26,21 +26,19 @@ import rjc.table.Utils;
 import rjc.table.signal.ObservableStatus;
 
 /*************************************************************************************************/
-/*********************************** Enhanced JavaFX TextField ***********************************/
+/************* Enhanced JavaFX TextField that can expand and only allows valid text **************/
 /*************************************************************************************************/
 
-public class XTextField extends TextField
+public class ExpandingField extends TextField implements IHasObservableStatus
 {
-  private Pattern          m_allowed;          // pattern defining text allowed to be entered
-  private double           m_minWidth;         // minimum width for editor in pixels
-  private double           m_maxWidth;         // maximum width for editor in pixels
+  private Pattern          m_allowed;  // pattern defining text allowed to be entered
+  private double           m_minWidth; // minimum width for editor in pixels
+  private double           m_maxWidth; // maximum width for editor in pixels
 
-  private ObservableStatus m_status;           // error status of text field
-
-  public static final int  BUTTONS_PADDING = 2;
+  private ObservableStatus m_status;   // error status of text field
 
   /**************************************** constructor ******************************************/
-  public XTextField()
+  public ExpandingField()
   {
     // listen to text changes to check if field width needs changing
     textProperty().addListener( ( observable, oldText, newText ) ->
@@ -50,8 +48,7 @@ public class XTextField extends TextField
       {
         Text text = new Text( newText );
         text.setFont( getFont() );
-        double width = text.getLayoutBounds().getWidth() + getPadding().getLeft() + getPadding().getRight()
-            + 2 * BUTTONS_PADDING;
+        double width = text.getLayoutBounds().getWidth() + getPadding().getLeft() + getPadding().getRight() + 2;
         width = Utils.clamp( width, m_minWidth, m_maxWidth );
         if ( getWidth() != width )
         {
@@ -88,7 +85,16 @@ public class XTextField extends TextField
     return m_allowed == null || m_allowed.matcher( text ).matches();
   }
 
+  /****************************************** setWidths ******************************************/
+  public void setWidths( double min, double max )
+  {
+    // set editor minimum and maximum width (only used for table cell editors)
+    m_minWidth = min;
+    m_maxWidth = max;
+  }
+
   /***************************************** setStatus *******************************************/
+  @Override
   public void setStatus( ObservableStatus status )
   {
     // set text field status
@@ -97,19 +103,8 @@ public class XTextField extends TextField
     m_status = status;
   }
 
-  /****************************************** setWidths ******************************************/
-  public void setWidths( double min, double max )
-  {
-    // set editor minimum and maximum width (only used for table cell editors)
-    m_minWidth = min;
-    m_maxWidth = max;
-
-    // if button, trigger editor padding calculation by redrawing button
-    // if ( m_buttonType != null ) TODO
-    // drawButton();
-  }
-
   /***************************************** getStatus *******************************************/
+  @Override
   public ObservableStatus getStatus()
   {
     // return text field status

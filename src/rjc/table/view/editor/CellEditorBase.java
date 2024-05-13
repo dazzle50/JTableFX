@@ -21,7 +21,8 @@ package rjc.table.view.editor;
 import javafx.scene.control.Control;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import rjc.table.control.XTextField;
+import rjc.table.control.IHasObservableStatus;
+import rjc.table.control.ExpandingField;
 import rjc.table.data.TableData;
 import rjc.table.undo.commands.CommandSetValue;
 import rjc.table.view.TableView;
@@ -52,9 +53,9 @@ public class CellEditorBase
     m_control.setMaxSize( cell.w + 1, cell.h + 1 );
     m_control.setMinSize( cell.w + 1, cell.h + 1 );
 
-    // if control derived from XTextField
+    // if control derived from ExpandingField
     TableView view = cell.view;
-    if ( m_control instanceof XTextField field )
+    if ( m_control instanceof ExpandingField field )
     {
       // set min & max width
       double max = view.getWidth() - cell.x - 1;
@@ -67,7 +68,7 @@ public class CellEditorBase
     }
 
     // if control support status
-    if ( m_control instanceof XTextField field )
+    if ( m_control instanceof IHasObservableStatus field )
       field.setStatus( cell.view.getStatus() );
 
     // display editor, give focus, and set editor value

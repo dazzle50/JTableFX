@@ -95,6 +95,7 @@ public class DemoContents extends GridPane
     tabs.getTabs().add( new DemoTableDefault( m_undostack, m_status ) );
     tabs.getTabs().add( new DemoTableLarge( m_undostack, m_status ) );
     tabs.getTabs().add( new DemoTableEditable( m_undostack, m_status ) );
+    tabs.getTabs().add( new DemoFields( m_undostack, m_status ) );
 
     return tabs;
   }

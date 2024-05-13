@@ -16,49 +16,20 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.view.editor;
+package rjc.table.control;
 
-import rjc.table.control.ExpandingField;
+import rjc.table.signal.ObservableStatus;
 
 /*************************************************************************************************/
-/******************************* Table cell editor for simple text *******************************/
+/*********************** Interface for objects that have observable-status ***********************/
 /*************************************************************************************************/
 
-public class EditorText extends CellEditorBase
+public interface IHasObservableStatus
 {
-  private ExpandingField editor = new ExpandingField();
+  /***************************************** setStatus *******************************************/
+  public void setStatus( ObservableStatus status ); // set text field status
 
-  /**************************************** constructor ******************************************/
-  public EditorText()
-  {
-    // create text table cell editor
-    super();
-    setControl( editor );
-  }
-
-  /******************************************* getValue ******************************************/
-  @Override
-  public Object getValue()
-  {
-    // get editor text
-    return editor.getText();
-  }
-
-  /******************************************* setValue ******************************************/
-  @Override
-  public void setValue( Object value )
-  {
-    // set editor text
-    String str = value == null ? "" : value.toString();
-    editor.setText( str );
-    editor.positionCaret( str.length() );
-  }
-
-  /****************************************** setAllowed *****************************************/
-  public void setAllowed( String regex )
-  {
-    // regular expression that limits what can be entered into editor
-    editor.setAllowed( regex );
-  }
+  /***************************************** getStatus *******************************************/
+  public ObservableStatus getStatus(); // return text field status
 
 }

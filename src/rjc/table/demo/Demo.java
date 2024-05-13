@@ -23,6 +23,7 @@ import java.util.TreeSet;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import rjc.table.Utils;
 
@@ -32,6 +33,8 @@ import rjc.table.Utils;
 
 public class Demo extends Application
 {
+  public static Image JTABLEFX_ICON;
+
   /******************************************** main *********************************************/
   public static void main( String[] args )
   {
@@ -53,9 +56,11 @@ public class Demo extends Application
   public void start( Stage primaryStage ) throws Exception
   {
     // create demo application window
+    JTABLEFX_ICON = new Image( getClass().getResourceAsStream( "JTableFX-icon64.png" ) );
     Scene scene = new Scene( new DemoContents() );
     primaryStage.setScene( scene );
     primaryStage.setTitle( "JTableFX  " + Utils.VERSION + " demo application" );
+    primaryStage.getIcons().add( JTABLEFX_ICON );
 
     // close demo app when main window is closed (in case other windows are open)
     primaryStage.setOnHidden( event -> Platform.exit() );
