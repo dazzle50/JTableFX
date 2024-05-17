@@ -200,7 +200,7 @@ public class TableView extends TableViewComponents
     // handle any actions needed due to view being modified usually scrolled
     redraw();
     getMouseCell().checkXY();
-    // CellEditorBase.endEditing();
+    CellEditorBase.endEditing();
 
     // TODO if column/row resize in progress, no need to do anything more
 

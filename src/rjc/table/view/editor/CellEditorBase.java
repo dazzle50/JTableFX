@@ -21,8 +21,8 @@ package rjc.table.view.editor;
 import javafx.scene.control.Control;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import rjc.table.control.IHasObservableStatus;
 import rjc.table.control.ExpandingField;
+import rjc.table.control.IHasObservableStatus;
 import rjc.table.data.TableData;
 import rjc.table.undo.commands.CommandSetValue;
 import rjc.table.view.TableView;
@@ -58,7 +58,7 @@ public class CellEditorBase
     if ( m_control instanceof ExpandingField field )
     {
       // set min & max width
-      double max = view.getWidth() - cell.x - 1;
+      double max = view.getCanvas().getWidth() - cell.x;
       double min = cell.w + 1;
       if ( min > max )
         min = max;

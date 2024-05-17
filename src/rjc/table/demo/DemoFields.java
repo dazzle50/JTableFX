@@ -26,6 +26,7 @@ import javafx.scene.control.Tab;
 import javafx.scene.layout.GridPane;
 import rjc.table.control.ExpandingField;
 import rjc.table.control.IHasObservableStatus;
+import rjc.table.control.NumberSpinField;
 import rjc.table.signal.ObservableStatus;
 import rjc.table.undo.UndoStack;
 
@@ -56,7 +57,7 @@ public class DemoFields extends Tab
     addToGrid( grid, "ChooseField", new ExpandingField(), 0, row++ );
 
     row = 0;
-    addToGrid( grid, "NumberSpinField", new ExpandingField(), 1, row++ );
+    addToGrid( grid, "NumberSpinField", new NumberSpinField(), 1, row++ );
     row++;
     addToGrid( grid, "Below month field wraps with year number spin field", null, 1, row++ );
     addToGrid( grid, "MonthSpinField", new ExpandingField(), 1, row++ );
