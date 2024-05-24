@@ -21,18 +21,13 @@ package rjc.table.control;
 import java.text.DecimalFormat;
 import java.util.regex.Pattern;
 
-import rjc.table.signal.ObservableStatus.Level;
-
 /*************************************************************************************************/
 /**************************** Generic spin control for number values *****************************/
 /*************************************************************************************************/
 
-public class NumberSpinField extends SpinField
+public class NumberSpinField extends ButtonField
 {
-  private int           m_maxFractionDigits; // number of digits after decimal point
-  private DecimalFormat m_numberFormat;      // number decimal format
-
-  private String        m_errorMsg;          // status error text
+  private DecimalFormat m_numberFormat; // number decimal format
 
   /**************************************** constructor ******************************************/
   public NumberSpinField()
@@ -41,18 +36,9 @@ public class NumberSpinField extends SpinField
     setFormat( "0", 0 );
     setValue( getMin() );
 
-    // add listener to set control error state and remove any excess leading zeros
+    // add listener to remove any excess leading zeros
     textProperty().addListener( ( observable, oldText, newText ) ->
     {
-      // if spinner value not in range, set status to error
-      double num = getDouble();
-      if ( num < getMin() || num > getMax() )
-        getStatus().update( Level.ERROR, m_errorMsg );
-      else
-        getStatus().update( Level.NORMAL, null );
-      setStyle( getStatus().getStyle() );
-
-      // remove any excess zeros from front of number
       String text = getValue();
       if ( text.length() > 1 && text.charAt( 0 ) == '0' && Character.isDigit( text.charAt( 1 ) )
           && m_numberFormat.getMinimumIntegerDigits() == 1 )
@@ -64,8 +50,8 @@ public class NumberSpinField extends SpinField
   @Override
   public void setValue( Object value )
   {
-    // if no number formating available or string, set field text as specified
-    if ( m_numberFormat == null || value instanceof String )
+    // if string then set as specified, otherwise use number formatter
+    if ( value instanceof String )
       super.setValue( value );
     else
       super.setValue( m_numberFormat.format( value ) );
@@ -86,7 +72,6 @@ public class NumberSpinField extends SpinField
       throw new IllegalArgumentException( "Digits after deciminal place out of 0-8 range! " + maxFractionDigits );
 
     // set number format
-    m_maxFractionDigits = maxFractionDigits;
     m_numberFormat = new DecimalFormat( format );
     m_numberFormat.setMaximumFractionDigits( maxFractionDigits );
     setRange( getMin(), getMax() );
@@ -98,12 +83,7 @@ public class NumberSpinField extends SpinField
   {
     // set range and number of digits after decimal point
     super.setRange( minValue, maxValue );
-    if ( m_numberFormat != null )
-    {
-      m_errorMsg = "Value not between " + m_numberFormat.format( minValue ) + " and "
-          + m_numberFormat.format( maxValue );
-      determineAllowed();
-    }
+    determineAllowed();
   }
 
   /*************************************** setPrefixSuffix ***************************************/
@@ -125,8 +105,8 @@ public class NumberSpinField extends SpinField
     if ( getMin() < 0.0 )
       allow.append( "-?" );
     allow.append( "\\d*" );
-    if ( m_maxFractionDigits > 0 )
-      allow.append( "\\.?\\d{0," + m_maxFractionDigits + "}" );
+    if ( m_numberFormat != null && m_numberFormat.getMaximumFractionDigits() > 0 )
+      allow.append( "\\.?\\d{0," + m_numberFormat.getMaximumFractionDigits() + "}" );
 
     allow.append( Pattern.quote( getSuffix() ) );
     setAllowed( allow.toString() );

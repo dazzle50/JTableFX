@@ -22,6 +22,8 @@ import rjc.table.data.TableData;
 import rjc.table.view.TableView;
 import rjc.table.view.cell.CellDrawer;
 import rjc.table.view.editor.CellEditorBase;
+import rjc.table.view.editor.EditorDouble;
+import rjc.table.view.editor.EditorInteger;
 import rjc.table.view.editor.EditorText;
 
 /*************************************************************************************************/
@@ -61,6 +63,10 @@ public class TableViewEditable extends TableView
     int column = cell.getDataColumn();
     if ( column == RowData.Column.Text.ordinal() )
       return new EditorText();
+    if ( column == RowData.Column.Integer.ordinal() )
+      return new EditorInteger();
+    if ( column == RowData.Column.Double.ordinal() )
+      return new EditorDouble();
 
     return null;
   }

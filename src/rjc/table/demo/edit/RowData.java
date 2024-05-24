@@ -18,6 +18,7 @@
 
 package rjc.table.demo.edit;
 
+import rjc.table.Utils;
 import rjc.table.data.types.Date;
 import rjc.table.data.types.DateTime;
 import rjc.table.data.types.Time;
@@ -90,8 +91,8 @@ public class RowData
     }
   }
 
-  /***************************************** attemptValue ****************************************/
-  public String attemptValue( int dataColumn, Object newValue, Boolean setValue )
+  /***************************************** processValue ****************************************/
+  public String processValue( int dataColumn, Object newValue, Boolean setValue )
   {
     // set/check field value and return null if successful/possible
     switch ( Column.values()[dataColumn] )
@@ -105,6 +106,38 @@ public class RowData
         if ( setValue )
           m_text = newValue == null ? null : newValue.toString();
         return null;
+
+      case Integer:
+        // check new value is integer and in range
+        if ( newValue instanceof Integer newInt )
+        {
+          if ( newInt < 0 || newInt > 999 )
+            return "Value not between 0 and 999";
+          if ( setValue )
+            m_integer = newInt;
+          return null;
+        }
+        return "Not integer: " + Utils.objectsString( newValue );
+
+      case Double:
+        // comment TODO
+        return "TODO";
+
+      case Date:
+        // comment TODO
+        return "TODO";
+
+      case Time:
+        // comment TODO
+        return "TODO";
+
+      case DateTime:
+        // comment TODO
+        return "TODO";
+
+      case Select:
+        // comment TODO
+        return "TODO";
 
       default:
         return "Not implemented";

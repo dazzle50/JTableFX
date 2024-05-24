@@ -18,17 +18,21 @@
 
 package rjc.table.control;
 
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.scene.Cursor;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.input.ScrollEvent;
 import rjc.table.view.Colours;
 
 /*************************************************************************************************/
-/*********************** TextField that to support spin & drop-down fields ***********************/
+/******* ExpandingField that has spin or drop-down button, numeric value, prefix & suffix ********/
 /*************************************************************************************************/
 
-public class SpinField extends ExpandingField
+public class ButtonField extends ExpandingField
 {
   private double           m_minValue;            // minimum number allowed
   private double           m_maxValue;            // maximum number allowed
@@ -50,14 +54,38 @@ public class SpinField extends ExpandingField
     DOWN, UP_DOWN
   }
 
+  // handler for mouse scroll events to step increase/decrease numeric value
+  private final EventHandler<ScrollEvent> scrollHandler = event ->
+  {
+    event.consume();
+    if ( event.getDeltaY() > 0 )
+      changeValue( m_step );
+    else
+      changeValue( m_step );
+  };
+
   /**************************************** constructor ******************************************/
-  public SpinField()
+  public ButtonField()
   {
     // set default spin editor characteristics
     setPrefixSuffix( null, null );
     setRange( 0.0, 999.0 );
     setStepPage( 1.0, 10.0 );
     setButtonType( ButtonType.UP_DOWN );
+
+    // react to key presses and button mouse clicks
+    setOnKeyPressed( event -> keyPressed( event ) );
+    m_button.setOnMousePressed( event -> buttonPressed( event ) );
+
+    // when focused take control of parent's scroll events, otherwise release control
+    focusedProperty().addListener( ( observable, oldFocus, newFocus ) ->
+    {
+      if ( isFocused() )
+        getParent().addEventFilter( ScrollEvent.SCROLL, scrollHandler );
+      else
+        getParent().removeEventFilter( ScrollEvent.SCROLL, scrollHandler );
+    } );
+
   }
 
   /****************************************** setValue *******************************************/
@@ -220,7 +248,61 @@ public class SpinField extends ExpandingField
       default:
         throw new IllegalArgumentException( "Type=" + m_buttonType );
     }
-
   }
 
+  /**************************************** buttonPressed ****************************************/
+  private void buttonPressed( MouseEvent event )
+  {
+    // if user clicked top half of buttons, step up, else step down
+    requestFocus();
+    event.consume();
+
+    if ( event.getY() < m_button.getHeight() / 2 )
+      changeValue( m_step );
+    else
+      changeValue( -m_step );
+  }
+
+  /***************************************** keyPressed ******************************************/
+  protected void keyPressed( KeyEvent event )
+  {
+    // action key press to change value up or down
+    switch ( event.getCode() )
+    {
+      case DOWN:
+        changeValue( -m_step );
+        event.consume();
+        break;
+      case PAGE_DOWN:
+        changeValue( -m_page );
+        event.consume();
+        break;
+      case UP:
+        changeValue( m_step );
+        event.consume();
+        break;
+      case PAGE_UP:
+        changeValue( m_page );
+        event.consume();
+        break;
+      case HOME:
+        setValue( m_minValue );
+        event.consume();
+        break;
+      case END:
+        setValue( m_maxValue );
+        event.consume();
+        break;
+      default:
+        break;
+    }
+  }
+
+  /***************************************** changeValue *****************************************/
+  private void changeValue( double delta )
+  {
+    // change spin value by delta overflowing to wrap-field if available
+    double num = getDouble() + delta;
+    setValue( num );
+  }
 }

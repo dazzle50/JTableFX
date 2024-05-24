@@ -18,6 +18,7 @@
 
 package rjc.table.data;
 
+import rjc.table.Utils;
 import rjc.table.signal.ISignal;
 import rjc.table.signal.ObservableInteger;
 import rjc.table.signal.ObservableInteger.ReadOnlyInteger;
@@ -105,18 +106,43 @@ public class TableData implements ISignal
   final public String setValue( int dataColumn, int dataRow, Object newValue )
   {
     // attempts to set cell value, returns null if successful, otherwise returns String reason (final method)
-    return attemptValue( dataColumn, dataRow, newValue, true );
+    return tryValue( dataColumn, dataRow, newValue, true );
   }
 
   /****************************************** testValue ******************************************/
   final public String testValue( int dataColumn, int dataRow, Object newValue )
   {
     // checks if possible to set cell value but does not set, returns string reason if not possible (final method)
-    return attemptValue( dataColumn, dataRow, newValue, false );
+    return tryValue( dataColumn, dataRow, newValue, false );
   }
 
-  /***************************************** attemptValue ****************************************/
-  protected String attemptValue( int dataColumn, int dataRow, Object newValue, Boolean setValue )
+  /******************************************* tryValue ******************************************/
+  protected String tryValue( int dataColumn, int dataRow, Object newValue, Boolean setValue )
+  {
+    // check specified column & row are in range
+    if ( dataColumn <= HEADER || dataColumn >= getColumnCount() || dataRow <= HEADER || dataRow >= getRowCount() )
+      return "Cell reference out of range " + dataColumn + " " + dataRow;
+
+    try
+    {
+      // attempt to process value test/set
+      String decline = processValue( dataColumn, dataRow, newValue, setValue );
+
+      // if not declined and setting, signal cell changed (might not have different value)
+      if ( decline == null && setValue )
+        signalCellChanged( dataColumn, dataRow );
+      return decline;
+    }
+    catch ( Exception exception )
+    {
+      // processing the value caused exception, so return decline string
+      String msg = "Error " + dataColumn + " " + dataRow + " " + setValue + " ";
+      return msg + Utils.objectsString( newValue ) + " : " + exception.toString();
+    }
+  }
+
+  /***************************************** processValue ****************************************/
+  protected String processValue( int dataColumn, int dataRow, Object newValue, Boolean setValue )
   {
     // returns null if cell value can be set to new-value for specified data index
     // returns non-null decline reason String if cannot set cell value

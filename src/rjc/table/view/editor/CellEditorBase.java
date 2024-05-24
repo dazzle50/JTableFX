@@ -24,6 +24,7 @@ import javafx.scene.input.KeyEvent;
 import rjc.table.control.ExpandingField;
 import rjc.table.control.IHasObservableStatus;
 import rjc.table.data.TableData;
+import rjc.table.signal.ObservableStatus.Level;
 import rjc.table.undo.commands.CommandSetValue;
 import rjc.table.view.TableView;
 import rjc.table.view.cell.CellDrawer;
@@ -53,11 +54,10 @@ public class CellEditorBase
     m_control.setMaxSize( cell.w + 1, cell.h + 1 );
     m_control.setMinSize( cell.w + 1, cell.h + 1 );
 
-    // if control derived from ExpandingField
+    // if control derived from ExpandingField can set min & max width, insets and font
     TableView view = cell.view;
     if ( m_control instanceof ExpandingField field )
     {
-      // set min & max width
       double max = view.getCanvas().getWidth() - cell.x;
       double min = cell.w + 1;
       if ( min > max )
@@ -65,9 +65,17 @@ public class CellEditorBase
       field.setPadding( cell.getZoomTextInsets() );
       field.setFont( cell.getZoomFont() );
       field.setWidths( min, max );
+
+      // also when text changes, test value
+      field.textProperty().addListener( ( observable, oldText, newText ) ->
+      {
+        var decline = testValue( getValue() );
+        var level = decline == null ? Level.NORMAL : Level.ERROR;
+        field.getStatus().update( level, decline );
+      } );
     }
 
-    // if control support status
+    // if control has observable status, set to view observable status
     if ( m_control instanceof IHasObservableStatus field )
       field.setStatus( cell.view.getStatus() );
 
@@ -91,6 +99,15 @@ public class CellEditorBase
     // set editor value - normally overloaded
   }
 
+  /****************************************** testValue ******************************************/
+  public String testValue( Object value )
+  {
+    // test if data model would accept new value
+    int col = m_cell.getDataColumn();
+    int row = m_cell.getDataRow();
+    return m_cell.view.getData().testValue( col, row, getValue() );
+  }
+
   /******************************************** close ********************************************/
   public void close( boolean commit )
   {
@@ -98,8 +115,8 @@ public class CellEditorBase
     m_cellEditorInProgress = null;
     if ( m_cell.view.getStatus() != null )
       m_cell.view.getStatus().clear();
-    m_cell.view.remove( m_control );
     m_cell.view.requestFocus();
+    m_cell.view.remove( m_control );
     if ( commit )
       commit();
   }
