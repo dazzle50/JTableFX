@@ -72,6 +72,7 @@ public class CellEditorBase
         var decline = testValue( getValue() );
         var level = decline == null ? Level.NORMAL : Level.ERROR;
         field.getStatus().update( level, decline );
+        field.setStyle( field.getStatus().getStyle() );
       } );
     }
 
@@ -154,6 +155,8 @@ public class CellEditorBase
         close( false ); // abandon edit
       if ( event.getCode() == KeyCode.ENTER && !isError() )
         close( true ); // commit edit
+      if ( event.getCode() == KeyCode.ENTER )
+        event.consume(); // consume event so not propagated to table-view
     } );
   }
 

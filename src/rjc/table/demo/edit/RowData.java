@@ -120,20 +120,46 @@ public class RowData
         return "Not integer: " + Utils.objectsString( newValue );
 
       case Double:
-        // comment TODO
-        return "TODO";
+        // check new value is double and in range
+        if ( newValue instanceof Double newDouble )
+        {
+          if ( newDouble < 0.0 || newDouble > 999.0 )
+            return "Value not between 0.0 and 999.0";
+          if ( setValue )
+            m_double = newDouble;
+          return null;
+        }
+        return "Not double: " + Utils.objectsString( newValue );
 
       case Date:
-        // comment TODO
-        return "TODO";
+        // check new value is date
+        if ( newValue instanceof Date newDate )
+        {
+          if ( setValue )
+            m_date = newDate;
+          return null;
+        }
+        return "Not date: " + Utils.objectsString( newValue );
 
       case Time:
-        // comment TODO
-        return "TODO";
+        // check new value is time
+        if ( newValue instanceof Time newTime )
+        {
+          if ( setValue )
+            m_time = newTime;
+          return null;
+        }
+        return "Not time: " + Utils.objectsString( newValue );
 
       case DateTime:
-        // comment TODO
-        return "TODO";
+        // check new value is date-time
+        if ( newValue instanceof DateTime newDT )
+        {
+          if ( setValue )
+            m_datetime = newDT;
+          return null;
+        }
+        return "Not date-time: " + Utils.objectsString( newValue );
 
       case Select:
         // comment TODO

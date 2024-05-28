@@ -26,6 +26,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
+import rjc.table.Utils;
 import rjc.table.view.Colours;
 
 /*************************************************************************************************/
@@ -46,6 +47,8 @@ public class ButtonField extends ExpandingField
   private ButtonType       m_buttonType;          // button type, null means no button
   private Canvas           m_button;              // canvas to show button
 
+  private ButtonField      m_overflowField;       // field for overflow support
+
   private static final int BUTTONS_WIDTH_MAX = 16;
   private static final int BUTTONS_PADDING   = 2;
 
@@ -61,7 +64,7 @@ public class ButtonField extends ExpandingField
     if ( event.getDeltaY() > 0 )
       changeValue( m_step );
     else
-      changeValue( m_step );
+      changeValue( -m_step );
   };
 
   /**************************************** constructor ******************************************/
@@ -303,6 +306,34 @@ public class ButtonField extends ExpandingField
   {
     // change spin value by delta overflowing to wrap-field if available
     double num = getDouble() + delta;
+
+    // if no overflow field, clamp the value to between min & max
+    if ( m_overflowField == null )
+      num = Utils.clamp( num, m_minValue, m_maxValue );
+    else
+    {
+      // if overflow field step its value as necessary
+      double range = m_maxValue - m_minValue;
+      while ( num < m_minValue )
+      {
+        m_overflowField.changeValue( -m_overflowField.m_step );
+        num += range;
+      }
+      while ( num > m_maxValue )
+      {
+        m_overflowField.changeValue( m_overflowField.m_step );
+        num -= range;
+      }
+    }
+
     setValue( num );
   }
+
+  /************************************** setOverflowField ***************************************/
+  public void setOverflowField( ButtonField overflow )
+  {
+    // set overflow field to step when this spin goes beyond min or max
+    m_overflowField = overflow;
+  }
+
 }

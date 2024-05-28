@@ -26,6 +26,7 @@ import javafx.scene.control.Tab;
 import javafx.scene.layout.GridPane;
 import rjc.table.control.ExpandingField;
 import rjc.table.control.IHasObservableStatus;
+import rjc.table.control.MonthSpinField;
 import rjc.table.control.NumberSpinField;
 import rjc.table.signal.ObservableStatus;
 import rjc.table.undo.UndoStack;
@@ -48,6 +49,15 @@ public class DemoFields extends Tab
     grid.setVgap( 8 );
     m_status = status;
 
+    // prepare fields
+    var yearField = new NumberSpinField();
+    yearField.setRange( 1000, 5000 );
+    yearField.setPrefixSuffix( "Year ", " CE" );
+    yearField.setValue( 2000 );
+
+    var monthField = new MonthSpinField();
+    monthField.setOverflowField( yearField );
+
     // layout fields with labels
     int row = 0;
     addToGrid( grid, "ExpandingField", new ExpandingField(), 0, row++ );
@@ -59,9 +69,9 @@ public class DemoFields extends Tab
     row = 0;
     addToGrid( grid, "NumberSpinField", new NumberSpinField(), 1, row++ );
     row++;
-    addToGrid( grid, "Below month field wraps with year number spin field", null, 1, row++ );
-    addToGrid( grid, "MonthSpinField", new ExpandingField(), 1, row++ );
-    addToGrid( grid, "Year Field", new ExpandingField(), 1, row++ );
+    addToGrid( grid, "Below month-field overflows  year-number field", null, 1, row++ );
+    addToGrid( grid, "MonthSpinField", monthField, 1, row++ );
+    addToGrid( grid, "Year Field", yearField, 1, row++ );
 
     // configure the tab
     setText( "Fields" );
