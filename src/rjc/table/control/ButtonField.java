@@ -35,22 +35,22 @@ import rjc.table.view.Colours;
 
 public class ButtonField extends ExpandingField
 {
-  private double           m_minValue;            // minimum number allowed
-  private double           m_maxValue;            // maximum number allowed
+  private double          m_minValue;            // minimum number allowed
+  private double          m_maxValue;            // maximum number allowed
 
-  private double           m_page;                // value increment or decrement on page-up or page-down
-  private double           m_step;                // value increment or decrement on arrow-up or arrow-down
+  private double          m_page;                // value increment or decrement on page-up or page-down
+  private double          m_step;                // value increment or decrement on arrow-up or arrow-down
 
-  private String           m_prefix;              // prefix shown before value
-  private String           m_suffix;              // suffix shown after value
+  private String          m_prefix;              // prefix shown before value
+  private String          m_suffix;              // suffix shown after value
 
-  private ButtonType       m_buttonType;          // button type, null means no button
-  private Canvas           m_button;              // canvas to show button
+  private ButtonType      m_buttonType;          // button type, null means no button
+  private Canvas          m_button;              // canvas to show button
 
-  private ButtonField      m_overflowField;       // field for overflow support
+  private ButtonField     m_overflowField;       // field for overflow support
 
-  private static final int BUTTONS_WIDTH_MAX = 16;
-  private static final int BUTTONS_PADDING   = 2;
+  public static final int BUTTONS_WIDTH_MAX = 16;
+  public static final int BUTTONS_PADDING   = 2;
 
   public enum ButtonType
   {
@@ -58,7 +58,7 @@ public class ButtonField extends ExpandingField
   }
 
   // handler for mouse scroll events to step increase/decrease numeric value
-  private final EventHandler<ScrollEvent> scrollHandler = event ->
+  final EventHandler<ScrollEvent> scrollHandler = event ->
   {
     event.consume();
     if ( event.getDeltaY() > 0 )
@@ -302,7 +302,7 @@ public class ButtonField extends ExpandingField
   }
 
   /***************************************** changeValue *****************************************/
-  private void changeValue( double delta )
+  protected void changeValue( double delta )
   {
     // change spin value by delta overflowing to wrap-field if available
     double num = getDouble() + delta;

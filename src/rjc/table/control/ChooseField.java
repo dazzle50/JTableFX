@@ -22,6 +22,7 @@ import java.security.InvalidParameterException;
 import java.util.ArrayList;
 
 import javafx.scene.input.KeyEvent;
+import rjc.table.Utils;
 
 /*************************************************************************************************/
 /********************** Control for choosing a value from a drop-down list ***********************/
@@ -61,8 +62,9 @@ public class ChooseField extends ButtonField
     setOnKeyTyped( event -> keyTyped( event ) );
   }
 
-  /****************************************** stepValue ******************************************/
-  public void stepValue( double delta )
+  /***************************************** changeValue *****************************************/
+  @Override
+  protected void changeValue( double delta )
   {
     // change selected index
     setSelectedIndex( m_index - (int) delta );
@@ -126,7 +128,7 @@ public class ChooseField extends ButtonField
     }
 
     // value not found in list so throw exception
-    throw new InvalidParameterException( value == null ? "null" : value.toString() );
+    throw new InvalidParameterException( Utils.objectsString( value ).toString() );
   }
 
   /***************************************** keyPressed ******************************************/
@@ -142,14 +144,14 @@ public class ChooseField extends ButtonField
       case RIGHT:
       case KP_RIGHT:
       case PAGE_DOWN:
-        stepValue( -1 );
+        changeValue( -1 );
         break;
       case UP:
       case KP_UP:
       case LEFT:
       case KP_LEFT:
       case PAGE_UP:
-        stepValue( 1 );
+        changeValue( 1 );
         break;
       case HOME:
         setSelectedIndex( 0 );

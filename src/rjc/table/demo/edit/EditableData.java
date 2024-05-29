@@ -27,7 +27,7 @@ import rjc.table.data.types.Time;
 /**************************** Contains one row of editable-table data ****************************/
 /*************************************************************************************************/
 
-public class RowData
+public class EditableData
 {
   public enum Column
   {
@@ -50,7 +50,7 @@ public class RowData
   }
 
   /**************************************** constructor ******************************************/
-  public RowData( int id )
+  public EditableData( int id )
   {
     // populate the private variables with some contents
     m_readonly = "Read-only text " + ( id + 1 );
@@ -162,8 +162,13 @@ public class RowData
         return "Not date-time: " + Utils.objectsString( newValue );
 
       case Select:
-        // comment TODO
-        return "TODO";
+        // check new value is a fruit
+        if ( newValue instanceof Fruit newFruit )
+        {
+          if ( setValue )
+            m_fruit = newFruit;
+        }
+        return "Not fruit: " + Utils.objectsString( newValue );
 
       default:
         return "Not implemented";

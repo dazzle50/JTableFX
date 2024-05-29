@@ -16,41 +16,40 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.demo.edit;
+package rjc.table.view.editor;
 
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import rjc.table.view.axis.TableAxis;
-import rjc.table.view.cell.CellDrawer;
+import rjc.table.control.ChooseField;
 
 /*************************************************************************************************/
-/******************************** Example customised cell drawer *********************************/
+/************************** Table cell spin editor for choosing object ***************************/
 /*************************************************************************************************/
 
-public class CellDrawerEditable extends CellDrawer
+public class EditorChoose extends CellEditorBase
 {
-  protected final static Insets CELL_TEXT_INSERTS = new Insets( 0.0, 5.0, 1.0, 4.0 );
+  private ChooseField m_choose;
 
-  /************************************ getTextAlignment *************************************/
-  @Override
-  protected Pos getTextAlignment()
+  /**************************************** constructor ******************************************/
+  public EditorChoose( Object[] values )
   {
-    // return left alignment for the two text columns
-    int dataColumn = getDataColumn();
-    if ( viewRow > TableAxis.HEADER )
-      if ( dataColumn == EditableData.Column.ReadOnly.ordinal() || dataColumn == EditableData.Column.Text.ordinal() )
-        return Pos.CENTER_LEFT;
-
-    // otherwise centre alignment
-    return Pos.CENTER;
+    // create spin table cell editor for integer
+    super();
+    m_choose = new ChooseField( values );
+    setControl( m_choose );
   }
 
-  /************************************** getTextInsets **************************************/
+  /******************************************* getValue ******************************************/
   @Override
-  protected Insets getTextInsets()
+  public Object getValue()
   {
-    // return cell text insets with wider right & left margins to give nicer look
-    return CELL_TEXT_INSERTS;
+    // get editor current value
+    return m_choose.getSelected();
   }
 
+  /******************************************* setValue ******************************************/
+  @Override
+  public void setValue( Object value )
+  {
+    // set editor current value
+    m_choose.setSelected( value );
+  }
 }

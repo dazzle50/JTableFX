@@ -19,9 +19,11 @@
 package rjc.table.demo.edit;
 
 import rjc.table.data.TableData;
+import rjc.table.demo.edit.EditableData.Fruit;
 import rjc.table.view.TableView;
 import rjc.table.view.cell.CellDrawer;
 import rjc.table.view.editor.CellEditorBase;
+import rjc.table.view.editor.EditorChoose;
 import rjc.table.view.editor.EditorDouble;
 import rjc.table.view.editor.EditorInteger;
 import rjc.table.view.editor.EditorText;
@@ -48,11 +50,11 @@ public class TableViewEditable extends TableView
     super.reset();
 
     var axis = getColumnsAxis();
-    axis.setIndexSize( RowData.Column.ReadOnly.ordinal(), 120 );
-    axis.setIndexSize( RowData.Column.Text.ordinal(), 120 );
-    axis.setIndexSize( RowData.Column.Integer.ordinal(), 80 );
-    axis.setIndexSize( RowData.Column.Double.ordinal(), 80 );
-    axis.setIndexSize( RowData.Column.DateTime.ordinal(), 180 );
+    axis.setIndexSize( EditableData.Column.ReadOnly.ordinal(), 120 );
+    axis.setIndexSize( EditableData.Column.Text.ordinal(), 120 );
+    axis.setIndexSize( EditableData.Column.Integer.ordinal(), 80 );
+    axis.setIndexSize( EditableData.Column.Double.ordinal(), 80 );
+    axis.setIndexSize( EditableData.Column.DateTime.ordinal(), 180 );
   }
 
   /**************************************** getCellEditor ****************************************/
@@ -61,12 +63,14 @@ public class TableViewEditable extends TableView
   {
     // determine editor appropriate for cell
     int column = cell.getDataColumn();
-    if ( column == RowData.Column.Text.ordinal() )
+    if ( column == EditableData.Column.Text.ordinal() )
       return new EditorText();
-    if ( column == RowData.Column.Integer.ordinal() )
+    if ( column == EditableData.Column.Integer.ordinal() )
       return new EditorInteger();
-    if ( column == RowData.Column.Double.ordinal() )
+    if ( column == EditableData.Column.Double.ordinal() )
       return new EditorDouble();
+    if ( column == EditableData.Column.Select.ordinal() )
+      return new EditorChoose( Fruit.values() );
 
     return null;
   }

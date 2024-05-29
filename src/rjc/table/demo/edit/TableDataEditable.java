@@ -22,7 +22,7 @@ import java.util.ArrayList;
 
 import rjc.table.data.IDataReorderRows;
 import rjc.table.data.TableData;
-import rjc.table.demo.edit.RowData.Column;
+import rjc.table.demo.edit.EditableData.Column;
 
 /*************************************************************************************************/
 /******************** Example customised table data source for editable table ********************/
@@ -30,10 +30,10 @@ import rjc.table.demo.edit.RowData.Column;
 
 public class TableDataEditable extends TableData implements IDataReorderRows
 {
-  private final int          COLUMN_COUNT = Column.MAX.ordinal();
-  private final int          ROW_COUNT    = 20;
+  private final int               COLUMN_COUNT = Column.MAX.ordinal();
+  private final int               ROW_COUNT    = 20;
 
-  private ArrayList<RowData> m_rows       = new ArrayList<>();
+  private ArrayList<EditableData> m_rows       = new ArrayList<>();
 
   /**************************************** constructor ******************************************/
   public TableDataEditable()
@@ -43,7 +43,7 @@ public class TableDataEditable extends TableData implements IDataReorderRows
     setRowCount( ROW_COUNT );
 
     for ( int row = 0; row < ROW_COUNT; row++ )
-      m_rows.add( new RowData( row ) );
+      m_rows.add( new EditableData( row ) );
   }
 
   /****************************************** getValue *******************************************/
