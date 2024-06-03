@@ -59,12 +59,12 @@ public class ChooseField extends ButtonField
 
     // react to key presses and button mouse clicks
     setOnKeyPressed( event -> keyPressed( event ) );
-    setOnKeyTyped( event -> keyTyped( event ) );
+    setOnKeyTyped( event -> findNext( event.getCharacter() ) );
   }
 
   /***************************************** changeValue *****************************************/
   @Override
-  protected void changeValue( double delta )
+  public void changeValue( double delta )
   {
     // change selected index
     setSelectedIndex( m_index - (int) delta );
@@ -120,7 +120,14 @@ public class ChooseField extends ButtonField
         return;
       }
 
-    // if index not found and value if null, then set index to zero
+    // if string try to find choice that starts with this string
+    if ( value instanceof String text )
+    {
+      findNext( text );
+      return;
+    }
+
+    // if index not found and value is null, then set index to zero
     if ( value == null )
     {
       setSelectedIndex( 0 );
@@ -167,15 +174,15 @@ public class ChooseField extends ButtonField
     }
   }
 
-  /****************************************** keyTyped *******************************************/
-  public void keyTyped( KeyEvent event )
+  /****************************************** findNext *******************************************/
+  public void findNext( String start )
   {
-    // find next item that starts with typed key (case-insensitive)
-    String key = event.getCharacter().toLowerCase();
+    // find next item that starts with specified string (case-insensitive)
+    start = start.toLowerCase();
     for ( int delta = 1; delta < m_choices.length; delta++ )
     {
       int index = ( m_index + delta ) % m_choices.length;
-      if ( m_text.get( index ).toLowerCase().startsWith( key ) )
+      if ( m_text.get( index ).toLowerCase().startsWith( start ) )
       {
         setSelectedIndex( index );
         return;

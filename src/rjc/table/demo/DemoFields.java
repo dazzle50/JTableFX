@@ -25,6 +25,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.layout.GridPane;
 import rjc.table.control.ChooseField;
+import rjc.table.control.DateField;
 import rjc.table.control.ExpandingField;
 import rjc.table.control.IHasObservableStatus;
 import rjc.table.control.MonthSpinField;
@@ -63,7 +64,7 @@ public class DemoFields extends Tab
     // layout fields with labels
     int row = 0;
     addToGrid( grid, "ExpandingField", new ExpandingField(), 0, row++ );
-    addToGrid( grid, "DateField", new ExpandingField(), 0, row++ );
+    addToGrid( grid, "DateField", new DateField( status ), 0, row++ );
     addToGrid( grid, "TimeField", new ExpandingField(), 0, row++ );
     addToGrid( grid, "DateTimeField", new ExpandingField(), 0, row++ );
     addToGrid( grid, "ChooseField", new ChooseField( EditableData.Fruit.values() ), 0, row++ );

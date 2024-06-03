@@ -167,6 +167,7 @@ public class EditableData
         {
           if ( setValue )
             m_fruit = newFruit;
+          return null;
         }
         return "Not fruit: " + Utils.objectsString( newValue );
 

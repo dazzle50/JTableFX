@@ -33,7 +33,7 @@ import rjc.table.view.Colours;
 /******* ExpandingField that has spin or drop-down button, numeric value, prefix & suffix ********/
 /*************************************************************************************************/
 
-public class ButtonField extends ExpandingField
+public class ButtonField extends ExpandingField implements IOverflowField
 {
   private double          m_minValue;            // minimum number allowed
   private double          m_maxValue;            // maximum number allowed
@@ -47,7 +47,7 @@ public class ButtonField extends ExpandingField
   private ButtonType      m_buttonType;          // button type, null means no button
   private Canvas          m_button;              // canvas to show button
 
-  private ButtonField     m_overflowField;       // field for overflow support
+  private IOverflowField  m_overflowField;       // field for overflow support
 
   public static final int BUTTONS_WIDTH_MAX = 16;
   public static final int BUTTONS_PADDING   = 2;
@@ -302,7 +302,8 @@ public class ButtonField extends ExpandingField
   }
 
   /***************************************** changeValue *****************************************/
-  protected void changeValue( double delta )
+  @Override
+  public void changeValue( double delta )
   {
     // change spin value by delta overflowing to wrap-field if available
     double num = getDouble() + delta;
@@ -316,12 +317,12 @@ public class ButtonField extends ExpandingField
       double range = m_maxValue - m_minValue;
       while ( num < m_minValue )
       {
-        m_overflowField.changeValue( -m_overflowField.m_step );
+        m_overflowField.changeValue( -1 );
         num += range;
       }
       while ( num > m_maxValue )
       {
-        m_overflowField.changeValue( m_overflowField.m_step );
+        m_overflowField.changeValue( 1 );
         num -= range;
       }
     }
@@ -330,7 +331,7 @@ public class ButtonField extends ExpandingField
   }
 
   /************************************** setOverflowField ***************************************/
-  public void setOverflowField( ButtonField overflow )
+  public void setOverflowField( IOverflowField overflow )
   {
     // set overflow field to step when this spin goes beyond min or max
     m_overflowField = overflow;
