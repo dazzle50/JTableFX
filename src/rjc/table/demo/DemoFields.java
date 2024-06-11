@@ -26,10 +26,12 @@ import javafx.scene.control.Tab;
 import javafx.scene.layout.GridPane;
 import rjc.table.control.ChooseField;
 import rjc.table.control.DateField;
+import rjc.table.control.DateTimeField;
 import rjc.table.control.ExpandingField;
 import rjc.table.control.IHasObservableStatus;
 import rjc.table.control.MonthSpinField;
 import rjc.table.control.NumberSpinField;
+import rjc.table.control.TimeField;
 import rjc.table.demo.edit.EditableData;
 import rjc.table.signal.ObservableStatus;
 import rjc.table.undo.UndoStack;
@@ -65,8 +67,8 @@ public class DemoFields extends Tab
     int row = 0;
     addToGrid( grid, "ExpandingField", new ExpandingField(), 0, row++ );
     addToGrid( grid, "DateField", new DateField( status ), 0, row++ );
-    addToGrid( grid, "TimeField", new ExpandingField(), 0, row++ );
-    addToGrid( grid, "DateTimeField", new ExpandingField(), 0, row++ );
+    addToGrid( grid, "TimeField", new TimeField( status ), 0, row++ );
+    addToGrid( grid, "DateTimeField", new DateTimeField( status ), 0, row++ );
     addToGrid( grid, "ChooseField", new ChooseField( EditableData.Fruit.values() ), 0, row++ );
 
     row = 0;

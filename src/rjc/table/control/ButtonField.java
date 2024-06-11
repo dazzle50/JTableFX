@@ -62,9 +62,9 @@ public class ButtonField extends ExpandingField implements IOverflowField
   {
     event.consume();
     if ( event.getDeltaY() > 0 )
-      changeValue( m_step );
+      changeValue( m_step, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
     else
-      changeValue( -m_step );
+      changeValue( -m_step, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
   };
 
   /**************************************** constructor ******************************************/
@@ -261,9 +261,9 @@ public class ButtonField extends ExpandingField implements IOverflowField
     event.consume();
 
     if ( event.getY() < m_button.getHeight() / 2 )
-      changeValue( m_step );
+      changeValue( m_step, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
     else
-      changeValue( -m_step );
+      changeValue( -m_step, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
   }
 
   /***************************************** keyPressed ******************************************/

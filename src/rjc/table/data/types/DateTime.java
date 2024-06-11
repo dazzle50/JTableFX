@@ -233,6 +233,12 @@ public class DateTime implements Comparable<DateTime>, Serializable
     return new DateTime( m_milliseconds + ms );
   }
 
+  /************************************** addMilliseconds ***************************************/
+  public void addMilliseconds( long ms )
+  {
+    m_milliseconds += ms;
+  }
+
   /*************************************** getMilliseconds ***************************************/
   public long getMilliseconds()
   {

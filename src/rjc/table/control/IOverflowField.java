@@ -25,6 +25,15 @@ package rjc.table.control;
 public interface IOverflowField
 {
   /***************************************** changeValue *****************************************/
-  public void changeValue( double delta ); // change value by delta overflowing to overflow-field if available
+  // change value by delta overflowing to overflow-field if available
+  public void changeValue( double delta );
+
+  /***************************************** changeValue *****************************************/
+  // change value by delta/shift/ctrl overflowing to overflow-field if available
+  default public void changeValue( double delta, boolean shift, boolean ctrl, boolean alt )
+  {
+    // default behaviour is to ignore shift/ctrl
+    changeValue( delta );
+  }
 
 }

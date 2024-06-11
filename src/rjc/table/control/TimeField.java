@@ -20,21 +20,17 @@ package rjc.table.control;
 
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import rjc.table.data.types.Date;
+import rjc.table.data.types.Time;
 import rjc.table.signal.ISignal;
 import rjc.table.signal.ObservableStatus;
 import rjc.table.signal.ObservableStatus.Level;
 
-/*************************************************************************************************/
-/************************************** Date field control ***************************************/
-/*************************************************************************************************/
-
-public class DateField extends ButtonField implements ISignal
+public class TimeField extends ButtonField implements ISignal
 {
-  private Date m_date; // field current date (or most recent valid)
+  private Time m_time; // field current time (or most recent valid)
 
   /**************************************** constructor ******************************************/
-  public DateField( ObservableStatus status )
+  public TimeField( ObservableStatus status )
   {
     // construct field
     setStatus( status );
@@ -46,28 +42,28 @@ public class DateField extends ButtonField implements ISignal
     {
       try
       {
-        // if no exception raised and date is different send signal (but don't update text)
-        Date date = Date.parse( newText, "uuuu-MM-dd" );
-        if ( !date.equals( m_date ) )
+        // if no exception raised and time is different send signal (but don't update text)
+        Time time = Time.fromString( newText );
+        if ( !time.equals( m_time ) )
         {
-          m_date = date;
-          signal( date );
+          m_time = time;
+          signal( time );
         }
 
-        getStatus().update( Level.NORMAL, "Date: " + formatStatus( date ) );
+        getStatus().update( Level.NORMAL, "Time: " + formatStatus( time ) );
         setStyle( getStatus().getStyle() );
       }
       catch ( Exception exception )
       {
-        getStatus().update( Level.ERROR, "Date format is not recognised" );
+        getStatus().update( Level.ERROR, "Time is not valid" );
         setStyle( getStatus().getStyle() );
       }
     } );
 
-    // react to focus change to ensure text shows date in correct format
+    // react to focus change to ensure text shows time in correct format
     focusedProperty().addListener( ( property, oldF, newF ) ->
     {
-      setText( format( m_date ) );
+      setText( format( m_time ) );
       positionCaret( getText().length() );
       getStatus().update( Level.NORMAL, null );
     } );
@@ -89,47 +85,47 @@ public class DateField extends ButtonField implements ISignal
 
       if ( event.getCode() == KeyCode.ENTER || event.getCode() == KeyCode.ESCAPE )
       {
-        setText( format( m_date ) );
+        setText( format( m_time ) );
         positionCaret( getText().length() );
       }
     } );
 
-    // set default date to today
-    setDate( Date.now() );
+    // set initial time truncated to hour
+    setTime( Time.fromHours( Time.now().getHours() ) );
   }
 
-  /****************************************** getDate ********************************************/
-  public Date getDate()
+  /****************************************** getTime ********************************************/
+  public Time getTime()
   {
-    // return current field date (or most recent valid)
-    return m_date;
+    // return field time (or most recent valid)
+    return m_time;
   }
 
-  /****************************************** setDate ********************************************/
-  public void setDate( Date date )
+  /****************************************** setTime ********************************************/
+  public void setTime( Time time )
   {
-    // set current field date, display in text, signal change
-    if ( !date.equals( m_date ) )
+    // set current field time, display in text, signal change
+    if ( !time.equals( m_time ) )
     {
-      m_date = date;
-      setText( format( date ) );
+      m_time = time;
+      setText( format( time ) );
       positionCaret( getText().length() );
-      signal( date );
+      signal( time );
     }
   }
 
   /******************************************* format ********************************************/
-  public String format( Date date )
+  public String format( Time time )
   {
-    // return date in display format
-    return date.toString();
+    // return time in display format
+    return time.toString();
   }
 
   /**************************************** formatStatus *****************************************/
-  public String formatStatus( Date date )
+  public String formatStatus( Time time )
   {
     // return date in status format
-    return date.toString( "eeee d MMMM yyyy" );
+    return time.toString();
   }
 
   /***************************************** changeValue *****************************************/
@@ -138,11 +134,16 @@ public class DateField extends ButtonField implements ISignal
   {
     // modify field value
     if ( !shift && !ctrl )
-      setDate( getDate().plusDays( (int) delta ) );
+      m_time.addMilliseconds( (int) ( delta * Time.ONE_HOUR ) );
     if ( shift && !ctrl )
-      setDate( getDate().plusMonths( (int) delta ) );
+      m_time.addMilliseconds( (int) ( delta * Time.ONE_MINUTE ) );
     if ( !shift && ctrl )
-      setDate( getDate().plusYears( (int) delta ) );
+      m_time.addMilliseconds( (int) ( delta * Time.ONE_SECOND ) );
+
+    // display in text and signal change
+    setText( format( m_time ) );
+    positionCaret( getText().length() );
+    signal( m_time );
   }
 
 }

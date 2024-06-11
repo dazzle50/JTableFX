@@ -20,21 +20,23 @@ package rjc.table.control;
 
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import rjc.table.data.types.Date;
+
+/*************************************************************************************************/
+/************************************ Date-time field control ************************************/
+/*************************************************************************************************/
+
+import rjc.table.data.types.DateTime;
+import rjc.table.data.types.Time;
 import rjc.table.signal.ISignal;
 import rjc.table.signal.ObservableStatus;
 import rjc.table.signal.ObservableStatus.Level;
 
-/*************************************************************************************************/
-/************************************** Date field control ***************************************/
-/*************************************************************************************************/
-
-public class DateField extends ButtonField implements ISignal
+public class DateTimeField extends ButtonField implements ISignal
 {
-  private Date m_date; // field current date (or most recent valid)
+  private DateTime m_datetime; // field current date-time (or most recent valid)
 
   /**************************************** constructor ******************************************/
-  public DateField( ObservableStatus status )
+  public DateTimeField( ObservableStatus status )
   {
     // construct field
     setStatus( status );
@@ -47,32 +49,33 @@ public class DateField extends ButtonField implements ISignal
       try
       {
         // if no exception raised and date is different send signal (but don't update text)
-        Date date = Date.parse( newText, "uuuu-MM-dd" );
-        if ( !date.equals( m_date ) )
+        DateTime dt = DateTime.parse( newText,
+            "[uuuuMMdd][uu-M-d][uuuu-M-d][uuuu-DDD][['T'][' '][HHmmss][HHmm][H:m:s][H:m][.SSS][.SS][.S]]" );
+        if ( !dt.equals( m_datetime ) )
         {
-          m_date = date;
-          signal( date );
+          m_datetime = dt;
+          signal( dt );
         }
 
-        getStatus().update( Level.NORMAL, "Date: " + formatStatus( date ) );
+        getStatus().update( Level.NORMAL, "Date-time: " + formatStatus( dt ) );
         setStyle( getStatus().getStyle() );
       }
       catch ( Exception exception )
       {
-        getStatus().update( Level.ERROR, "Date format is not recognised" );
+        getStatus().update( Level.ERROR, "Date-time format is not recognised" );
         setStyle( getStatus().getStyle() );
       }
     } );
 
-    // react to focus change to ensure text shows date in correct format
+    // react to focus change to ensure text shows date-time in correct format
     focusedProperty().addListener( ( property, oldF, newF ) ->
     {
-      setText( format( m_date ) );
+      setText( format( m_datetime ) );
       positionCaret( getText().length() );
       getStatus().update( Level.NORMAL, null );
     } );
 
-    // react to key presses
+    // modify date-time if up or down arrows pressed
     addEventFilter( KeyEvent.KEY_PRESSED, event ->
     {
       if ( event.getCode() == KeyCode.UP )
@@ -89,60 +92,78 @@ public class DateField extends ButtonField implements ISignal
 
       if ( event.getCode() == KeyCode.ENTER || event.getCode() == KeyCode.ESCAPE )
       {
-        setText( format( m_date ) );
+        setText( format( m_datetime ) );
         positionCaret( getText().length() );
       }
     } );
 
-    // set default date to today
-    setDate( Date.now() );
+    // set default date-time to now truncated to hour
+    long now = DateTime.now().getMilliseconds() / 3600000L;
+    setDateTime( new DateTime( now * 3600000L ) );
   }
 
-  /****************************************** getDate ********************************************/
-  public Date getDate()
+  /**************************************** getDateTime ******************************************/
+  public DateTime getDateTime()
   {
-    // return current field date (or most recent valid)
-    return m_date;
+    // return field date-time (or most recent valid)
+    return m_datetime;
   }
 
-  /****************************************** setDate ********************************************/
-  public void setDate( Date date )
+  /**************************************** setDateTime ******************************************/
+  public void setDateTime( DateTime datetime )
   {
     // set current field date, display in text, signal change
-    if ( !date.equals( m_date ) )
+    if ( !datetime.equals( m_datetime ) )
     {
-      m_date = date;
-      setText( format( date ) );
+      m_datetime = datetime;
+      setText( format( datetime ) );
       positionCaret( getText().length() );
-      signal( date );
+      signal( datetime );
     }
   }
 
   /******************************************* format ********************************************/
-  public String format( Date date )
+  public String format( DateTime datetime )
   {
-    // return date in display format
-    return date.toString();
+    // return date-time in display format
+    return datetime.toString( "yyyy-MM-dd HH:mm:ss.SSS" );
   }
 
   /**************************************** formatStatus *****************************************/
-  public String formatStatus( Date date )
+  public String formatStatus( DateTime datetime )
   {
     // return date in status format
-    return date.toString( "eeee d MMMM yyyy" );
+    return datetime.toString( "eeee d MMMM yyyy HH:mm:ss.SSS" );
   }
 
   /***************************************** changeValue *****************************************/
   @Override
   public void changeValue( double delta, boolean shift, boolean ctrl, boolean alt )
   {
-    // modify field value
-    if ( !shift && !ctrl )
-      setDate( getDate().plusDays( (int) delta ) );
-    if ( shift && !ctrl )
-      setDate( getDate().plusMonths( (int) delta ) );
-    if ( !shift && ctrl )
-      setDate( getDate().plusYears( (int) delta ) );
+    if ( alt )
+    {
+      // modify field time-part
+      if ( !shift && !ctrl )
+        m_datetime.addMilliseconds( (int) ( delta * Time.ONE_HOUR ) );
+      if ( shift && !ctrl )
+        m_datetime.addMilliseconds( (int) ( delta * Time.ONE_MINUTE ) );
+      if ( !shift && ctrl )
+        m_datetime.addMilliseconds( (int) ( delta * Time.ONE_SECOND ) );
+
+      setText( format( m_datetime ) );
+      positionCaret( getText().length() );
+      signal( m_datetime );
+    }
+    else
+    {
+      // modify field date-part
+      if ( !shift && !ctrl )
+        setDateTime( getDateTime().plusDays( (int) delta ) );
+      if ( shift && !ctrl )
+        setDateTime( getDateTime().plusMonths( (int) delta ) );
+      if ( !shift && ctrl )
+        setDateTime( getDateTime().plusYears( (int) delta ) );
+    }
   }
 
 }
