@@ -24,6 +24,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.layout.GridPane;
+import rjc.table.control.CalendarWidget;
 import rjc.table.control.ChooseField;
 import rjc.table.control.DateField;
 import rjc.table.control.DateTimeField;
@@ -31,6 +32,7 @@ import rjc.table.control.ExpandingField;
 import rjc.table.control.IHasObservableStatus;
 import rjc.table.control.MonthSpinField;
 import rjc.table.control.NumberSpinField;
+import rjc.table.control.TEMP_TimeWidget;
 import rjc.table.control.TimeField;
 import rjc.table.demo.edit.EditableData;
 import rjc.table.signal.ObservableStatus;
@@ -70,6 +72,7 @@ public class DemoFields extends Tab
     addToGrid( grid, "TimeField", new TimeField( status ), 0, row++ );
     addToGrid( grid, "DateTimeField", new DateTimeField( status ), 0, row++ );
     addToGrid( grid, "ChooseField", new ChooseField( EditableData.Fruit.values() ), 0, row++ );
+    addToGrid( grid, "TimeWidget", new TEMP_TimeWidget( new CalendarWidget() ), 0, row++ );
 
     row = 0;
     addToGrid( grid, "NumberSpinField", new NumberSpinField(), 1, row++ );

@@ -39,7 +39,7 @@ public class DateField extends ButtonField implements ISignal
     // construct field
     setStatus( status );
     setButtonType( ButtonType.DOWN );
-    // TODO xxxxxxxxxxxxxxxxxxxxxxxx new DateTimeDropDown( this );
+    new TEMP_DateTimeDropDown( this );
 
     // react to text changes, for example user typing new time
     textProperty().addListener( ( property, oldText, newText ) ->

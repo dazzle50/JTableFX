@@ -192,6 +192,13 @@ public class ButtonField extends ExpandingField implements IOverflowField
     widthProperty().addListener( ( property, oldWidth, newWidth ) -> drawButton() );
   }
 
+  /****************************************** getButton ******************************************/
+  public Canvas getButton()
+  {
+    // return button canvas
+    return m_button;
+  }
+
   /***************************************** drawButton ******************************************/
   private void drawButton()
   {

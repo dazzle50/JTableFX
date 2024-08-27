@@ -21,13 +21,16 @@ package rjc.table.control;
 import java.text.DecimalFormat;
 import java.util.regex.Pattern;
 
+import rjc.table.signal.ISignal;
+
 /*************************************************************************************************/
 /**************************** Generic spin control for number values *****************************/
 /*************************************************************************************************/
 
-public class NumberSpinField extends ButtonField
+public class NumberSpinField extends ButtonField implements ISignal
 {
   private DecimalFormat m_numberFormat; // number decimal format
+  private double        m_lastSignal;
 
   /**************************************** constructor ******************************************/
   public NumberSpinField()
@@ -43,6 +46,14 @@ public class NumberSpinField extends ButtonField
       if ( text.length() > 1 && text.charAt( 0 ) == '0' && Character.isDigit( text.charAt( 1 ) )
           && m_numberFormat.getMinimumIntegerDigits() == 1 )
         super.setValue( text.substring( 1 ) );
+
+      // emit signal when number changes
+      double num = getDouble();
+      if ( num != m_lastSignal )
+      {
+        signal( num );
+        m_lastSignal = num;
+      }
     } );
   }
 
