@@ -31,7 +31,8 @@ import rjc.table.signal.ObservableStatus.Level;
 
 public class DateField extends ButtonField implements ISignal
 {
-  private Date m_date; // field current date (or most recent valid)
+  private Date         m_date;     // field current date (or most recent valid)
+  private DateDropDown m_dropdown; // drop-down for this field
 
   /**************************************** constructor ******************************************/
   public DateField( ObservableStatus status )
@@ -39,60 +40,12 @@ public class DateField extends ButtonField implements ISignal
     // construct field
     setStatus( status );
     setButtonType( ButtonType.DOWN );
-    new TEMP_DateTimeDropDown( this );
+    m_dropdown = new DateDropDown( this );
 
-    // react to text changes, for example user typing new time
-    textProperty().addListener( ( property, oldText, newText ) ->
-    {
-      try
-      {
-        // if no exception raised and date is different send signal (but don't update text)
-        Date date = Date.parse( newText, "uuuu-MM-dd" );
-        if ( !date.equals( m_date ) )
-        {
-          m_date = date;
-          signal( date );
-        }
-
-        getStatus().update( Level.NORMAL, "Date: " + formatStatus( date ) );
-        setStyle( getStatus().getStyle() );
-      }
-      catch ( Exception exception )
-      {
-        getStatus().update( Level.ERROR, "Date format is not recognised" );
-        setStyle( getStatus().getStyle() );
-      }
-    } );
-
-    // react to focus change to ensure text shows date in correct format
-    focusedProperty().addListener( ( property, oldF, newF ) ->
-    {
-      setText( format( m_date ) );
-      positionCaret( getText().length() );
-      getStatus().update( Level.NORMAL, null );
-    } );
-
-    // react to key presses
-    addEventFilter( KeyEvent.KEY_PRESSED, event ->
-    {
-      if ( event.getCode() == KeyCode.UP )
-      {
-        event.consume();
-        changeValue( 1, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
-      }
-
-      if ( event.getCode() == KeyCode.DOWN )
-      {
-        event.consume();
-        changeValue( -1, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
-      }
-
-      if ( event.getCode() == KeyCode.ENTER || event.getCode() == KeyCode.ESCAPE )
-      {
-        setText( format( m_date ) );
-        positionCaret( getText().length() );
-      }
-    } );
+    // react to changes & key presses
+    textProperty().addListener( ( property, oldText, newText ) -> parseText( newText ) );
+    focusedProperty().addListener( ( property, oldF, newF ) -> validText() );
+    addEventFilter( KeyEvent.KEY_PRESSED, event -> keyPressed( event ) );
 
     // set default date to today
     setDate( Date.now() );
@@ -130,6 +83,60 @@ public class DateField extends ButtonField implements ISignal
   {
     // return date in status format
     return date.toString( "eeee d MMMM yyyy" );
+  }
+
+  /***************************************** parseText *******************************************/
+  public void parseText( String newText )
+  {
+    // check if string can be parsed as a date, and update status
+    try
+    {
+      // if no exception raised and date is different send signal (but don't update text)
+      Date date = Date.parse( newText, "uuuu-MM-dd" );
+      if ( !date.equals( m_date ) )
+      {
+        m_date = date;
+        signal( date );
+      }
+
+      getStatus().update( Level.NORMAL, "Date: " + formatStatus( date ) );
+      setStyle( getStatus().getStyle() );
+    }
+    catch ( Exception exception )
+    {
+      getStatus().update( Level.ERROR, "Date format is not recognised" );
+      setStyle( getStatus().getStyle() );
+    }
+  }
+
+  /***************************************** validText *******************************************/
+  public void validText()
+  {
+    // ensure field displays last valid date
+    setText( format( m_date ) );
+    positionCaret( getText().length() );
+    getStatus().clear();
+  }
+
+  /***************************************** keyPressed ******************************************/
+  @Override
+  public void keyPressed( KeyEvent event )
+  {
+    // react to certain key presses
+    if ( event.getCode() == KeyCode.UP )
+    {
+      event.consume();
+      changeValue( 1, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
+    }
+
+    if ( event.getCode() == KeyCode.DOWN )
+    {
+      event.consume();
+      changeValue( -1, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
+    }
+
+    if ( event.getCode() == KeyCode.ENTER || event.getCode() == KeyCode.ESCAPE )
+      validText();
   }
 
   /***************************************** changeValue *****************************************/

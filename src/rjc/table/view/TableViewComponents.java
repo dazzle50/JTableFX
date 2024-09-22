@@ -19,7 +19,7 @@
 package rjc.table.view;
 
 import javafx.geometry.Orientation;
-import rjc.table.control.IHasObservableStatus;
+import rjc.table.control.IObservableStatus;
 import rjc.table.signal.ObservableDouble;
 import rjc.table.signal.ObservableStatus;
 import rjc.table.undo.UndoStack;
@@ -32,7 +32,7 @@ import rjc.table.view.cell.ViewPosition;
 /************** Table-view components to visualise & interact with table-data model **************/
 /*************************************************************************************************/
 
-public class TableViewComponents extends TableViewParent implements IHasObservableStatus
+public class TableViewComponents extends TableViewParent implements IObservableStatus
 {
   private TableCanvas      m_canvas;
   private TableScrollBar   m_verticalScrollBar;

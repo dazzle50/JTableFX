@@ -29,7 +29,7 @@ import rjc.table.signal.ObservableStatus;
 /************* Enhanced JavaFX TextField that can expand and only allows valid text **************/
 /*************************************************************************************************/
 
-public class ExpandingField extends TextField implements IHasObservableStatus
+public class ExpandingField extends TextField implements IObservableStatus
 {
   private Pattern          m_allowed;  // pattern defining text allowed to be entered
   private double           m_minWidth; // minimum width for editor in pixels

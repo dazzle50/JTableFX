@@ -38,6 +38,7 @@ public class NumberSpinField extends ButtonField implements ISignal
     // set default spin editor characteristics
     setFormat( "0", 0 );
     setValue( getMin() );
+    setButtonType( ButtonType.UP_DOWN );
 
     // add listener to remove any excess leading zeros
     textProperty().addListener( ( observable, oldText, newText ) ->

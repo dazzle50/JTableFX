@@ -29,7 +29,7 @@ import rjc.table.control.ChooseField;
 import rjc.table.control.DateField;
 import rjc.table.control.DateTimeField;
 import rjc.table.control.ExpandingField;
-import rjc.table.control.IHasObservableStatus;
+import rjc.table.control.IObservableStatus;
 import rjc.table.control.MonthSpinField;
 import rjc.table.control.NumberSpinField;
 import rjc.table.control.TEMP_TimeWidget;
@@ -102,7 +102,7 @@ public class DemoFields extends Tab
     }
 
     // attach the node to demo status if has observable status
-    if ( node instanceof IHasObservableStatus field )
+    if ( node instanceof IObservableStatus field )
       field.setStatus( m_status );
   }
 

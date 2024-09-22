@@ -21,6 +21,7 @@ package rjc.table.control;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.scene.Cursor;
+import javafx.scene.Parent;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.input.KeyEvent;
@@ -30,7 +31,7 @@ import rjc.table.Utils;
 import rjc.table.view.Colours;
 
 /*************************************************************************************************/
-/******* ExpandingField that has spin or drop-down button, numeric value, prefix & suffix ********/
+/************ ExpandingField that has optional button, numeric value, prefix & suffix ************/
 /*************************************************************************************************/
 
 public class ButtonField extends ExpandingField implements IOverflowField
@@ -74,11 +75,7 @@ public class ButtonField extends ExpandingField implements IOverflowField
     setPrefixSuffix( null, null );
     setRange( 0.0, 999.0 );
     setStepPage( 1.0, 10.0 );
-    setButtonType( ButtonType.UP_DOWN );
-
-    // react to key presses and button mouse clicks
     setOnKeyPressed( event -> keyPressed( event ) );
-    m_button.setOnMousePressed( event -> buttonPressed( event ) );
 
     // when focused take control of parent's scroll events, otherwise release control
     focusedProperty().addListener( ( observable, oldFocus, newFocus ) ->
@@ -89,6 +86,20 @@ public class ButtonField extends ExpandingField implements IOverflowField
         getParent().removeEventFilter( ScrollEvent.SCROLL, scrollHandler );
     } );
 
+  }
+
+  /************************************* handleScrollEvents **************************************/
+  public void handleScrollEvents( Parent... parents )
+  {
+    // TODO manage the scroll-events for specified parents
+    Utils.trace( "HANDLE =", parents );
+  }
+
+  /************************************* releaseScrollEvents *************************************/
+  public void releaseScrollEvents( Parent... parents )
+  {
+    // TODO release the scroll-events for specified parents
+    Utils.trace( "RELEASE =", parents );
   }
 
   /****************************************** setValue *******************************************/
@@ -180,16 +191,22 @@ public class ButtonField extends ExpandingField implements IOverflowField
   /**************************************** setButtonType ****************************************/
   public void setButtonType( ButtonType type )
   {
+    // create button canvas if not already created
+    if ( m_button == null )
+    {
+      m_button = new Canvas();
+      m_button.setManaged( false );
+      m_button.setCursor( Cursor.DEFAULT );
+      m_button.setOnMousePressed( event -> buttonPressed( event ) );
+      getChildren().add( m_button );
+
+      // add listeners to (re)draw button every time editor changes size
+      heightProperty().addListener( ( property, oldHeight, newHeight ) -> drawButton() );
+      widthProperty().addListener( ( property, oldWidth, newWidth ) -> drawButton() );
+    }
+
     // set button type for this editor
     m_buttonType = type;
-    m_button = new Canvas();
-    m_button.setManaged( false );
-    m_button.setCursor( Cursor.DEFAULT );
-    getChildren().add( m_button );
-
-    // add listeners to (re)draw button every time editor changes size
-    heightProperty().addListener( ( property, oldHeight, newHeight ) -> drawButton() );
-    widthProperty().addListener( ( property, oldWidth, newWidth ) -> drawButton() );
   }
 
   /****************************************** getButton ******************************************/

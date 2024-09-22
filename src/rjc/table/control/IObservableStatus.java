@@ -24,7 +24,7 @@ import rjc.table.signal.ObservableStatus;
 /*********************** Interface for objects that have observable-status ***********************/
 /*************************************************************************************************/
 
-public interface IHasObservableStatus
+public interface IObservableStatus
 {
   /***************************************** setStatus *******************************************/
   public void setStatus( ObservableStatus status ); // set text field status

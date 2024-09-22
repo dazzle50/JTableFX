@@ -39,11 +39,12 @@ public class MonthSpinField extends ButtonField implements ISignal
     setRange( 1.0, 12.0 );
     setStepPage( 1.0, 3.0 );
     setValue( Month.JANUARY );
+    setButtonType( ButtonType.UP_DOWN );
 
     // react to key typed
     setOnKeyTyped( event -> keyTyped( event ) );
 
-    //
+    // signal when month changes
     textProperty().addListener( ( o, newT, oldT ) -> signal( getMonth() ) );
   }
 

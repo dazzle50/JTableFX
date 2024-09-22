@@ -22,7 +22,7 @@ import javafx.scene.control.Control;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import rjc.table.control.ExpandingField;
-import rjc.table.control.IHasObservableStatus;
+import rjc.table.control.IObservableStatus;
 import rjc.table.data.TableData;
 import rjc.table.signal.ObservableStatus.Level;
 import rjc.table.undo.commands.CommandSetValue;
@@ -77,7 +77,7 @@ public class CellEditorBase
     }
 
     // if control has observable status, set to view observable status
-    if ( m_control instanceof IHasObservableStatus field )
+    if ( m_control instanceof IObservableStatus field )
       field.setStatus( cell.view.getStatus() );
 
     // display editor, give focus, and set editor value
