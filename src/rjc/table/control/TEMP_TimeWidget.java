@@ -44,7 +44,7 @@ public class TEMP_TimeWidget extends HBox implements ISignal
     double width = calendar.getWidth() - 3 * BORDER;
 
     m_hours.setMaxWidth( width * 0.24 );
-    m_hours.setFormat( "00", 0 );
+    m_hours.setFormat( "00", 4, 0 );
     m_hours.setRange( 0, 23 );
     m_hours.setStepPage( 1, 6 );
     m_hours.setOverflowField( calendar );
@@ -52,21 +52,21 @@ public class TEMP_TimeWidget extends HBox implements ISignal
     m_hours.addListener( ( sender, msg ) -> signalTime() );
 
     m_mins.setMaxWidth( width * 0.24 );
-    m_mins.setFormat( "00", 0 );
+    m_mins.setFormat( "00", 4, 0 );
     m_mins.setRange( 0, 59 );
     m_mins.setOverflowField( m_hours );
     m_mins.setValue( 0 );
     m_mins.addListener( ( sender, msg ) -> signalTime() );
 
     m_secs.setMaxWidth( width * 0.24 );
-    m_secs.setFormat( "00", 0 );
+    m_secs.setFormat( "00", 4, 0 );
     m_secs.setRange( 0, 59 );
     m_secs.setOverflowField( m_mins );
     m_secs.setValue( 0 );
     m_secs.addListener( ( sender, msg ) -> signalTime() );
 
     m_millisecs.setMaxWidth( 1 + width - m_hours.getMaxWidth() - m_mins.getMaxWidth() - m_secs.getMaxWidth() );
-    m_millisecs.setFormat( "000", 0 );
+    m_millisecs.setFormat( "000", 6, 0 );
     m_millisecs.setRange( 0, 999 );
     m_millisecs.setStepPage( 1, 100 );
     m_millisecs.setOverflowField( m_secs );

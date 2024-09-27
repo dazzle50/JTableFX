@@ -26,13 +26,17 @@ public interface IOverflowField
 {
   /***************************************** changeValue *****************************************/
   // change value by delta overflowing to overflow-field if available
-  public void changeValue( double delta );
+  default void changeValue( double delta )
+  {
+    // change value assuming no shift/ctrl/alt behaviour
+    changeValue( delta, false, false, false );
+  }
 
   /***************************************** changeValue *****************************************/
   // change value by delta/shift/ctrl overflowing to overflow-field if available
-  default public void changeValue( double delta, boolean shift, boolean ctrl, boolean alt )
+  default void changeValue( double delta, boolean shift, boolean ctrl, boolean alt )
   {
-    // default behaviour is to ignore shift/ctrl
+    // default behaviour is to ignore shift/ctrl/alt
     changeValue( delta );
   }
 

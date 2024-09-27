@@ -30,13 +30,13 @@ import rjc.table.signal.ISignal;
 public class NumberSpinField extends ButtonField implements ISignal
 {
   private DecimalFormat m_numberFormat; // number decimal format
-  private double        m_lastSignal;
+  private double        m_lastSignal;   // last value signalled to avoid signals when no change
 
   /**************************************** constructor ******************************************/
   public NumberSpinField()
   {
     // set default spin editor characteristics
-    setFormat( "0", 0 );
+    setFormat( "0", 20, 0 );
     setValue( getMin() );
     setButtonType( ButtonType.UP_DOWN );
 
@@ -77,16 +77,19 @@ public class NumberSpinField extends ButtonField implements ISignal
   }
 
   /****************************************** setFormat ******************************************/
-  public void setFormat( String format, int maxFractionDigits )
+  public void setFormat( String format, int maxIntegerDigits, int maxFractionDigits )
   {
     // check inputs
     if ( maxFractionDigits < 0 || maxFractionDigits > 8 )
       throw new IllegalArgumentException( "Digits after deciminal place out of 0-8 range! " + maxFractionDigits );
+    if ( maxIntegerDigits < 0 || maxIntegerDigits > 99 )
+      throw new IllegalArgumentException( "Digits before deciminal place out of 0-99 range! " + maxIntegerDigits );
 
     // set number format
     m_numberFormat = new DecimalFormat( format );
+    m_numberFormat.setMaximumIntegerDigits( maxIntegerDigits );
     m_numberFormat.setMaximumFractionDigits( maxFractionDigits );
-    setRange( getMin(), getMax() );
+    determineAllowed();
   }
 
   /******************************************* setRange ******************************************/
@@ -110,14 +113,20 @@ public class NumberSpinField extends ButtonField implements ISignal
   /************************************** determineAllowed ***************************************/
   private void determineAllowed()
   {
+    // only determine if number format available
+    if ( m_numberFormat == null )
+      return;
+
     // determine regular expression defining text allowed to be entered
     StringBuilder allow = new StringBuilder( 32 );
     allow.append( Pattern.quote( getPrefix() ) );
 
     if ( getMin() < 0.0 )
       allow.append( "-?" );
-    allow.append( "\\d*" );
-    if ( m_numberFormat != null && m_numberFormat.getMaximumFractionDigits() > 0 )
+
+    allow.append( "\\d{0," + m_numberFormat.getMaximumIntegerDigits() + "}" );
+
+    if ( m_numberFormat.getMaximumFractionDigits() > 0 )
       allow.append( "\\.?\\d{0," + m_numberFormat.getMaximumFractionDigits() + "}" );
 
     allow.append( Pattern.quote( getSuffix() ) );

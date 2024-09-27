@@ -62,6 +62,7 @@ public class DateDropDown extends DropDown
     m_monthField.setOverflowField( m_yearField );
     m_yearField.setMaxWidth( m_calendar.getWidth() - GRID_BORDER - w );
     m_yearField.setRange( 0, 5000 );
+    m_yearField.setFormat( "0", 6, 0 );
     m_todayButton.setPrefWidth( m_calendar.getWidth() );
     m_calendar.requestFocus();
 

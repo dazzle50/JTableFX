@@ -87,9 +87,9 @@ public class DropDown extends Popup
     parent.setOnMousePressed( event -> hideDropDown() );
 
     // hide drop-down when parent loses focus
-    parent.focusedProperty().addListener( ( focus ) ->
+    parent.focusedProperty().addListener( ( observable, oldFocus, newFocus ) ->
     {
-      if ( !m_parent.isFocused() )
+      if ( !newFocus )
         hideDropDown();
     } );
 

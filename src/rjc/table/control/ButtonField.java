@@ -21,12 +21,12 @@ package rjc.table.control;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.scene.Cursor;
-import javafx.scene.Parent;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
+import javafx.stage.Popup;
 import rjc.table.Utils;
 import rjc.table.view.Colours;
 
@@ -36,22 +36,23 @@ import rjc.table.view.Colours;
 
 public class ButtonField extends ExpandingField implements IOverflowField
 {
-  private double          m_minValue;            // minimum number allowed
-  private double          m_maxValue;            // maximum number allowed
+  private double                            m_minValue;            // minimum number allowed
+  private double                            m_maxValue;            // maximum number allowed
 
-  private double          m_page;                // value increment or decrement on page-up or page-down
-  private double          m_step;                // value increment or decrement on arrow-up or arrow-down
+  private double                            m_page;                // value increment or decrement on page-up or page-down
+  private double                            m_step;                // value increment or decrement on arrow-up or arrow-down
 
-  private String          m_prefix;              // prefix shown before value
-  private String          m_suffix;              // suffix shown after value
+  private String                            m_prefix;              // prefix shown before value
+  private String                            m_suffix;              // suffix shown after value
 
-  private ButtonType      m_buttonType;          // button type, null means no button
-  private Canvas          m_button;              // canvas to show button
+  private ButtonType                        m_buttonType;          // button type, null means no button
+  private Canvas                            m_button;              // canvas to show button
 
-  private IOverflowField  m_overflowField;       // field for overflow support
+  private IOverflowField                    m_overflowField;       // field for overflow support
+  private EventHandler<? super ScrollEvent> m_popupParentHandler;  // popup parent scroll event handler replaced
 
-  public static final int BUTTONS_WIDTH_MAX = 16;
-  public static final int BUTTONS_PADDING   = 2;
+  public static final int                   BUTTONS_WIDTH_MAX = 16;
+  public static final int                   BUTTONS_PADDING   = 2;
 
   public enum ButtonType
   {
@@ -62,10 +63,8 @@ public class ButtonField extends ExpandingField implements IOverflowField
   final EventHandler<ScrollEvent> scrollHandler = event ->
   {
     event.consume();
-    if ( event.getDeltaY() > 0 )
-      changeValue( m_step, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
-    else
-      changeValue( -m_step, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
+    double step = event.getDeltaY() > 0 ? m_step : -m_step;
+    changeValue( step, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
   };
 
   /**************************************** constructor ******************************************/
@@ -77,29 +76,19 @@ public class ButtonField extends ExpandingField implements IOverflowField
     setStepPage( 1.0, 10.0 );
     setOnKeyPressed( event -> keyPressed( event ) );
 
-    // when focused take control of parent's scroll events, otherwise release control
+    // when focused take control of scroll events, otherwise release control
     focusedProperty().addListener( ( observable, oldFocus, newFocus ) ->
     {
-      if ( isFocused() )
-        getParent().addEventFilter( ScrollEvent.SCROLL, scrollHandler );
-      else
-        getParent().removeEventFilter( ScrollEvent.SCROLL, scrollHandler );
+      getScene().getRoot().setOnScroll( newFocus ? scrollHandler : null );
+
+      // if this field is on a pop-up, for example a drop-down, also control scroll events on owner node
+      if ( getScene().getWindow() instanceof Popup popup )
+      {
+        var root = popup.getOwnerNode().getScene().getRoot();
+        m_popupParentHandler = newFocus ? root.getOnScroll() : m_popupParentHandler;
+        root.setOnScroll( newFocus ? scrollHandler : m_popupParentHandler );
+      }
     } );
-
-  }
-
-  /************************************* handleScrollEvents **************************************/
-  public void handleScrollEvents( Parent... parents )
-  {
-    // TODO manage the scroll-events for specified parents
-    Utils.trace( "HANDLE =", parents );
-  }
-
-  /************************************* releaseScrollEvents *************************************/
-  public void releaseScrollEvents( Parent... parents )
-  {
-    // TODO release the scroll-events for specified parents
-    Utils.trace( "RELEASE =", parents );
   }
 
   /****************************************** setValue *******************************************/

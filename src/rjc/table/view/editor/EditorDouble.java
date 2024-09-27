@@ -33,7 +33,7 @@ public class EditorDouble extends CellEditorBase
   {
     // create spin table cell editor for double
     super();
-    m_spin.setFormat( "0.0", 1 );
+    m_spin.setFormat( "0.0", 10, 1 );
     setControl( m_spin );
   }
 

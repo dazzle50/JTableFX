@@ -21,11 +21,13 @@ package rjc.table.control;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
+import javafx.event.EventHandler;
 import javafx.geometry.Bounds;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.input.ScrollEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.scene.text.FontSmoothingType;
@@ -71,13 +73,19 @@ public class CalendarWidget extends Canvas implements ISignal, IOverflowField
       }
     }
 
-    // redraw when focus changes
+    // handler for mouse scroll events to change selected date
+    final EventHandler<ScrollEvent> scrollHandler = event ->
+    {
+      event.consume();
+      double step = event.getDeltaY() > 0 ? 1 : -1;
+      changeValue( step, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
+    };
+
+    // when has focus add drop-shadow and handle scroll events 
     focusedProperty().addListener( ( observable, oldFocus, newFocus ) ->
     {
-      if ( newFocus.booleanValue() )
-        setStyle( "-fx-effect: dropshadow(gaussian, #039ed3, 4, 0.75, 0, 0);" );
-      else
-        setStyle( "" );
+      setStyle( newFocus ? "-fx-effect: dropshadow(gaussian, #039ed3, 4, 0.75, 0, 0);" : "" );
+      getScene().getRoot().setOnScroll( newFocus ? scrollHandler : null );
     } );
 
     // react to mouse + keyboard
@@ -144,10 +152,15 @@ public class CalendarWidget extends Canvas implements ISignal, IOverflowField
 
   /***************************************** changeValue *****************************************/
   @Override
-  public void changeValue( double delta )
+  public void changeValue( double delta, boolean shift, boolean ctrl, boolean alt )
   {
-    // adjust calendar date by delta days
-    setDate( m_date.plusDays( (long) delta ) );
+    // modify field value
+    if ( !shift && !ctrl )
+      setDate( getDate().plusDays( (int) delta ) );
+    if ( shift && !ctrl )
+      setDate( getDate().plusMonths( (int) delta ) );
+    if ( !shift && ctrl )
+      setDate( getDate().plusYears( (int) delta ) );
   }
 
   /**************************************** mouseReleased ****************************************/
