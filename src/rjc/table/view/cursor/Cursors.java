@@ -30,7 +30,7 @@ public final class Cursors
 
   public static final Cursor CELLS_HOVER     = new CellHoverCursor( "cross.png", 16, 20 );
   public static final Cursor CELLS_SELECT    = new SelectCursor( "cross.png", 16, 20 );
-  public static final Cursor CORNER_CELL     = Cursor.DISAPPEAR;
+  public static final Cursor CORNER_CELL     = new CornerCursor();
 
   public static final Cursor COLUMNS_HOVER   = new ColumnHoverCursor( "arrowdown.png", 7, 16 );
   public static final Cursor COLUMNS_SELECT  = new SelectCursor( "arrowdown.png", 7, 16 );

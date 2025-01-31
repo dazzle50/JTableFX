@@ -163,7 +163,7 @@ public class TableView extends TableViewComponents
       getSelection().update();
 
       // scroll to show select cell unless selecting using mouse which has its own scrolling behaviour
-      if ( getCursor() instanceof ViewBaseCursor cursor && cursor.isSelecting() )
+      if ( getCursor() instanceof ViewBaseCursor cursor && !cursor.isSelecting() )
         scrollTo( getSelectCell() );
     } );
     getSelection().addLaterListener( ( sender, msg ) ->
@@ -293,13 +293,6 @@ public class TableView extends TableViewComponents
   {
     // return cell editor for specified cell (or null if cell is read-only)
     return null;
-  }
-
-  /***************************************** openEditor ******************************************/
-  public void openEditor()
-  {
-    // open editor for focus cell with current value
-    openEditor( getFocusCell().getData() );
   }
 
   /***************************************** openEditor ******************************************/

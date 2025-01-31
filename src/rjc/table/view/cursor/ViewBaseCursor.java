@@ -22,7 +22,6 @@ import javafx.scene.ImageCursor;
 import javafx.scene.image.Image;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
-import rjc.table.Utils;
 import rjc.table.view.TableOverlay;
 import rjc.table.view.TableScrollBar;
 import rjc.table.view.TableView;
@@ -54,6 +53,12 @@ public class ViewBaseCursor extends ImageCursor
     super( new Image( Cursors.class.getResourceAsStream( imageFile ) ), xHotspot, yHotspot );
   }
 
+  /**************************************** constructor ******************************************/
+  public ViewBaseCursor()
+  {
+    // return a cursor which looks like Cursor.DEFAULT
+  }
+
   /*************************************** extractDetails ****************************************/
   void extractDetails( MouseEvent mouseEvent )
   {
@@ -75,15 +80,13 @@ public class ViewBaseCursor extends ImageCursor
   /**************************************** handlePressed ****************************************/
   public void handlePressed( MouseEvent event )
   {
-    // override as needed
-    Utils.trace( "NOT IMPLEMENTED", this );
+    // default do nothing
   }
 
   /*************************************** handleReleased ****************************************/
   public void handleReleased( MouseEvent event )
   {
-    // override as needed
-    Utils.trace( "NOT IMPLEMENTED", this );
+    // default do nothing
   }
 
   /**************************************** handleClicked ****************************************/
@@ -95,8 +98,7 @@ public class ViewBaseCursor extends ImageCursor
   /**************************************** handleDragged ****************************************/
   public void handleDragged( MouseEvent event )
   {
-    // override as needed
-    Utils.trace( "NOT IMPLEMENTED", this );
+    // default do nothing
   }
 
   /***************************************** isSelecting *****************************************/

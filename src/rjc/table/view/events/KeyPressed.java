@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -97,7 +97,7 @@ public class KeyPressed implements EventHandler<KeyEvent>
           return;
 
         case F2: // F2 key - open cell editor with current focus cell contents
-          m_view.openEditor();
+          m_view.openEditor( m_view.getFocusCell().getData() );
           return;
 
         case F5: // F5 key - redraw table

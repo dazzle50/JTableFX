@@ -25,13 +25,14 @@ import javafx.scene.input.MouseEvent;
 /*********************** Mouse cursor when hovering over table body cells ************************/
 /*************************************************************************************************/
 
-public class CellHoverCursor extends ViewBaseCursor
+public class CornerCursor extends ViewBaseCursor
 {
 
   /**************************************** constructor ******************************************/
-  public CellHoverCursor( String imageFile, int xHotspot, int yHotstop )
+  public CornerCursor()
   {
-    super( imageFile, xHotspot, yHotstop );
+    // construct cursor that looks like default
+    super();
   }
 
   /**************************************** handlePressed ****************************************/
@@ -50,27 +51,7 @@ public class CellHoverCursor extends ViewBaseCursor
     if ( button != MouseButton.PRIMARY )
       return;
 
-    // start selecting cells
-    view.setCursor( Cursors.CELLS_SELECT );
-    if ( !shift || control )
-    {
-      view.getSelection().select();
-      focusCell.setPosition( mouseCell );
-    }
-    selectCell.setPosition( mouseCell );
+    // select entire table
+    view.getSelection().selectAll();
   }
-
-  /**************************************** handleClicked ****************************************/
-  @Override
-  public void handleClicked( MouseEvent event )
-  {
-    // user has clicked the table
-    extractDetails( event );
-    boolean doubleClick = event.getClickCount() == 2 && button == MouseButton.PRIMARY;
-
-    // double-click to start cell editor with cell contents
-    if ( doubleClick )
-      view.openEditor( focusCell.getData() );
-  }
-
 }
