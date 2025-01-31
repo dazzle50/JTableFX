@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -25,15 +25,10 @@ import rjc.table.view.TableScrollBar.Animation;
 import rjc.table.view.axis.TableAxis;
 import rjc.table.view.cell.CellDrawer;
 import rjc.table.view.cursor.Cursors;
+import rjc.table.view.cursor.ViewBaseCursor;
 import rjc.table.view.editor.CellEditorBase;
 import rjc.table.view.events.KeyPressed;
 import rjc.table.view.events.KeyTyped;
-import rjc.table.view.events.MouseClicked;
-import rjc.table.view.events.MouseDragged;
-import rjc.table.view.events.MouseMoved;
-import rjc.table.view.events.MousePressed;
-import rjc.table.view.events.MouseReleased;
-import rjc.table.view.events.MouseScroll;
 
 /*************************************************************************************************/
 /************** Base class for scrollable table-view to visualise a table-data model *************/
@@ -52,9 +47,95 @@ public class TableView extends TableViewComponents
     m_data = data;
     setId( name );
 
-    // add event handlers & reset table view to default settings
+    // assemble view components and add listeners & event handlers
     assembleView();
+    addDataListeners();
+    addMouseHandlers();
     addEventHandlers();
+  }
+
+  /************************************** addDataListeners ***************************************/
+  protected void addDataListeners()
+  {
+    // react to data model signals
+    getData().addListener( ( sender, msg ) ->
+    {
+      Signal change = (Signal) msg[0];
+      if ( change == Signal.TABLE_VALUES_CHANGED )
+        redraw();
+      else if ( change == Signal.COLUMN_VALUES_CHANGED )
+        getCanvas().redrawColumn( (int) msg[1] );
+      else if ( change == Signal.ROW_VALUES_CHANGED )
+        getCanvas().redrawRow( (int) msg[1] );
+      else if ( change == Signal.CELL_VALUE_CHANGED )
+        getCanvas().redrawCell( (int) msg[1], (int) msg[2] );
+    } );
+  }
+
+  /************************************** addMouseHandlers ***************************************/
+  protected void addMouseHandlers()
+  {
+    // react to mouse move events on table body top node (is the overlay)
+    var overlay = getCanvas().getOverlay();
+    overlay.setOnMouseMoved( event ->
+    {
+      // consume the event and update the mouse cell position & cursor
+      event.consume();
+      int x = (int) event.getX();
+      int y = (int) event.getY();
+      var view = ( (TableOverlay) event.getSource() ).getView();
+      view.getMouseCell().setXY( x, y, true );
+    } );
+
+    // react to mouse button pressed events
+    overlay.setOnMousePressed( event ->
+    {
+      if ( getCursor() instanceof ViewBaseCursor cursor )
+        cursor.handlePressed( event );
+    } );
+
+    // react to mouse dragged events (mouse moved whilst mouse button down)
+    overlay.setOnMouseDragged( event ->
+    {
+      if ( getCursor() instanceof ViewBaseCursor cursor )
+        cursor.handleDragged( event );
+    } );
+
+    // react to mouse button released events
+    overlay.setOnMouseReleased( event ->
+    {
+      if ( getCursor() instanceof ViewBaseCursor cursor )
+        cursor.handleReleased( event );
+    } );
+
+    // react to mouse mouse button clicked events
+    overlay.setOnMouseClicked( event ->
+    {
+      if ( getCursor() instanceof ViewBaseCursor cursor )
+        cursor.handleClicked( event );
+    } );
+
+    // react to mouse scroll events
+    overlay.setOnScroll( event ->
+    {
+      // scroll up or down depending on mouse wheel scroll event
+      var view = ( (TableOverlay) event.getSource() ).getView();
+      var scrollbar = view.getVerticalScrollBar();
+
+      if ( scrollbar.isVisible() )
+      {
+        if ( event.getDeltaY() > 0 )
+        {
+          scrollbar.finishAnimation();
+          scrollbar.decrement();
+        }
+        else
+        {
+          scrollbar.finishAnimation();
+          scrollbar.increment();
+        }
+      }
+    } );
   }
 
   /************************************** addEventHandlers ***************************************/
@@ -64,13 +145,13 @@ public class TableView extends TableViewComponents
     focusedProperty().addListener( ( observable, oldFocus, newFocus ) -> redraw() );
     visibleProperty().addListener( ( observable, oldVisibility, newVisibility ) ->
     {
-      layoutDisplay();
+      updateLayout();
       redraw();
     } );
 
     // react to size changes (don't use layoutChildren as that gets called even when scrolling)
-    widthProperty().addListener( ( sender, msg ) -> layoutDisplay() );
-    heightProperty().addListener( ( sender, msg ) -> layoutDisplay() );
+    widthProperty().addListener( ( sender, msg ) -> updateLayout() );
+    heightProperty().addListener( ( sender, msg ) -> updateLayout() );
 
     // react to scroll bar position value changes
     getHorizontalScrollBar().valueProperty().addListener( ( observable, oldValue, newValue ) -> tableScrolled() );
@@ -82,7 +163,7 @@ public class TableView extends TableViewComponents
       getSelection().update();
 
       // scroll to show select cell unless selecting using mouse which has its own scrolling behaviour
-      if ( !Cursors.isSelecting( getCursor() ) )
+      if ( getCursor() instanceof ViewBaseCursor cursor && cursor.isSelecting() )
         scrollTo( getSelectCell() );
     } );
     getSelection().addLaterListener( ( sender, msg ) ->
@@ -98,60 +179,36 @@ public class TableView extends TableViewComponents
     // react to zoom values changes
     getZoom().addListener( ( sender, msg ) ->
     {
-      layoutDisplay();
+      updateLayout();
       tableScrolled();
-    } );
-
-    // react to data model signals
-    m_data.addListener( ( sender, msg ) ->
-    {
-      Signal change = (Signal) msg[0];
-      if ( change == Signal.TABLE_VALUES_CHANGED )
-        redraw();
-      else if ( change == Signal.COLUMN_VALUES_CHANGED )
-        getCanvas().redrawColumn( (int) msg[1] );
-      else if ( change == Signal.ROW_VALUES_CHANGED )
-        getCanvas().redrawRow( (int) msg[1] );
-      else if ( change == Signal.CELL_VALUE_CHANGED )
-        getCanvas().redrawCell( (int) msg[1], (int) msg[2] );
     } );
 
     // react to keyboard events
     setOnKeyPressed( new KeyPressed() );
     setOnKeyTyped( new KeyTyped() );
-
-    // react to mouse events on table body top node (is the overlay)
-    var overlay = getCanvas().getOverlay();
-    overlay.setOnMouseMoved( new MouseMoved() );
-    overlay.setOnMousePressed( new MousePressed() );
-    overlay.setOnMouseDragged( new MouseDragged() );
-    overlay.setOnMouseReleased( new MouseReleased() );
-    overlay.setOnMouseClicked( new MouseClicked() );
-    overlay.setOnScroll( new MouseScroll() );
   }
 
   /************************************* checkSelectPosition *************************************/
   private void checkSelectPosition()
   {
-    // if not selecting then nothing to do and just return
-    if ( !Cursors.isSelecting( getCursor() ) )
-      return;
-
-    // update select cell position
-    int column = checkColumnPosition();
-    int row = checkRowPosition();
-    getSelectCell().setPosition( column, row );
+    // update select cell position only if cursor is selecting
+    if ( getCursor() instanceof ViewBaseCursor cursor && cursor.isSelecting() )
+    {
+      int column = checkColumnPosition();
+      int row = checkRowPosition();
+      getSelectCell().setPosition( column, row );
+    }
   }
 
   /************************************* checkColumnPosition *************************************/
   private int checkColumnPosition()
   {
-    // if mouse is beyond the table, limit to last visible column/row
+    // if mouse is beyond the table, limit to last visible column
     var axis = getColumnsAxis();
     int column = Math.min( axis.getLastVisible(), getMouseCell().getColumn() );
 
     // if selecting rows ignore mouse column
-    column = getCursor() == Cursors.SELECTING_ROWS ? getSelectCell().getColumn() : column;
+    column = getCursor() == Cursors.ROWS_SELECTING ? getSelectCell().getColumn() : column;
 
     // if animating to start or end, ensure selection edge is visible on view
     var animation = getHorizontalScrollBar().getAnimation();
@@ -172,12 +229,12 @@ public class TableView extends TableViewComponents
   /************************************** checkRowPosition ***************************************/
   private int checkRowPosition()
   {
-    // if mouse is beyond the table, limit to last visible column/row
+    // if mouse is beyond the table, limit to last visible row
     var rowAxis = getRowsAxis();
     int row = Math.min( rowAxis.getLastVisible(), getMouseCell().getRow() );
 
     // if selecting columns ignore mouse row
-    row = getCursor() == Cursors.SELECTING_COLS ? getSelectCell().getRow() : row;
+    row = getCursor() == Cursors.COLUMNS_SELECT ? getSelectCell().getRow() : row;
 
     var animation = getVerticalScrollBar().getAnimation();
     if ( animation == Animation.TO_START )
@@ -254,80 +311,6 @@ public class TableView extends TableViewComponents
     var editor = getCellEditor( cell );
     if ( editor != null )
       editor.open( value, cell );
-  }
-
-  /**************************************** layoutDisplay ****************************************/
-  public void layoutDisplay()
-  {
-    // do nothing if not visible or width/height not set
-    if ( !isVisible() || getWidth() == prefWidth( 0 ) || getHeight() == prefHeight( 0 ) )
-      return;
-
-    // determine which scroll-bars should be visible
-    int tableHeight = getTableHeight();
-    int tableWidth = getTableWidth();
-    int scrollbarSize = (int) getVerticalScrollBar().getWidth();
-
-    boolean isVSBvisible = getHeight() < tableHeight;
-    int canvasWidth = isVSBvisible ? getWidth() - scrollbarSize : getWidth();
-    boolean isHSBvisible = canvasWidth < tableWidth;
-    int canvasHeight = isHSBvisible ? getHeight() - scrollbarSize : getHeight();
-    isVSBvisible = canvasHeight < tableHeight;
-    canvasWidth = isVSBvisible ? getWidth() - scrollbarSize : getWidth();
-
-    // update vertical scroll bar
-    var sb = getVerticalScrollBar();
-    sb.setVisible( isVSBvisible );
-    if ( isVSBvisible )
-    {
-      sb.setPrefHeight( canvasHeight );
-      sb.relocate( getWidth() - scrollbarSize, 0.0 );
-
-      double max = tableHeight - canvasHeight;
-      sb.setMax( max );
-      sb.setVisibleAmount( max * canvasHeight / tableHeight );
-      sb.setBlockIncrement( canvasHeight - getHeaderHeight() );
-
-      if ( sb.getValue() > max )
-        sb.setValue( max );
-    }
-    else
-    {
-      sb.setValue( 0.0 );
-      sb.setMax( 0.0 );
-    }
-
-    // update horizontal scroll bar
-    sb = getHorizontalScrollBar();
-    sb.setVisible( isHSBvisible );
-    if ( isHSBvisible )
-    {
-      sb.setPrefWidth( canvasWidth );
-      sb.relocate( 0.0, getHeight() - scrollbarSize );
-
-      double max = tableWidth - canvasWidth;
-      sb.setMax( max );
-      sb.setVisibleAmount( max * canvasWidth / tableWidth );
-      sb.setBlockIncrement( canvasWidth - getHeaderWidth() );
-
-      if ( sb.getValue() > max )
-        sb.setValue( max );
-    }
-    else
-    {
-      sb.setValue( 0.0 );
-      sb.setMax( 0.0 );
-    }
-
-    // update canvas size (table + blank excess space)
-    getCanvas().resize( canvasWidth, canvasHeight );
-  }
-
-  /**************************************** getEventView *****************************************/
-  public static TableView getEventView( Object source )
-  {
-    // return the table-view from mouse event canvas-overlay source
-    return ( (TableOverlay) source ).getView();
   }
 
   /****************************************** scrollTo *******************************************/

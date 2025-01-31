@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -85,6 +85,73 @@ public class TableViewComponents extends TableViewParent implements IObservableS
     getRowsAxis().reset();
     getRowsAxis().setDefaultSize( 20 );
     getRowsAxis().setHeaderSize( 20 );
+  }
+
+  /**************************************** updateLayout *****************************************/
+  public void updateLayout()
+  {
+    // do nothing if not visible or width/height not set
+    if ( !isVisible() || getWidth() == prefWidth( 0 ) || getHeight() == prefHeight( 0 ) )
+      return;
+
+    // determine which scroll-bars should be visible
+    int tableHeight = getTableHeight();
+    int tableWidth = getTableWidth();
+    int scrollbarSize = (int) getVerticalScrollBar().getWidth();
+
+    boolean isVSBvisible = getHeight() < tableHeight;
+    int canvasWidth = isVSBvisible ? getWidth() - scrollbarSize : getWidth();
+    boolean isHSBvisible = canvasWidth < tableWidth;
+    int canvasHeight = isHSBvisible ? getHeight() - scrollbarSize : getHeight();
+    isVSBvisible = canvasHeight < tableHeight;
+    canvasWidth = isVSBvisible ? getWidth() - scrollbarSize : getWidth();
+
+    // update vertical scroll bar
+    var sb = getVerticalScrollBar();
+    sb.setVisible( isVSBvisible );
+    if ( isVSBvisible )
+    {
+      sb.setPrefHeight( canvasHeight );
+      sb.relocate( getWidth() - scrollbarSize, 0.0 );
+
+      double max = tableHeight - canvasHeight;
+      sb.setMax( max );
+      sb.setVisibleAmount( max * canvasHeight / tableHeight );
+      sb.setBlockIncrement( canvasHeight - getHeaderHeight() );
+
+      if ( sb.getValue() > max )
+        sb.setValue( max );
+    }
+    else
+    {
+      sb.setValue( 0.0 );
+      sb.setMax( 0.0 );
+    }
+
+    // update horizontal scroll bar
+    sb = getHorizontalScrollBar();
+    sb.setVisible( isHSBvisible );
+    if ( isHSBvisible )
+    {
+      sb.setPrefWidth( canvasWidth );
+      sb.relocate( 0.0, getHeight() - scrollbarSize );
+
+      double max = tableWidth - canvasWidth;
+      sb.setMax( max );
+      sb.setVisibleAmount( max * canvasWidth / tableWidth );
+      sb.setBlockIncrement( canvasWidth - getHeaderWidth() );
+
+      if ( sb.getValue() > max )
+        sb.setValue( max );
+    }
+    else
+    {
+      sb.setValue( 0.0 );
+      sb.setMax( 0.0 );
+    }
+
+    // update canvas size (table + blank excess space)
+    getCanvas().resize( canvasWidth, canvasHeight );
   }
 
   /**************************************** setUndostack *****************************************/

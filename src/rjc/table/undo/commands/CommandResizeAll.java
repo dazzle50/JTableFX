@@ -1,6 +1,6 @@
 
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -68,7 +68,7 @@ public class CommandResizeAll implements ICommandResize
     m_axis.clearSizeExceptions();
 
     // update layout in case scroll-bar changed and redraw table view
-    m_view.layoutDisplay();
+    m_view.updateLayout();
     m_view.redraw();
   }
 
@@ -81,7 +81,7 @@ public class CommandResizeAll implements ICommandResize
     m_oldExceptions.forEach( ( index, size ) -> m_axis.setIndexSize( index, size ) );
 
     // update layout in case scroll-bar need changed and redraw table view
-    m_view.layoutDisplay();
+    m_view.updateLayout();
     m_view.redraw();
   }
 

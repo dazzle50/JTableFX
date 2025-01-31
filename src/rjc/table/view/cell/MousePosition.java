@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -192,19 +192,19 @@ public class MousePosition extends ObservablePosition
       if ( ( m_x - m_cellXstart <= PROXIMITY && m_view.isColumnResizable( column - 1 ) )
           || ( m_cellXend - m_x <= PROXIMITY && m_view.isColumnResizable( column ) ) )
       {
-        m_view.setCursor( Cursors.H_RESIZE );
+        m_view.setCursor( Cursors.COLUMNS_RESIZE );
         return;
       }
 
       // if column is selected, set cursor to move
       if ( m_view.getSelection().isColumnSelected( column ) )
       {
-        m_view.setCursor( Cursors.H_MOVE );
+        m_view.setCursor( Cursors.COLUMNS_REORDER );
         return;
       }
 
       // otherwise, set cursor to down-arrow for selecting
-      m_view.setCursor( Cursors.DOWNARROW );
+      m_view.setCursor( Cursors.COLUMNS_HOVER );
       return;
     }
 
@@ -215,24 +215,24 @@ public class MousePosition extends ObservablePosition
       if ( ( m_y - m_cellYstart <= PROXIMITY && m_view.isRowResizable( row - 1 ) )
           || ( m_cellYend - m_y <= PROXIMITY && m_view.isRowResizable( row ) ) )
       {
-        m_view.setCursor( Cursors.V_RESIZE );
+        m_view.setCursor( Cursors.ROWS_RESIZE );
         return;
       }
 
       // if row is selected, set cursor to move
       if ( m_view.getSelection().isRowSelected( row ) )
       {
-        m_view.setCursor( Cursors.V_MOVE );
+        m_view.setCursor( Cursors.ROWS_REORDER );
         return;
       }
 
       // otherwise, set cursor to right-arrow for selecting
-      m_view.setCursor( Cursors.RIGHTARROW );
+      m_view.setCursor( Cursors.ROWS_HOVER );
       return;
     }
 
     // mouse over table body cells
-    m_view.setCursor( Cursors.CROSS );
+    m_view.setCursor( Cursors.CELLS_HOVER );
   }
 
 }

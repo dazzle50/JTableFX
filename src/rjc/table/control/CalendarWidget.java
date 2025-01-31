@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -81,7 +81,7 @@ public class CalendarWidget extends Canvas implements ISignal, IOverflowField
       changeValue( step, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
     };
 
-    // when has focus add drop-shadow and handle scroll events 
+    // when has focus add drop-shadow and handle scroll events
     focusedProperty().addListener( ( observable, oldFocus, newFocus ) ->
     {
       setStyle( newFocus ? "-fx-effect: dropshadow(gaussian, #039ed3, 4, 0.75, 0, 0);" : "" );

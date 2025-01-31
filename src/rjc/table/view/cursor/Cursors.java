@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -19,8 +19,6 @@
 package rjc.table.view.cursor;
 
 import javafx.scene.Cursor;
-import javafx.scene.ImageCursor;
-import javafx.scene.image.Image;
 
 /*************************************************************************************************/
 /************************** Mouse cursors available for the table views **************************/
@@ -28,31 +26,19 @@ import javafx.scene.image.Image;
 
 public final class Cursors
 {
-  public static final Cursor H_RESIZE        = Cursor.H_RESIZE;
-  public static final Cursor V_RESIZE        = Cursor.V_RESIZE;
   public static final Cursor DEFAULT         = Cursor.DEFAULT;
+
+  public static final Cursor CELLS_HOVER     = new CellHoverCursor( "cross.png", 16, 20 );
+  public static final Cursor CELLS_SELECT    = new CellSelectCursor( "cross.png", 16, 20 );
   public static final Cursor CORNER_CELL     = Cursor.DISAPPEAR;
 
-  public static final Cursor DOWNARROW       = makeCursor( "arrowdown.png", 7, 16 );
-  public static final Cursor SELECTING_COLS  = makeCursor( "arrowdown.png", 7, 16 );
-  public static final Cursor RIGHTARROW      = makeCursor( "arrowright.png", 16, 24 );
-  public static final Cursor SELECTING_ROWS  = makeCursor( "arrowright.png", 16, 24 );
-  public static final Cursor CROSS           = makeCursor( "cross.png", 16, 20 );
-  public static final Cursor SELECTING_CELLS = makeCursor( "cross.png", 16, 20 );
-  public static final Cursor H_MOVE          = makeCursor( "move.png", 16, 16 );
-  public static final Cursor V_MOVE          = makeCursor( "move.png", 16, 16 );
+  public static final Cursor COLUMNS_HOVER   = new ViewBaseCursor( "arrowdown.png", 7, 16 );
+  public static final Cursor COLUMNS_SELECT  = new ViewBaseCursor( "arrowdown.png", 7, 16 );
+  public static final Cursor COLUMNS_RESIZE  = Cursor.H_RESIZE;
+  public static final Cursor COLUMNS_REORDER = new ViewBaseCursor( "move.png", 16, 16 );
 
-  /***************************************** makeCursor ******************************************/
-  private static Cursor makeCursor( String file, int x, int y )
-  {
-    // return a cursor based on image file with specified x & y hot spot
-    return new ImageCursor( new Image( Cursors.class.getResourceAsStream( file ) ), x, y );
-  }
-
-  /***************************************** isSelecting *****************************************/
-  public static boolean isSelecting( Cursor cursor )
-  {
-    // return true is cursor is for selecting table cells/rows/columns
-    return cursor == SELECTING_CELLS || cursor == SELECTING_COLS || cursor == SELECTING_ROWS;
-  }
+  public static final Cursor ROWS_HOVER      = new ViewBaseCursor( "arrowright.png", 16, 24 );
+  public static final Cursor ROWS_SELECTING  = new ViewBaseCursor( "arrowright.png", 16, 24 );
+  public static final Cursor ROWS_RESIZE     = Cursor.V_RESIZE;
+  public static final Cursor ROWS_REORDER    = new ViewBaseCursor( "move.png", 16, 16 );
 }

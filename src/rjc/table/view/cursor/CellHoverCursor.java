@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -16,40 +16,47 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.view.events;
+package rjc.table.view.cursor;
 
-import javafx.event.EventHandler;
-import javafx.scene.input.ScrollEvent;
-import rjc.table.view.TableView;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 
 /*************************************************************************************************/
-/************************** Handles mouse scroll events from table-view **************************/
+/*********************** Mouse cursor when hovering over table body cells ************************/
 /*************************************************************************************************/
 
-public class MouseScroll implements EventHandler<ScrollEvent>
+public class CellHoverCursor extends ViewBaseCursor
 {
 
-  /******************************************* handle ********************************************/
-  @Override
-  public void handle( ScrollEvent event )
+  /**************************************** constructor ******************************************/
+  public CellHoverCursor( String imageFile, int xHotspot, int yHotstop )
   {
-    // scroll up or down depending on mouse wheel scroll event
-    var view = TableView.getEventView( event.getSource() );
-    var scrollbar = view.getVerticalScrollBar();
-
-    if ( scrollbar.isVisible() )
-    {
-      if ( event.getDeltaY() > 0 )
-      {
-        scrollbar.finishAnimation();
-        scrollbar.decrement();
-      }
-      else
-      {
-        scrollbar.finishAnimation();
-        scrollbar.increment();
-      }
-    }
+    super( imageFile, xHotspot, yHotstop );
   }
 
+  /**************************************** handlePressed ****************************************/
+  @Override
+  public void handlePressed( MouseEvent event )
+  {
+    // mouse button pressed whilst hovering over body cells
+    extractDetails( event );
+    view.requestFocus();
+
+    // clear previous selections unless shift xor control pressed
+    if ( shift == control )
+      view.getSelection().clear();
+
+    // if primary mouse button not pressed, don't do anything else
+    if ( button != MouseButton.PRIMARY )
+      return;
+
+    // start selecting cells
+    view.setCursor( Cursors.CELLS_SELECT );
+    if ( !shift || control )
+    {
+      view.getSelection().select();
+      focusCell.setPosition( mouseCell );
+    }
+    selectCell.setPosition( mouseCell );
+  }
 }
