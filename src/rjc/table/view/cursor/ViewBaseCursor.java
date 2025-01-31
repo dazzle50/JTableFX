@@ -35,17 +35,17 @@ import rjc.table.view.cell.ViewPosition;
 
 public class ViewBaseCursor extends ImageCursor
 {
-  public static int           x;          // x position on table-view
-  public static int           y;          // y position on table-view
-  public static TableView     view;       // current table-view
-  public static MouseButton   button;     // which if any mouse buttons responsible
-  public static ViewPosition  selectCell; // current select cell position
-  public static ViewPosition  focusCell;  // current focus cell position
-  public static MousePosition mouseCell;  // current mouse cell position
-  public static boolean       shift;      // whether or not Shift is pressed
-  public static boolean       control;    // whether or not Control is pressed
-  public static boolean       alt;        // whether or not Alt is pressed
-  public static MouseEvent    event;      // the full mouse-event
+  static int           x;          // x position on table-view
+  static int           y;          // y position on table-view
+  static TableView     view;       // current table-view
+  static MouseButton   button;     // which if any mouse buttons responsible
+  static ViewPosition  selectCell; // current select cell position
+  static ViewPosition  focusCell;  // current focus cell position
+  static MousePosition mouseCell;  // current mouse cell position
+  static boolean       shift;      // whether or not Shift is pressed
+  static boolean       control;    // whether or not Control is pressed
+  static boolean       alt;        // whether or not Alt is pressed
+  static MouseEvent    event;      // the full mouse-event
 
   /**************************************** constructor ******************************************/
   public ViewBaseCursor( String imageFile, int xHotspot, int yHotspot )
@@ -55,7 +55,7 @@ public class ViewBaseCursor extends ImageCursor
   }
 
   /*************************************** extractDetails ****************************************/
-  public void extractDetails( MouseEvent mouseEvent )
+  void extractDetails( MouseEvent mouseEvent )
   {
     // collect data for mouse event handlers
     mouseEvent.consume();

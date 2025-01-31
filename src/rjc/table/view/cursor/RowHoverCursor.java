@@ -20,52 +20,45 @@ package rjc.table.view.cursor;
 
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import rjc.table.view.axis.TableAxis;
 
 /*************************************************************************************************/
-/************************* Mouse cursor when selecting table body cells **************************/
+/*********************** Mouse cursor when hovering over row header cells ************************/
 /*************************************************************************************************/
 
-public class CellSelectCursor extends ViewBaseCursor
+public class RowHoverCursor extends ViewBaseCursor
 {
 
   /**************************************** constructor ******************************************/
-  public CellSelectCursor( String imageFile, int xHotspot, int yHotstop )
+  public RowHoverCursor( String imageFile, int xHotspot, int yHotstop )
   {
     super( imageFile, xHotspot, yHotstop );
   }
 
-  /*************************************** handleReleased ****************************************/
+  /**************************************** handlePressed ****************************************/
   @Override
-  public void handleReleased( MouseEvent event )
+  public void handlePressed( MouseEvent event )
   {
-    // finishing selecting, so update cursor and stop any animations
-    view.getMouseCell().setXY( x, y, true );
-    view.getHorizontalScrollBar().stopAnimationStartEnd();
-    view.getVerticalScrollBar().stopAnimationStartEnd();
-  }
-
-  /**************************************** handleDragged ****************************************/
-  @Override
-  public void handleDragged( MouseEvent event )
-  {
-    // selecting cells by dragging mouse whilst primary button held down
+    // mouse button pressed whilst hovering over row header cells
     extractDetails( event );
+    view.requestFocus();
+
+    // clear previous selections unless shift xor control pressed
+    if ( shift == control )
+      view.getSelection().clear();
+
+    // if primary mouse button not pressed, don't do anything else
     if ( button != MouseButton.PRIMARY )
       return;
 
-    // check if table scrolling is wanted
-    checkScrollingX();
-    checkScrollingY();
-
-    // update mouse cell position
-    mouseCell.setXY( x, y, false );
-  }
-
-  /***************************************** isSelecting *****************************************/
-  @Override
-  public boolean isSelecting()
-  {
-    // cursor is selecting cells
-    return true;
+    // start selecting rows
+    view.setCursor( Cursors.ROWS_SELECT );
+    {
+      view.getSelection().select();
+      int leftColumn = view.getColumnIndex( view.getHeaderWidth() );
+      focusCell.setPosition( leftColumn, mouseCell.getRow() );
+      view.scrollTo( focusCell );
+    }
+    selectCell.setPosition( TableAxis.AFTER, mouseCell.getRow() );
   }
 }

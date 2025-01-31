@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -16,7 +16,7 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.view.action;
+package rjc.table.view.cursor;
 
 import java.util.HashSet;
 
@@ -24,58 +24,30 @@ import rjc.table.undo.commands.CommandResize;
 import rjc.table.undo.commands.CommandResizeAll;
 import rjc.table.undo.commands.ICommandResize;
 import rjc.table.view.TableScrollBar;
-import rjc.table.view.TableView;
 import rjc.table.view.axis.TableAxis;
 
 /*************************************************************************************************/
-/******************************* Supports column and row re-sizing *******************************/
+/******************* Base Mouse cursor for resizing table-view columns & rows ********************/
 /*************************************************************************************************/
 
-public class Resize
+public class ViewResizeCursor extends ViewBaseCursor
 {
-  private static TableView      m_view;       // table view for resizing
-  private static TableAxis      m_axis;       // horizontal or vertical axis
-  private static TableScrollBar m_scrollbar;  // horizontal or vertical scroll-bar
+  static TableAxis              m_axis;       // horizontal or vertical axis
+  static TableScrollBar         m_scrollbar;  // horizontal or vertical scroll-bar
 
   private static int            m_coordinate; // latest coordinate used when table scrolled
   private static int            m_offset;     // resize coordinate offset
   private static int            m_before;     // number of positions being resized before current position
   private static ICommandResize m_command;    // command for undo-stack
 
-  /**************************************** startColumns *****************************************/
-  public static void startColumns( TableView view, int coordinate )
+  /**************************************** constructor ******************************************/
+  public ViewResizeCursor( String imageFile, int xHotspot, int yHotstop )
   {
-    // static method to support column resizing
-    m_view = view;
-    m_axis = view.getColumnsAxis();
-    m_scrollbar = view.getHorizontalScrollBar();
-
-    // if selected is "null" means all indexes selected
-    var selected = view.getSelection().getResizableColumns();
-    if ( selected == null )
-      startAll( coordinate );
-    else
-      start( coordinate, selected );
-  }
-
-  /****************************************** startRows ******************************************/
-  public static void startRows( TableView view, int coordinate )
-  {
-    // static method to support row resizing
-    m_view = view;
-    m_axis = view.getRowsAxis();
-    m_scrollbar = view.getVerticalScrollBar();
-
-    // if selected is "null" means all indexes selected
-    var selected = view.getSelection().getResizableRows();
-    if ( selected == null )
-      startAll( coordinate );
-    else
-      start( coordinate, selected );
+    super( imageFile, xHotspot, yHotstop );
   }
 
   /******************************************** start ********************************************/
-  private static void start( int coordinate, HashSet<Integer> selected )
+  protected void start( int coordinate, HashSet<Integer> selected )
   {
     // if resize index is not selected, ignore selected
     int index = getSelectedIndex( coordinate );
@@ -97,14 +69,14 @@ public class Resize
       }
 
     // create resize command
-    m_command = new CommandResize( m_view, m_axis, selected );
+    m_command = new CommandResize( view, m_axis, selected );
 
     // start reordering
     drag( coordinate );
   }
 
   /****************************************** startAll *******************************************/
-  private static void startAll( int coordinate )
+  protected void startAll( int coordinate )
   {
     // resizing all indexes, count visible sections before and including resize index
     int index = getSelectedIndex( coordinate );
@@ -115,14 +87,14 @@ public class Resize
         m_before++;
 
     // prepare resize command (if selected is null = all)
-    m_command = new CommandResizeAll( m_view, m_axis );
+    m_command = new CommandResizeAll( view, m_axis );
 
     // start reordering
     drag( coordinate );
   }
 
   /************************************** getSelectedIndex ***************************************/
-  private static int getSelectedIndex( int coordinate )
+  private int getSelectedIndex( int coordinate )
   {
     // determine resize index from mouse coordinate
     int scroll = (int) m_scrollbar.getValue();
@@ -141,41 +113,23 @@ public class Resize
   }
 
   /******************************************** drag *********************************************/
-  public static void drag( int coordinate )
+  protected void drag( int coordinate )
   {
     // resize columns or rows
     m_coordinate = coordinate;
     double pixels = ( coordinate - m_offset + m_scrollbar.getValue() ) / m_before;
-    int size = (int) ( pixels / m_view.getZoom().get() );
+    int size = (int) ( pixels / view.getZoom().get() );
 
     // resize
     m_command.setNewSize( size );
     m_command.redo();
   }
 
-  /***************************************** inProgress ******************************************/
-  public static boolean inProgress()
-  {
-    // if no resize in progress return false
-    if ( m_view == null )
-      return false;
-
-    // only resize if scrolling to start or end to avoid feedback loop
-    var vsb = m_view.getVerticalScrollBar();
-    var hsb = m_view.getHorizontalScrollBar();
-    if ( vsb.isAnimationStartEnd() || hsb.isAnimationStartEnd() )
-      drag( m_coordinate );
-
-    // return true as resize in progress
-    return true;
-  }
-
   /********************************************* end *********************************************/
-  public static void end()
+  protected void end()
   {
     // end resizing, push resize command onto undo-stack
-    m_view.getUndoStack().push( m_command );
-    m_view = null;
+    view.getUndoStack().push( m_command );
     m_command = null;
   }
 }

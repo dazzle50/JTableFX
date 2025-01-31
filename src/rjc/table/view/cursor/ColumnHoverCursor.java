@@ -18,27 +18,48 @@
 
 package rjc.table.view.cursor;
 
-import javafx.scene.Cursor;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
+import rjc.table.view.axis.TableAxis;
 
 /*************************************************************************************************/
-/************************** Mouse cursors available for the table views **************************/
+/********************** Mouse cursor when hovering over column header cells **********************/
 /*************************************************************************************************/
 
-public final class Cursors
+public class ColumnHoverCursor extends ViewBaseCursor
 {
-  public static final Cursor DEFAULT         = Cursor.DEFAULT;
 
-  public static final Cursor CELLS_HOVER     = new CellHoverCursor( "cross.png", 16, 20 );
-  public static final Cursor CELLS_SELECT    = new SelectCursor( "cross.png", 16, 20 );
-  public static final Cursor CORNER_CELL     = Cursor.DISAPPEAR;
+  /**************************************** constructor ******************************************/
+  public ColumnHoverCursor( String imageFile, int xHotspot, int yHotstop )
+  {
+    super( imageFile, xHotspot, yHotstop );
+  }
 
-  public static final Cursor COLUMNS_HOVER   = new ColumnHoverCursor( "arrowdown.png", 7, 16 );
-  public static final Cursor COLUMNS_SELECT  = new SelectCursor( "arrowdown.png", 7, 16 );
-  public static final Cursor COLUMNS_RESIZE  = new ColumnResizeCursor( "h_resize.png", 16, 16 );
-  public static final Cursor COLUMNS_REORDER = new ViewBaseCursor( "move.png", 16, 16 );
+  /**************************************** handlePressed ****************************************/
+  @Override
+  public void handlePressed( MouseEvent event )
+  {
+    // mouse button pressed whilst hovering over column header cells
+    extractDetails( event );
+    view.requestFocus();
 
-  public static final Cursor ROWS_HOVER      = new RowHoverCursor( "arrowright.png", 16, 24 );
-  public static final Cursor ROWS_SELECT     = new SelectCursor( "arrowright.png", 16, 24 );
-  public static final Cursor ROWS_RESIZE     = new RowResizeCursor( "v_resize.png", 16, 16 );
-  public static final Cursor ROWS_REORDER    = new ViewBaseCursor( "move.png", 16, 16 );
+    // clear previous selections unless shift xor control pressed
+    if ( shift == control )
+      view.getSelection().clear();
+
+    // if primary mouse button not pressed, don't do anything else
+    if ( button != MouseButton.PRIMARY )
+      return;
+
+    // start selecting columns
+    view.setCursor( Cursors.COLUMNS_SELECT );
+    if ( !shift || control )
+    {
+      view.getSelection().select();
+      int topRow = view.getRowIndex( view.getHeaderHeight() );
+      focusCell.setPosition( mouseCell.getColumn(), topRow );
+      view.scrollTo( focusCell );
+    }
+    selectCell.setPosition( mouseCell.getColumn(), TableAxis.AFTER );
+  }
 }

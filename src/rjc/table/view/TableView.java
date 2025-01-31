@@ -208,7 +208,7 @@ public class TableView extends TableViewComponents
     int column = Math.min( axis.getLastVisible(), getMouseCell().getColumn() );
 
     // if selecting rows ignore mouse column
-    column = getCursor() == Cursors.ROWS_SELECTING ? getSelectCell().getColumn() : column;
+    column = getCursor() == Cursors.ROWS_SELECT ? getSelectCell().getColumn() : column;
 
     // if animating to start or end, ensure selection edge is visible on view
     var animation = getHorizontalScrollBar().getAnimation();
