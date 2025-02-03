@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -16,43 +16,21 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.demo;
+package rjc.table.view.cursor;
 
-import javafx.scene.control.Tab;
-import rjc.table.data.TableData;
-import rjc.table.demo.large.LargeView;
-import rjc.table.signal.ObservableStatus;
-import rjc.table.undo.UndoStack;
-import rjc.table.view.TableView;
+import java.util.HashSet;
 
-/*************************************************************************************************/
-/*************************** Demonstrates a very large table and view ****************************/
-/*************************************************************************************************/
-
-public class DemoTableLarge extends Tab
+public class ReorderCursor extends ViewBaseCursor
 {
-  private TableData m_data; // data for the table view
 
   /**************************************** constructor ******************************************/
-  public DemoTableLarge( UndoStack undostack, ObservableStatus status )
+  public ReorderCursor( String imageFile, int xHotspot, int yHotstop )
   {
-    // create default table (but with many rows & columns)
-    m_data = new TableData();
-    m_data.setColumnCount( 1_000_000 );
-    m_data.setRowCount( 1_000_000 );
-
-    // create specialised view
-    TableView view = new LargeView( m_data, "Large" );
-    view.setUndostack( undostack );
-    view.setStatus( status );
-
-    // make view only visible when tab is selected
-    view.visibleProperty().bind( selectedProperty() );
-
-    // configure the tab
-    setText( view.getId() );
-    setClosable( false );
-    setContent( view );
+    super( imageFile, xHotspot, yHotstop );
   }
 
+  /******************************************** start ********************************************/
+  protected void start( int coordinate, HashSet<Integer> selected )
+  {
+  }
 }

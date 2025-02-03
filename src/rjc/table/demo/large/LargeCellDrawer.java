@@ -16,29 +16,43 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.view.cursor;
+package rjc.table.demo.large;
 
-import javafx.scene.Cursor;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
+import rjc.table.view.cell.CellDrawer;
 
 /*************************************************************************************************/
-/************************** Mouse cursors available for the table views **************************/
+/******************************** Example customised cell drawer *********************************/
 /*************************************************************************************************/
 
-public final class Cursors
+public class LargeCellDrawer extends CellDrawer
 {
-  public static final Cursor DEFAULT         = Cursor.DEFAULT;
 
-  public static final Cursor CELLS_HOVER     = new CellHoverCursor( "cross.png", 16, 20 );
-  public static final Cursor CELLS_SELECT    = new SelectCursor( "cross.png", 16, 20 );
-  public static final Cursor CORNER_CELL     = new CornerCursor();
+  /************************************* getBackgroundPaint **************************************/
+  @Override
+  protected Paint getBackgroundPaint()
+  {
+    // get default background paint
+    Paint paint = super.getBackgroundPaint();
 
-  public static final Cursor COLUMNS_HOVER   = new ColumnHoverCursor( "arrowdown.png", 7, 16 );
-  public static final Cursor COLUMNS_SELECT  = new SelectCursor( "arrowdown.png", 7, 16 );
-  public static final Cursor COLUMNS_RESIZE  = new ColumnResizeCursor( "h_resize.png", 16, 16 );
-  public static final Cursor COLUMNS_REORDER = new ColumnReorderCursor( "move.png", 16, 16 );
+    // if white background shade different colour if mouse pointer on row/column
+    if ( paint == Color.WHITE )
+    {
+      int col = view.getMouseCell().getColumn();
+      int row = view.getMouseCell().getRow();
 
-  public static final Cursor ROWS_HOVER      = new RowHoverCursor( "arrowright.png", 16, 24 );
-  public static final Cursor ROWS_SELECT     = new SelectCursor( "arrowright.png", 16, 24 );
-  public static final Cursor ROWS_RESIZE     = new RowResizeCursor( "v_resize.png", 16, 16 );
-  public static final Cursor ROWS_REORDER    = new RowReorderCursor( "move.png", 16, 16 );
+      // highlight cell green where mouse is positioned
+      if ( viewColumn == col && viewRow == row )
+        return Color.PALEGREEN;
+
+      // highlight row and column pale green where mouse is positioned
+      if ( viewColumn == col || viewRow == row )
+        return Color.PALEGREEN.desaturate().desaturate().desaturate().desaturate();
+    }
+
+    // otherwise default
+    return paint;
+  };
+
 }

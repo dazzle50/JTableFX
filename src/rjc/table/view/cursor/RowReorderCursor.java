@@ -18,18 +18,13 @@
 
 package rjc.table.view.cursor;
 
-import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 
-/*************************************************************************************************/
-/************************* Mouse cursor for resizing table-view columns **************************/
-/*************************************************************************************************/
-
-public class ColumnResizeCursor extends ResizeCursor
+public class RowReorderCursor extends ReorderCursor
 {
 
   /**************************************** constructor ******************************************/
-  public ColumnResizeCursor( String imageFile, int xHotspot, int yHotstop )
+  public RowReorderCursor( String imageFile, int xHotspot, int yHotstop )
   {
     super( imageFile, xHotspot, yHotstop );
   }
@@ -38,37 +33,5 @@ public class ColumnResizeCursor extends ResizeCursor
   @Override
   public void handlePressed( MouseEvent event )
   {
-    // mouse button pressed whilst hovering to resize columns
-    extractDetails( event );
-    view.requestFocus();
-
-    // if primary mouse button not pressed, don't do anything else
-    if ( button != MouseButton.PRIMARY )
-      return;
-
-    // start resizing column(s) - if selected is "null" means all indexes selected
-    m_axis = view.getColumnsAxis();
-    m_scrollbar = view.getHorizontalScrollBar();
-    var selected = view.getSelection().getResizableColumns();
-    if ( selected == null )
-      startAll( x );
-    else
-      start( x, selected );
-  }
-
-  /**************************************** handleDragged ****************************************/
-  @Override
-  public void handleDragged( MouseEvent event )
-  {
-    // resizing column(s)
-    drag( (int) event.getX() );
-  }
-
-  /*************************************** handleReleased ****************************************/
-  @Override
-  public void handleReleased( MouseEvent event )
-  {
-    // resizing finished
-    end();
   }
 }

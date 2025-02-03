@@ -30,7 +30,7 @@ import rjc.table.view.axis.TableAxis;
 /******************* Base Mouse cursor for resizing table-view columns & rows ********************/
 /*************************************************************************************************/
 
-public class ViewResizeCursor extends ViewBaseCursor
+public class ResizeCursor extends ViewBaseCursor
 {
   static TableAxis              m_axis;       // horizontal or vertical axis
   static TableScrollBar         m_scrollbar;  // horizontal or vertical scroll-bar
@@ -41,7 +41,7 @@ public class ViewResizeCursor extends ViewBaseCursor
   private static ICommandResize m_command;    // command for undo-stack
 
   /**************************************** constructor ******************************************/
-  public ViewResizeCursor( String imageFile, int xHotspot, int yHotstop )
+  public ResizeCursor( String imageFile, int xHotspot, int yHotstop )
   {
     super( imageFile, xHotspot, yHotstop );
   }

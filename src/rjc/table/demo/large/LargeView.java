@@ -16,59 +16,36 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.view.cursor;
+package rjc.table.demo.large;
 
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
+import rjc.table.data.TableData;
+import rjc.table.view.TableView;
+import rjc.table.view.cell.CellDrawer;
 
 /*************************************************************************************************/
-/************************* Mouse cursor for resizing table-view columns **************************/
+/********************** Example customised table view for extra large table **********************/
 /*************************************************************************************************/
 
-public class ColumnResizeCursor extends ResizeCursor
+public class LargeView extends TableView
 {
 
   /**************************************** constructor ******************************************/
-  public ColumnResizeCursor( String imageFile, int xHotspot, int yHotstop )
+  public LargeView( TableData data, String name )
   {
-    super( imageFile, xHotspot, yHotstop );
+    // construct customised table view
+    super( data, name );
+    getColumnsAxis().setHeaderSize( 60 );
+
+    // when mouse moved to new cell, redraw table to move shading
+    getMouseCell().addListener( ( sender, msg ) -> redraw() );
   }
 
-  /**************************************** handlePressed ****************************************/
+  /**************************************** getCellDrawer ****************************************/
   @Override
-  public void handlePressed( MouseEvent event )
+  public CellDrawer getCellDrawer()
   {
-    // mouse button pressed whilst hovering to resize columns
-    extractDetails( event );
-    view.requestFocus();
-
-    // if primary mouse button not pressed, don't do anything else
-    if ( button != MouseButton.PRIMARY )
-      return;
-
-    // start resizing column(s) - if selected is "null" means all indexes selected
-    m_axis = view.getColumnsAxis();
-    m_scrollbar = view.getHorizontalScrollBar();
-    var selected = view.getSelection().getResizableColumns();
-    if ( selected == null )
-      startAll( x );
-    else
-      start( x, selected );
+    // return new instance of class that draws table cells
+    return new LargeCellDrawer();
   }
 
-  /**************************************** handleDragged ****************************************/
-  @Override
-  public void handleDragged( MouseEvent event )
-  {
-    // resizing column(s)
-    drag( (int) event.getX() );
-  }
-
-  /*************************************** handleReleased ****************************************/
-  @Override
-  public void handleReleased( MouseEvent event )
-  {
-    // resizing finished
-    end();
-  }
 }
