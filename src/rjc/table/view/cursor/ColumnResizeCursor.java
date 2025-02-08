@@ -18,6 +18,7 @@
 
 package rjc.table.view.cursor;
 
+import javafx.geometry.Orientation;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 
@@ -47,8 +48,7 @@ public class ColumnResizeCursor extends ResizeCursor
       return;
 
     // start resizing column(s) - if selected is "null" means all indexes selected
-    m_axis = view.getColumnsAxis();
-    m_scrollbar = view.getHorizontalScrollBar();
+    setOrientation( Orientation.HORIZONTAL );
     var selected = view.getSelection().getResizableColumns();
     if ( selected == null )
       startAll( x );

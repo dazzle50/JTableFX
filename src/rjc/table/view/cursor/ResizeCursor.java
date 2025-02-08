@@ -20,6 +20,7 @@ package rjc.table.view.cursor;
 
 import java.util.HashSet;
 
+import javafx.geometry.Orientation;
 import rjc.table.undo.commands.CommandResize;
 import rjc.table.undo.commands.CommandResizeAll;
 import rjc.table.undo.commands.ICommandResize;
@@ -32,18 +33,32 @@ import rjc.table.view.axis.TableAxis;
 
 public class ResizeCursor extends ViewBaseCursor
 {
-  static TableAxis              m_axis;       // horizontal or vertical axis
-  static TableScrollBar         m_scrollbar;  // horizontal or vertical scroll-bar
-
-  private static int            m_coordinate; // latest coordinate used when table scrolled
-  private static int            m_offset;     // resize coordinate offset
-  private static int            m_before;     // number of positions being resized before current position
-  private static ICommandResize m_command;    // command for undo-stack
+  private static TableAxis      m_axis;      // horizontal or vertical axis
+  private static TableScrollBar m_scrollbar; // horizontal or vertical scroll-bar
+  private static int            m_offset;    // resize coordinate offset
+  private static int            m_before;    // number of positions being resized before current position
+  private static ICommandResize m_command;   // command for undo-stack
 
   /**************************************** constructor ******************************************/
   public ResizeCursor( String imageFile, int xHotspot, int yHotstop )
   {
     super( imageFile, xHotspot, yHotstop );
+  }
+
+  /******************************************** start ********************************************/
+  protected void setOrientation( Orientation orient )
+  {
+    // set resize orientation to vertical or horizontal
+    if ( orient == Orientation.HORIZONTAL )
+    {
+      m_scrollbar = view.getHorizontalScrollBar();
+      m_axis = view.getColumnsAxis();
+    }
+    else
+    {
+      m_scrollbar = view.getVerticalScrollBar();
+      m_axis = view.getRowsAxis();
+    }
   }
 
   /******************************************** start ********************************************/
@@ -71,7 +86,7 @@ public class ResizeCursor extends ViewBaseCursor
     // create resize command
     m_command = new CommandResize( view, m_axis, selected );
 
-    // start reordering
+    // start resizing
     drag( coordinate );
   }
 
@@ -89,7 +104,7 @@ public class ResizeCursor extends ViewBaseCursor
     // prepare resize command (if selected is null = all)
     m_command = new CommandResizeAll( view, m_axis );
 
-    // start reordering
+    // start resizing
     drag( coordinate );
   }
 
@@ -116,7 +131,6 @@ public class ResizeCursor extends ViewBaseCursor
   protected void drag( int coordinate )
   {
     // resize columns or rows
-    m_coordinate = coordinate;
     double pixels = ( coordinate - m_offset + m_scrollbar.getValue() ) / m_before;
     int size = (int) ( pixels / view.getZoom().get() );
 

@@ -18,7 +18,12 @@
 
 package rjc.table.view.cursor;
 
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+
+/*************************************************************************************************/
+/************************ Mouse cursor for reordering table-view columns *************************/
+/*************************************************************************************************/
 
 public class ColumnReorderCursor extends ReorderCursor
 {
@@ -33,6 +38,31 @@ public class ColumnReorderCursor extends ReorderCursor
   @Override
   public void handlePressed( MouseEvent event )
   {
+    // mouse button pressed whilst hovering to reorder columns
+    extractDetails( event );
+    view.requestFocus();
+
+    // if primary mouse button not pressed, don't do anything else
+    if ( button != MouseButton.PRIMARY )
+      return;
+
+    // user starting to select insert point for selected columns
+    startHorizontal();
   }
 
+  /**************************************** handleDragged ****************************************/
+  @Override
+  public void handleDragged( MouseEvent event )
+  {
+    // user changing insert point
+    dragHorizontal( (int) event.getX() );
+  }
+
+  /*************************************** handleReleased ****************************************/
+  @Override
+  public void handleReleased( MouseEvent event )
+  {
+    // user confirming insert point
+    end();
+  }
 }

@@ -16,59 +16,44 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.view.cursor;
+package rjc.table.undo.commands;
 
-import javafx.geometry.Orientation;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
+import java.util.Set;
+
+import rjc.table.undo.IUndoCommand;
+import rjc.table.view.TableView;
+import rjc.table.view.axis.TableAxis;
 
 /*************************************************************************************************/
-/*************************** Mouse cursor for resizing table-view rows ***************************/
+/******************* UndoCommand for reordering columns or rows on table-view ********************/
 /*************************************************************************************************/
 
-public class RowResizeCursor extends ResizeCursor
+public class CommandReorderView implements IUndoCommand
 {
 
   /**************************************** constructor ******************************************/
-  public RowResizeCursor( String imageFile, int xHotspot, int yHotstop )
+  public CommandReorderView( TableView view, TableAxis axis, Set<Integer> selected, int insertIndex )
   {
-    super( imageFile, xHotspot, yHotstop );
+    // prepare reorder command
   }
 
-  /**************************************** handlePressed ****************************************/
+  /******************************************* redo **********************************************/
   @Override
-  public void handlePressed( MouseEvent event )
+  public void redo()
   {
-    // mouse button pressed whilst hovering to resize rows
-    extractDetails( event );
-    view.requestFocus();
-
-    // if primary mouse button not pressed, don't do anything else
-    if ( button != MouseButton.PRIMARY )
-      return;
-
-    // start resizing row(s) - if selected is "null" means all indexes selected
-    setOrientation( Orientation.VERTICAL );
-    var selected = view.getSelection().getResizableRows();
-    if ( selected == null )
-      startAll( y );
-    else
-      start( y, selected );
   }
 
-  /**************************************** handleDragged ****************************************/
+  /******************************************* undo **********************************************/
   @Override
-  public void handleDragged( MouseEvent event )
+  public void undo()
   {
-    // resizing row(s)
-    drag( (int) event.getY() );
   }
 
-  /*************************************** handleReleased ****************************************/
+  /******************************************* text **********************************************/
   @Override
-  public void handleReleased( MouseEvent event )
+  public String text()
   {
-    // resizing finished
-    end();
+    return null;
   }
+
 }
