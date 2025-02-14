@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -46,5 +46,6 @@ public class Zoom
     // cannot merge so create new command for zoom change
     CommandZoom zc = new CommandZoom( view, view.getZoom().get(), newZoom );
     view.getUndoStack().push( zc );
+    zc.redo();
   }
 }

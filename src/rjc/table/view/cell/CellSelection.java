@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.TreeSet;
 
+import rjc.table.Utils;
 import rjc.table.signal.ISignal;
 import rjc.table.view.TableView;
 import rjc.table.view.axis.TableAxis;
@@ -361,8 +362,7 @@ public class CellSelection implements ISignal
   public String toString()
   {
     // convert to string
-    String text = getClass().getSimpleName() + "@" + Integer.toHexString( System.identityHashCode( this ) );
-    return text + "[selected=" + m_selected + "]";
+    return Utils.name( this ) + "[selected=" + m_selected + "]";
   }
 
 }

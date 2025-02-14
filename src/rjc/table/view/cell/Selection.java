@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -18,6 +18,7 @@
 
 package rjc.table.view.cell;
 
+import rjc.table.Utils;
 import rjc.table.view.axis.TableAxis;
 
 /*************************************************************************************************/
@@ -63,7 +64,6 @@ public class Selection
   @Override
   public String toString()
   {
-    return getClass().getSimpleName() + "@" + Integer.toHexString( System.identityHashCode( this ) ) + "[c1=" + c1
-        + " r1=" + r1 + " c2=" + c2 + " r2=" + r2 + "]";
+    return Utils.name( this ) + "[c1=" + c1 + " r1=" + r1 + " c2=" + c2 + " r2=" + r2 + "]";
   }
 }

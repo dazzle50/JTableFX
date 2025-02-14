@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -17,6 +17,8 @@
  **************************************************************************/
 
 package rjc.table.signal;
+
+import rjc.table.Utils;
 
 /*************************************************************************************************/
 /**************************** Observable integer & read-only integer *****************************/
@@ -47,8 +49,7 @@ public class ObservableInteger implements ISignal
     @Override
     public String toString()
     {
-      return getClass().getSimpleName() + "@" + Integer.toHexString( System.identityHashCode( this ) ) + "="
-          + this.get();
+      return Utils.name( this ) + "=" + this.get();
     }
   }
 
@@ -98,7 +99,7 @@ public class ObservableInteger implements ISignal
   public String toString()
   {
     // return class string
-    return getClass().getSimpleName() + "@" + Integer.toHexString( System.identityHashCode( this ) ) + "=" + this.get();
+    return Utils.name( this ) + "=" + this.get();
   }
 
 }

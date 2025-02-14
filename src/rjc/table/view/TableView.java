@@ -18,6 +18,7 @@
 
 package rjc.table.view;
 
+import rjc.table.Utils;
 import rjc.table.data.TableData;
 import rjc.table.data.TableData.Signal;
 import rjc.table.signal.ObservablePosition;
@@ -324,8 +325,7 @@ public class TableView extends TableViewComponents
   public String toString()
   {
     // return as string
-    return getClass().getSimpleName() + "@" + Integer.toHexString( System.identityHashCode( this ) ) + "[ID=" + getId()
-        + " m_canvas=" + getCanvas() + "]";
+    return Utils.name( this ) + "[ID=" + getId() + " w=" + getWidth() + " h=" + getHeight() + "]";
   }
 
 }

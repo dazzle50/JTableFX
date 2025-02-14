@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -18,6 +18,7 @@
 
 package rjc.table.view.axis;
 
+import rjc.table.Utils;
 import rjc.table.signal.ObservableInteger.ReadOnlyInteger;
 
 /*************************************************************************************************/
@@ -97,5 +98,13 @@ public class TableAxis extends AxisMap
         return check;
 
     return INVALID;
+  }
+
+  /****************************************** toString *******************************************/
+  @Override
+  public String toString()
+  {
+    // return as string
+    return Utils.name( this ) + "[count=" + getCount() + "]";
   }
 }

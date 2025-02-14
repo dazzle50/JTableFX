@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -19,6 +19,7 @@
 package rjc.table.view.cell;
 
 import javafx.scene.canvas.GraphicsContext;
+import rjc.table.Utils;
 import rjc.table.view.TableView;
 
 /*************************************************************************************************/
@@ -77,7 +78,7 @@ public class CellLocation
   @Override
   public String toString()
   {
-    return getClass().getSimpleName() + "@" + Integer.toHexString( System.identityHashCode( this ) ) + "[viewColumn="
-        + viewColumn + ", viewRow=" + viewRow + ", x=" + x + ", y=" + y + ", w=" + w + ", h=" + h + "]";
+    return Utils.name( this ) + "[viewColumn=" + viewColumn + ", viewRow=" + viewRow + ", x=" + x + ", y=" + y + ", w="
+        + w + ", h=" + h + "]";
   }
 }

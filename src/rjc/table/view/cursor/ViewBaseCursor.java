@@ -22,6 +22,7 @@ import javafx.scene.ImageCursor;
 import javafx.scene.image.Image;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import rjc.table.Utils;
 import rjc.table.view.TableOverlay;
 import rjc.table.view.TableScrollBar;
 import rjc.table.view.TableView;
@@ -147,8 +148,7 @@ public class ViewBaseCursor extends ImageCursor
   public String toString()
   {
     // return as string
-    return getClass().getSimpleName() + "@" + Integer.toHexString( System.identityHashCode( this ) ) + "[" + event
-        + "]";
+    return Utils.name( this ) + "[" + event + "]";
   }
 
 }

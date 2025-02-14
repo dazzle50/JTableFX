@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -18,6 +18,7 @@
 
 package rjc.table.signal;
 
+import rjc.table.Utils;
 import rjc.table.view.axis.TableAxis;
 
 /*************************************************************************************************/
@@ -97,8 +98,7 @@ public class ObservablePosition implements ISignal
   public String toString()
   {
     // return as string
-    return getClass().getSimpleName() + "@" + Integer.toHexString( System.identityHashCode( this ) ) + "[" + m_column
-        + "," + m_row + "]";
+    return Utils.name( this ) + "[" + m_column + "," + m_row + "]";
   }
 
 }

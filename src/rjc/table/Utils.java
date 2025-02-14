@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -117,6 +117,13 @@ public class Utils
   {
     // returns a clean string
     return txt.trim().replaceAll( "(\\s+)", " " );
+  }
+
+  /******************************************** name *********************************************/
+  public static String name( Object obj )
+  {
+    // returns the objects simple class name with hash identity in hex
+    return obj.getClass().getSimpleName() + "@" + Integer.toHexString( System.identityHashCode( obj ) );
   }
 
   /******************************************** clamp ********************************************/

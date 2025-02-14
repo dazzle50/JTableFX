@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -20,6 +20,8 @@ package rjc.table.signal;
 
 import java.util.Timer;
 import java.util.TimerTask;
+
+import rjc.table.Utils;
 
 /*************************************************************************************************/
 /****************** Observable status with severity and associated text message ******************/
@@ -150,8 +152,7 @@ public class ObservableStatus implements ISignal
   public String toString()
   {
     // return as string
-    return getClass().getSimpleName() + "@" + Integer.toHexString( System.identityHashCode( this ) ) + "[" + m_severity
-        + " '" + m_msg + "']";
+    return Utils.name( this ) + "[" + m_severity + " '" + m_msg + "']";
   }
 
 }

@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -20,6 +20,7 @@ package rjc.table.undo;
 
 import java.util.ArrayList;
 
+import rjc.table.Utils;
 import rjc.table.signal.ISignal;
 
 /*************************************************************************************************/
@@ -81,20 +82,6 @@ public class UndoStack implements ISignal
   /******************************************** push *********************************************/
   public boolean push( IUndoCommand command )
   {
-    // push command onto undo-stack and do command
-    return push( command, true );
-  }
-
-  /**************************************** pushWithoutDo ****************************************/
-  public boolean pushWithoutDo( IUndoCommand command )
-  {
-    // push command onto undo-stack and do NOT do command
-    return push( command, false );
-  }
-
-  /******************************************** push *********************************************/
-  private boolean push( IUndoCommand command, boolean redo )
-  {
     // if command not valid, then return false and don't push on stack
     if ( !command.isValid() )
       return false;
@@ -109,10 +96,8 @@ public class UndoStack implements ISignal
         m_cleanIndex = Integer.MIN_VALUE;
     }
 
-    // add new command to stack, do it (if requested), and update stack index
+    // add new command to stack WITHOUT doing, and update stack index
     m_stack.add( command );
-    if ( redo )
-      command.redo();
     m_index = m_stack.size();
     signal();
 
@@ -206,8 +191,7 @@ public class UndoStack implements ISignal
   public String toString()
   {
     // return as string
-    StringBuilder str = new StringBuilder(
-        getClass().getSimpleName() + "@" + Integer.toHexString( System.identityHashCode( this ) ) );
+    StringBuilder str = new StringBuilder( Utils.name( this ) );
     str.append( "[i=" + m_index );
     str.append( " c=" + m_cleanIndex );
     str.append( " s=" + m_stack.size() );
