@@ -18,11 +18,14 @@
 
 package rjc.table.undo.commands;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Set;
 
 import rjc.table.undo.IUndoCommand;
 import rjc.table.view.TableView;
 import rjc.table.view.axis.TableAxis;
+import rjc.table.view.cursor.ReorderCursor;
 
 /*************************************************************************************************/
 /******************* UndoCommand for reordering columns or rows on table-view ********************/
@@ -30,30 +33,92 @@ import rjc.table.view.axis.TableAxis;
 
 public class CommandReorderView implements IUndoCommand
 {
+  private TableView    m_view;    // table view
+  private TableAxis    m_axis;    // axis being reordered
+  private Set<Integer> m_indexes; // view-indexes being moved
+  private int          m_insert;  // insert position
+  private String       m_text;    // text describing command
 
   /**************************************** constructor ******************************************/
   public CommandReorderView( TableView view, TableAxis axis, Set<Integer> selected, int insertIndex )
   {
     // prepare reorder command
+    m_view = view;
+    m_axis = axis;
+    m_indexes = selected;
+    m_insert = insertIndex;
+
+    // test if reorder changes mapping, if not make command invalid
+    var hash = m_axis.getIndexMappingHash();
+    redo();
+    if ( hash == m_axis.getIndexMappingHash() )
+      m_view = null;
   }
 
   /******************************************* redo **********************************************/
   @Override
   public void redo()
   {
+    // action command and redraw view
+    m_axis.reorder( m_indexes, m_insert );
+    m_view.redraw();
   }
 
   /******************************************* undo **********************************************/
   @Override
   public void undo()
   {
+    // revert command
+    int newOffset = ReorderCursor.countBefore( m_indexes, m_insert );
+    int oldOffset = m_indexes.size() - newOffset;
+
+    // create ordered list to process moves in predictable order
+    var list = new ArrayList<Integer>( m_indexes );
+    list.sort( null );
+
+    // move columns or rows back to their prior positions
+    HashSet<Integer> index = new HashSet<>( 1 );
+    for ( int oldPos : list )
+      if ( m_insert > oldPos )
+      {
+        index.clear();
+        index.add( m_insert - newOffset );
+        m_axis.reorder( index, oldPos );
+        newOffset--;
+      }
+      else
+      {
+        index.clear();
+        index.add( m_insert );
+        m_axis.reorder( index, oldPos + oldOffset );
+        oldOffset--;
+      }
+
+    // redraw table in this view only
+    m_view.redraw();
   }
 
   /******************************************* text **********************************************/
   @Override
   public String text()
   {
-    return null;
+    // command description
+    if ( m_text == null )
+    {
+      m_text = "Moved " + m_indexes.size() + ( m_axis == m_view.getColumnsAxis() ? " column" : " row" )
+          + ( m_indexes.size() > 1 ? "s" : "" );
+
+      if ( m_view.getId() != null )
+        m_text = m_view.getId() + " - " + m_text;
+    }
+    return m_text;
   }
 
+  /******************************************* isValid *******************************************/
+  @Override
+  public boolean isValid()
+  {
+    // command is valid only if reorder results in difference (via hashcode)
+    return m_view != null;
+  }
 }

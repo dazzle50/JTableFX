@@ -51,13 +51,13 @@ public class ResizeCursor extends ViewBaseCursor
     // set resize orientation to vertical or horizontal
     if ( orient == Orientation.HORIZONTAL )
     {
-      m_scrollbar = view.getHorizontalScrollBar();
-      m_axis = view.getColumnsAxis();
+      m_scrollbar = m_view.getHorizontalScrollBar();
+      m_axis = m_view.getColumnsAxis();
     }
     else
     {
-      m_scrollbar = view.getVerticalScrollBar();
-      m_axis = view.getRowsAxis();
+      m_scrollbar = m_view.getVerticalScrollBar();
+      m_axis = m_view.getRowsAxis();
     }
   }
 
@@ -84,7 +84,7 @@ public class ResizeCursor extends ViewBaseCursor
       }
 
     // create resize command
-    m_command = new CommandResize( view, m_axis, selected );
+    m_command = new CommandResize( m_view, m_axis, selected );
 
     // start resizing
     drag( coordinate );
@@ -102,7 +102,7 @@ public class ResizeCursor extends ViewBaseCursor
         m_before++;
 
     // prepare resize command (if selected is null = all)
-    m_command = new CommandResizeAll( view, m_axis );
+    m_command = new CommandResizeAll( m_view, m_axis );
 
     // start resizing
     drag( coordinate );
@@ -132,7 +132,7 @@ public class ResizeCursor extends ViewBaseCursor
   {
     // resize columns or rows
     double pixels = ( coordinate - m_offset + m_scrollbar.getValue() ) / m_before;
-    int size = (int) ( pixels / view.getZoom().get() );
+    int size = (int) ( pixels / m_view.getZoom().get() );
 
     // resize
     m_command.setNewSize( size );
@@ -143,7 +143,7 @@ public class ResizeCursor extends ViewBaseCursor
   protected void end()
   {
     // end resizing, push resize command onto undo-stack
-    view.getUndoStack().push( m_command );
+    m_view.getUndoStack().push( m_command );
     m_command = null;
   }
 }

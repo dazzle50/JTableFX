@@ -41,24 +41,24 @@ public class RowHoverCursor extends ViewBaseCursor
   {
     // mouse button pressed whilst hovering over row header cells
     extractDetails( event );
-    view.requestFocus();
+    m_view.requestFocus();
 
     // clear previous selections unless shift xor control pressed
-    if ( shift == control )
-      view.getSelection().clear();
+    if ( m_shift == m_control )
+      m_view.getSelection().clear();
 
     // if primary mouse button not pressed, don't do anything else
-    if ( button != MouseButton.PRIMARY )
+    if ( m_button != MouseButton.PRIMARY )
       return;
 
     // start selecting rows
-    view.setCursor( Cursors.ROWS_SELECT );
+    m_view.setCursor( Cursors.ROWS_SELECT );
     {
-      view.getSelection().select();
-      int leftColumn = view.getColumnIndex( view.getHeaderWidth() );
-      focusCell.setPosition( leftColumn, mouseCell.getRow() );
-      view.scrollTo( focusCell );
+      m_view.getSelection().select();
+      int leftColumn = m_view.getColumnIndex( m_view.getHeaderWidth() );
+      m_focusCell.setPosition( leftColumn, m_mouseCell.getRow() );
+      m_view.scrollTo( m_focusCell );
     }
-    selectCell.setPosition( TableAxis.AFTER, mouseCell.getRow() );
+    m_selectCell.setPosition( TableAxis.AFTER, m_mouseCell.getRow() );
   }
 }

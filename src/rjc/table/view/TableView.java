@@ -190,7 +190,7 @@ public class TableView extends TableViewComponents
   }
 
   /************************************* checkSelectPosition *************************************/
-  private void checkSelectPosition()
+  public void checkSelectPosition()
   {
     // update select cell position only if cursor is selecting
     if ( getCursor() instanceof ViewBaseCursor cursor && cursor.isSelecting() )
@@ -259,13 +259,11 @@ public class TableView extends TableViewComponents
     redraw();
     getMouseCell().checkXY();
     CellEditorBase.endEditing();
-
-    // TODO if column/row resize in progress, no need to do anything more
-
-    // TODO if column/row resize in progress, no need to do anything more
+    if ( getCursor() instanceof ViewBaseCursor cursor )
+      cursor.tableScrolled();
 
     // check selected cell position
-    checkSelectPosition();
+    // checkSelectPosition();
   }
 
   /******************************************* redraw ********************************************/

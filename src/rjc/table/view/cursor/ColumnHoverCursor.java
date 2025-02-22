@@ -41,25 +41,25 @@ public class ColumnHoverCursor extends ViewBaseCursor
   {
     // mouse button pressed whilst hovering over column header cells
     extractDetails( event );
-    view.requestFocus();
+    m_view.requestFocus();
 
     // clear previous selections unless shift xor control pressed
-    if ( shift == control )
-      view.getSelection().clear();
+    if ( m_shift == m_control )
+      m_view.getSelection().clear();
 
     // if primary mouse button not pressed, don't do anything else
-    if ( button != MouseButton.PRIMARY )
+    if ( m_button != MouseButton.PRIMARY )
       return;
 
     // start selecting columns
-    view.setCursor( Cursors.COLUMNS_SELECT );
-    if ( !shift || control )
+    m_view.setCursor( Cursors.COLUMNS_SELECT );
+    if ( !m_shift || m_control )
     {
-      view.getSelection().select();
-      int topRow = view.getRowIndex( view.getHeaderHeight() );
-      focusCell.setPosition( mouseCell.getColumn(), topRow );
-      view.scrollTo( focusCell );
+      m_view.getSelection().select();
+      int topRow = m_view.getRowIndex( m_view.getHeaderHeight() );
+      m_focusCell.setPosition( m_mouseCell.getColumn(), topRow );
+      m_view.scrollTo( m_focusCell );
     }
-    selectCell.setPosition( mouseCell.getColumn(), TableAxis.AFTER );
+    m_selectCell.setPosition( m_mouseCell.getColumn(), TableAxis.AFTER );
   }
 }

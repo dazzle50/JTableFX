@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -19,6 +19,7 @@
 package rjc.table.demo.edit;
 
 import java.util.ArrayList;
+import java.util.Set;
 
 import rjc.table.data.IDataReorderRows;
 import rjc.table.data.TableData;
@@ -74,4 +75,33 @@ public class TableDataEditable extends TableData implements IDataReorderRows
     return m_rows.get( dataRow ).processValue( dataColumn, newValue, setValue );
   }
 
+  /***************************************** reorderRows *****************************************/
+  @Override
+  public boolean reorderRows( Set<Integer> fromIndexes, int insertIndex )
+  {
+    // prepare a sorted list of the indexes to be moved
+    var sortedIndexes = new ArrayList<Integer>( fromIndexes );
+    sortedIndexes.sort( null );
+
+    // remove these rows (highest to lowest index to preserve position)
+    var beforeHash = m_rows.hashCode();
+    var removed = new ArrayList<EditableData>( sortedIndexes.size() );
+    for ( int i = sortedIndexes.size(); i-- > 0; )
+      removed.add( m_rows.remove( (int) sortedIndexes.get( i ) ) );
+
+    // adjust insert-index to take account of removed rows
+    int oldInsert = insertIndex;
+    for ( int index : sortedIndexes )
+      if ( index < oldInsert )
+        insertIndex--;
+      else
+        break;
+
+    // re-insert removed rows at adjusted insert position and in correct order
+    m_rows.addAll( insertIndex, removed.reversed() );
+    signalTableChanged();
+
+    // return if reordering resulted in different row order
+    return beforeHash != m_rows.hashCode();
+  }
 }

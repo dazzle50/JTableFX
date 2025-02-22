@@ -40,24 +40,24 @@ public class CellHoverCursor extends ViewBaseCursor
   {
     // mouse button pressed whilst hovering over body cells
     extractDetails( event );
-    view.requestFocus();
+    m_view.requestFocus();
 
     // clear previous selections unless shift xor control pressed
-    if ( shift == control )
-      view.getSelection().clear();
+    if ( m_shift == m_control )
+      m_view.getSelection().clear();
 
     // if primary mouse button not pressed, don't do anything else
-    if ( button != MouseButton.PRIMARY )
+    if ( m_button != MouseButton.PRIMARY )
       return;
 
     // start selecting cells
-    view.setCursor( Cursors.CELLS_SELECT );
-    if ( !shift || control )
+    m_view.setCursor( Cursors.CELLS_SELECT );
+    if ( !m_shift || m_control )
     {
-      view.getSelection().select();
-      focusCell.setPosition( mouseCell );
+      m_view.getSelection().select();
+      m_focusCell.setPosition( m_mouseCell );
     }
-    selectCell.setPosition( mouseCell );
+    m_selectCell.setPosition( m_mouseCell );
   }
 
   /**************************************** handleClicked ****************************************/
@@ -66,11 +66,11 @@ public class CellHoverCursor extends ViewBaseCursor
   {
     // user has clicked the table
     extractDetails( event );
-    boolean doubleClick = event.getClickCount() == 2 && button == MouseButton.PRIMARY;
+    boolean doubleClick = event.getClickCount() == 2 && m_button == MouseButton.PRIMARY;
 
     // double-click to start cell editor with cell contents
     if ( doubleClick )
-      view.openEditor( focusCell.getData() );
+      m_view.openEditor( m_focusCell.getData() );
   }
 
 }

@@ -41,19 +41,19 @@ public class ColumnResizeCursor extends ResizeCursor
   {
     // mouse button pressed whilst hovering to resize columns
     extractDetails( event );
-    view.requestFocus();
+    m_view.requestFocus();
 
     // if primary mouse button not pressed, don't do anything else
-    if ( button != MouseButton.PRIMARY )
+    if ( m_button != MouseButton.PRIMARY )
       return;
 
     // start resizing column(s) - if selected is "null" means all indexes selected
     setOrientation( Orientation.HORIZONTAL );
-    var selected = view.getSelection().getResizableColumns();
+    var selected = m_view.getSelection().getResizableColumns();
     if ( selected == null )
-      startAll( x );
+      startAll( m_x );
     else
-      start( x, selected );
+      start( m_x, selected );
   }
 
   /**************************************** handleDragged ****************************************/

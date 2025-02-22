@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -18,9 +18,7 @@
 
 package rjc.table.data;
 
-import java.util.HashSet;
-
-import rjc.table.view.axis.AxisBase;
+import java.util.Set;
 
 /*************************************************************************************************/
 /************************ Interface for reordering columns in table data *************************/
@@ -29,9 +27,9 @@ import rjc.table.view.axis.AxisBase;
 public interface IDataReorderColumns
 {
   /*************************************** reorderColumns ****************************************/
-  default public int reorderColumns( HashSet<Integer> fromIndexes, int insertIndex )
+  default public boolean reorderColumns( Set<Integer> fromIndexes, int insertIndex )
   {
-    // return start index of moved columns if reordering successful, otherwise return INVALID
-    return AxisBase.INVALID;
+    // return if reordering successful (and resulted in different column order)
+    return false;
   }
 }

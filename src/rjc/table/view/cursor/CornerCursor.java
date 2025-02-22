@@ -41,17 +41,17 @@ public class CornerCursor extends ViewBaseCursor
   {
     // mouse button pressed whilst hovering over body cells
     extractDetails( event );
-    view.requestFocus();
+    m_view.requestFocus();
 
     // clear previous selections unless shift xor control pressed
-    if ( shift == control )
-      view.getSelection().clear();
+    if ( m_shift == m_control )
+      m_view.getSelection().clear();
 
     // if primary mouse button not pressed, don't do anything else
-    if ( button != MouseButton.PRIMARY )
+    if ( m_button != MouseButton.PRIMARY )
       return;
 
     // select entire table
-    view.getSelection().selectAll();
+    m_view.getSelection().selectAll();
   }
 }

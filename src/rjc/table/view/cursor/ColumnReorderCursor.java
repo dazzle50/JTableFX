@@ -40,10 +40,10 @@ public class ColumnReorderCursor extends ReorderCursor
   {
     // mouse button pressed whilst hovering to reorder columns
     extractDetails( event );
-    view.requestFocus();
+    m_view.requestFocus();
 
     // if primary mouse button not pressed, don't do anything else
-    if ( button != MouseButton.PRIMARY )
+    if ( m_button != MouseButton.PRIMARY )
       return;
 
     // user starting to select insert point for selected columns
@@ -55,7 +55,11 @@ public class ColumnReorderCursor extends ReorderCursor
   public void handleDragged( MouseEvent event )
   {
     // user changing insert point
-    dragHorizontal( (int) event.getX() );
+    m_x = (int) event.getX();
+    m_y = (int) event.getY();
+    checkScrollingX();
+    dragHorizontal( m_x );
+    m_mouseCell.setXY( m_x, m_y, false );
   }
 
   /*************************************** handleReleased ****************************************/
@@ -65,4 +69,14 @@ public class ColumnReorderCursor extends ReorderCursor
     // user confirming insert point
     end();
   }
+
+  /**************************************** tableScrolled ****************************************/
+  @Override
+  public void tableScrolled()
+  {
+    // table-view scrolled whilst dragging mouse
+    m_view.checkSelectPosition();
+    dragHorizontal( m_x );
+  }
+
 }

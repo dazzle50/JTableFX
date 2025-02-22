@@ -35,17 +35,17 @@ import rjc.table.view.cell.ViewPosition;
 
 public class ViewBaseCursor extends ImageCursor
 {
-  static int           x;          // x position on table-view
-  static int           y;          // y position on table-view
-  static TableView     view;       // current table-view
-  static MouseButton   button;     // which if any mouse buttons responsible
-  static ViewPosition  selectCell; // current select cell position
-  static ViewPosition  focusCell;  // current focus cell position
-  static MousePosition mouseCell;  // current mouse cell position
-  static boolean       shift;      // whether or not Shift is pressed
-  static boolean       control;    // whether or not Control is pressed
-  static boolean       alt;        // whether or not Alt is pressed
-  static MouseEvent    event;      // the full mouse-event
+  static int           m_x;          // x position on table-view
+  static int           m_y;          // y position on table-view
+  static TableView     m_view;       // current table-view
+  static MouseButton   m_button;     // which if any mouse buttons responsible
+  static ViewPosition  m_selectCell; // current select cell position
+  static ViewPosition  m_focusCell;  // current focus cell position
+  static MousePosition m_mouseCell;  // current mouse cell position
+  static boolean       m_shift;      // whether or not Shift is pressed
+  static boolean       m_control;    // whether or not Control is pressed
+  static boolean       m_alt;        // whether or not Alt is pressed
+  static MouseEvent    m_event;      // the full mouse-event
 
   /**************************************** constructor ******************************************/
   public ViewBaseCursor( String imageFile, int xHotspot, int yHotspot )
@@ -65,17 +65,17 @@ public class ViewBaseCursor extends ImageCursor
   {
     // collect data for mouse event handlers
     mouseEvent.consume();
-    x = (int) mouseEvent.getX();
-    y = (int) mouseEvent.getY();
-    view = ( (TableOverlay) mouseEvent.getSource() ).getView();
-    button = mouseEvent.getButton();
-    selectCell = view.getSelectCell();
-    focusCell = view.getFocusCell();
-    mouseCell = view.getMouseCell();
-    shift = mouseEvent.isShiftDown();
-    control = mouseEvent.isControlDown();
-    alt = mouseEvent.isAltDown();
-    event = mouseEvent;
+    m_x = (int) mouseEvent.getX();
+    m_y = (int) mouseEvent.getY();
+    m_view = ( (TableOverlay) mouseEvent.getSource() ).getView();
+    m_button = mouseEvent.getButton();
+    m_selectCell = m_view.getSelectCell();
+    m_focusCell = m_view.getFocusCell();
+    m_mouseCell = m_view.getMouseCell();
+    m_shift = mouseEvent.isShiftDown();
+    m_control = mouseEvent.isControlDown();
+    m_alt = mouseEvent.isAltDown();
+    m_event = mouseEvent;
   }
 
   /**************************************** handlePressed ****************************************/
@@ -102,10 +102,18 @@ public class ViewBaseCursor extends ImageCursor
     // default do nothing
   }
 
+  /**************************************** tableScrolled ****************************************/
+  public void tableScrolled()
+  {
+    // update select cell position only if cursor is selecting
+    if ( isSelecting() )
+      m_view.checkSelectPosition();
+  }
+
   /***************************************** isSelecting *****************************************/
   public boolean isSelecting()
   {
-    // override as needed
+    // default cursor is NOT selecting
     return false;
   }
 
@@ -113,15 +121,15 @@ public class ViewBaseCursor extends ImageCursor
   void checkScrollingX()
   {
     // scroll table-view horizontally if cursor beyond sides
-    TableScrollBar scrollbar = view.getHorizontalScrollBar();
-    int header = view.getHeaderWidth();
-    int width = (int) view.getCanvas().getWidth();
+    TableScrollBar scrollbar = m_view.getHorizontalScrollBar();
+    int header = m_view.getHeaderWidth();
+    int width = (int) m_view.getCanvas().getWidth();
 
     // update or stop view scrolling depending on mouse position
-    if ( x >= width && scrollbar.getValue() < scrollbar.getMax() )
-      scrollbar.scrollToEnd( x - width );
-    else if ( x < header && scrollbar.getValue() > 0.0 )
-      scrollbar.scrollToStart( header - x );
+    if ( m_x >= width && scrollbar.getValue() < scrollbar.getMax() )
+      scrollbar.scrollToEnd( m_x - width );
+    else if ( m_x < header && scrollbar.getValue() > 0.0 )
+      scrollbar.scrollToStart( header - m_x );
     else
       scrollbar.stopAnimationStartEnd();
   }
@@ -130,15 +138,15 @@ public class ViewBaseCursor extends ImageCursor
   void checkScrollingY()
   {
     // determine whether any vertical scrolling needed
-    TableScrollBar scrollbar = view.getVerticalScrollBar();
-    int header = view.getHeaderHeight();
-    int height = (int) view.getCanvas().getHeight();
+    TableScrollBar scrollbar = m_view.getVerticalScrollBar();
+    int header = m_view.getHeaderHeight();
+    int height = (int) m_view.getCanvas().getHeight();
 
     // update or stop view scrolling depending on mouse position
-    if ( y >= height && scrollbar.getValue() < scrollbar.getMax() )
-      scrollbar.scrollToEnd( y - height );
-    else if ( y < header && scrollbar.getValue() > 0.0 )
-      scrollbar.scrollToStart( header - y );
+    if ( m_y >= height && scrollbar.getValue() < scrollbar.getMax() )
+      scrollbar.scrollToEnd( m_y - height );
+    else if ( m_y < header && scrollbar.getValue() > 0.0 )
+      scrollbar.scrollToStart( header - m_y );
     else
       scrollbar.stopAnimationStartEnd();
   }
@@ -148,7 +156,7 @@ public class ViewBaseCursor extends ImageCursor
   public String toString()
   {
     // return as string
-    return Utils.name( this ) + "[" + event + "]";
+    return Utils.name( this ) + "[" + m_event + "]";
   }
 
 }

@@ -41,19 +41,19 @@ public class RowResizeCursor extends ResizeCursor
   {
     // mouse button pressed whilst hovering to resize rows
     extractDetails( event );
-    view.requestFocus();
+    m_view.requestFocus();
 
     // if primary mouse button not pressed, don't do anything else
-    if ( button != MouseButton.PRIMARY )
+    if ( m_button != MouseButton.PRIMARY )
       return;
 
     // start resizing row(s) - if selected is "null" means all indexes selected
     setOrientation( Orientation.VERTICAL );
-    var selected = view.getSelection().getResizableRows();
+    var selected = m_view.getSelection().getResizableRows();
     if ( selected == null )
-      startAll( y );
+      startAll( m_y );
     else
-      start( y, selected );
+      start( m_y, selected );
   }
 
   /**************************************** handleDragged ****************************************/

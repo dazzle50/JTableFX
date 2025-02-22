@@ -18,41 +18,111 @@
 
 package rjc.table.undo.commands;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Set;
 
 import javafx.geometry.Orientation;
+import rjc.table.data.IDataReorderColumns;
+import rjc.table.data.IDataReorderRows;
 import rjc.table.data.TableData;
 import rjc.table.undo.IUndoCommand;
+import rjc.table.view.cursor.ReorderCursor;
 
 /*************************************************************************************************/
 /******************* UndoCommand for reordering columns or rows in table-data ********************/
 /*************************************************************************************************/
+
 public class CommandReorderData implements IUndoCommand
 {
+  private TableData    m_data;        // table data
+  private Orientation  m_orientation; // orientation being reordered
+  private Set<Integer> m_indexes;     // data-indexes being moved
+  private int          m_insert;      // insert position
+  private String       m_text;        // text describing command
 
   /**************************************** constructor ******************************************/
   public CommandReorderData( TableData data, Orientation orientation, Set<Integer> selected, int insertIndex )
   {
     // prepare reorder command
+    m_data = data;
+    m_orientation = orientation;
+    m_indexes = selected;
+    m_insert = insertIndex;
+
+    // action the reorder - if not successful invalid the command
+    boolean success = m_orientation == Orientation.HORIZONTAL
+        ? ( (IDataReorderColumns) m_data ).reorderColumns( m_indexes, m_insert )
+        : ( (IDataReorderRows) m_data ).reorderRows( m_indexes, m_insert );
+    if ( !success )
+      m_data = null;
   }
 
   /******************************************* redo **********************************************/
   @Override
   public void redo()
   {
+    // action command, data-model should signal which views to redraw
+    if ( m_orientation == Orientation.HORIZONTAL )
+      ( (IDataReorderColumns) m_data ).reorderColumns( m_indexes, m_insert );
+    else
+      ( (IDataReorderRows) m_data ).reorderRows( m_indexes, m_insert );
   }
 
   /******************************************* undo **********************************************/
   @Override
   public void undo()
   {
+    // revert command
+    int newOffset = ReorderCursor.countBefore( m_indexes, m_insert );
+    int oldOffset = m_indexes.size() - newOffset;
+
+    // create ordered list to process moves in predictable order
+    var list = new ArrayList<Integer>( m_indexes );
+    list.sort( null );
+
+    // move columns or rows back to their prior positions
+    HashSet<Integer> index = new HashSet<>( 1 );
+    for ( int oldPos : list )
+      if ( m_insert > oldPos )
+      {
+        index.clear();
+        index.add( m_insert - newOffset );
+        if ( m_orientation == Orientation.HORIZONTAL )
+          ( (IDataReorderColumns) m_data ).reorderColumns( index, oldPos );
+        else
+          ( (IDataReorderRows) m_data ).reorderRows( index, oldPos );
+        newOffset--;
+      }
+      else
+      {
+        index.clear();
+        index.add( m_insert );
+        if ( m_orientation == Orientation.HORIZONTAL )
+          ( (IDataReorderColumns) m_data ).reorderColumns( index, oldPos + oldOffset );
+        else
+          ( (IDataReorderRows) m_data ).reorderRows( index, oldPos + oldOffset );
+        oldOffset--;
+      }
   }
 
   /******************************************* text **********************************************/
   @Override
   public String text()
   {
-    return null;
+    // command description
+    if ( m_text == null )
+      m_text = "Moved " + m_indexes.size() + ( m_orientation == Orientation.HORIZONTAL ? " column" : " row" )
+          + ( m_indexes.size() > 1 ? "s" : "" );
+
+    return m_text;
   }
 
+  /******************************************* isValid *******************************************/
+  @Override
+  public boolean isValid()
+  {
+    // command is valid only if reorder results in difference
+    return m_data != null;
+  }
 }

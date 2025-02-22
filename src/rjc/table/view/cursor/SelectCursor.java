@@ -39,9 +39,9 @@ public class SelectCursor extends ViewBaseCursor
   public void handleReleased( MouseEvent event )
   {
     // finishing selecting, so update cursor and stop any animations
-    view.getMouseCell().setXY( x, y, true );
-    view.getHorizontalScrollBar().stopAnimationStartEnd();
-    view.getVerticalScrollBar().stopAnimationStartEnd();
+    m_view.getMouseCell().setXY( m_x, m_y, true );
+    m_view.getHorizontalScrollBar().stopAnimationStartEnd();
+    m_view.getVerticalScrollBar().stopAnimationStartEnd();
   }
 
   /**************************************** handleDragged ****************************************/
@@ -50,7 +50,7 @@ public class SelectCursor extends ViewBaseCursor
   {
     // selecting cells by dragging mouse whilst primary button held down
     extractDetails( event );
-    if ( button != MouseButton.PRIMARY )
+    if ( m_button != MouseButton.PRIMARY )
       return;
 
     // check if table scrolling is wanted
@@ -58,7 +58,7 @@ public class SelectCursor extends ViewBaseCursor
     checkScrollingY();
 
     // update mouse cell position
-    mouseCell.setXY( x, y, false );
+    m_mouseCell.setXY( m_x, m_y, false );
   }
 
   /***************************************** isSelecting *****************************************/

@@ -64,10 +64,9 @@ public class AxisMap extends AxisSize
   }
 
   /******************************************* reorder *******************************************/
-  public int reorder( Set<Integer> toBeMovedIndexes, int insertIndex )
+  public void reorder( Set<Integer> toBeMovedIndexes, int insertIndex )
   {
     // reorder mapping between view-indexes and data-indexes
-    var beforeHash = getIndexMappingHash();
     var movedSorted = new ArrayList<Integer>( toBeMovedIndexes );
     movedSorted.sort( null );
 
@@ -92,21 +91,14 @@ public class AxisMap extends AxisSize
     // re-insert moved indexes back into mapping at adjusted insert position and in correct order
     m_dataIndexFromViewIndex.addAll( insertIndex, movedList.reversed() );
 
-    // compare mapping hash to see if changed from before reorder, if no change return INVALID
-    if ( getIndexMappingHash() == beforeHash )
-      return INVALID;
-
     // truncate pixel cache in case sizes also moved
     int min = Math.min( insertIndex, movedSorted.getFirst() );
     truncatePixelCaches( min, 0 );
     reorderExceptions( movedSorted, insertIndex );
-
-    // return start index of reordered
-    return insertIndex;
   }
 
   /************************************* getIndexMappingHash *************************************/
-  private int getIndexMappingHash()
+  public int getIndexMappingHash()
   {
     // remove any unneeded mapping, and return hash-code of resulting array
     int index = m_dataIndexFromViewIndex.size() - 1;
