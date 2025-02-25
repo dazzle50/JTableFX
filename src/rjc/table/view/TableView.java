@@ -22,11 +22,10 @@ import rjc.table.Utils;
 import rjc.table.data.TableData;
 import rjc.table.data.TableData.Signal;
 import rjc.table.signal.ObservablePosition;
-import rjc.table.view.TableScrollBar.Animation;
 import rjc.table.view.axis.TableAxis;
 import rjc.table.view.cell.CellDrawer;
-import rjc.table.view.cursor.Cursors;
-import rjc.table.view.cursor.ViewBaseCursor;
+import rjc.table.view.cursor.ITableViewCursor;
+import rjc.table.view.cursor.SelectCursor;
 import rjc.table.view.editor.CellEditorBase;
 import rjc.table.view.events.KeyPressed;
 import rjc.table.view.events.KeyTyped;
@@ -84,44 +83,45 @@ public class TableView extends TableViewComponents
       event.consume();
       int x = (int) event.getX();
       int y = (int) event.getY();
-      var view = ( (TableOverlay) event.getSource() ).getView();
-      view.getMouseCell().setXY( x, y, true );
+      getMouseCell().setXY( x, y, true );
     } );
+
+    // invalidate the mouse cell position if mouse exits the view
+    overlay.setOnMouseExited( event -> getMouseCell().setInvalid() );
 
     // react to mouse button pressed events
     overlay.setOnMousePressed( event ->
     {
-      if ( getCursor() instanceof ViewBaseCursor cursor )
+      if ( getCursor() instanceof ITableViewCursor cursor )
         cursor.handlePressed( event );
     } );
 
     // react to mouse dragged events (mouse moved whilst mouse button down)
     overlay.setOnMouseDragged( event ->
     {
-      if ( getCursor() instanceof ViewBaseCursor cursor )
+      if ( getCursor() instanceof ITableViewCursor cursor )
         cursor.handleDragged( event );
     } );
 
     // react to mouse button released events
     overlay.setOnMouseReleased( event ->
     {
-      if ( getCursor() instanceof ViewBaseCursor cursor )
+      if ( getCursor() instanceof ITableViewCursor cursor )
         cursor.handleReleased( event );
     } );
 
     // react to mouse mouse button clicked events
     overlay.setOnMouseClicked( event ->
     {
-      if ( getCursor() instanceof ViewBaseCursor cursor )
+      if ( getCursor() instanceof ITableViewCursor cursor )
         cursor.handleClicked( event );
     } );
 
-    // react to mouse scroll events
+    // react to mouse wheel scroll events
     overlay.setOnScroll( event ->
     {
       // scroll up or down depending on mouse wheel scroll event
-      var view = ( (TableOverlay) event.getSource() ).getView();
-      var scrollbar = view.getVerticalScrollBar();
+      var scrollbar = getVerticalScrollBar();
 
       if ( scrollbar.isVisible() )
       {
@@ -164,7 +164,7 @@ public class TableView extends TableViewComponents
       getSelection().update();
 
       // scroll to show select cell unless selecting using mouse which has its own scrolling behaviour
-      if ( getCursor() instanceof ViewBaseCursor cursor && !cursor.isSelecting() )
+      if ( getCursor() instanceof SelectCursor == false )
         scrollTo( getSelectCell() );
     } );
     getSelection().addLaterListener( ( sender, msg ) ->
@@ -175,7 +175,11 @@ public class TableView extends TableViewComponents
     } );
 
     // react to mouse cell-position as might be used for selecting
-    getMouseCell().addListener( ( sender, msg ) -> checkSelectPosition() );
+    getMouseCell().addListener( ( sender, msg ) ->
+    {
+      if ( getCursor() instanceof ITableViewCursor cursor )
+        cursor.checkSelectPosition();
+    } );
 
     // react to zoom values changes
     getZoom().addListener( ( sender, msg ) ->
@@ -189,69 +193,6 @@ public class TableView extends TableViewComponents
     setOnKeyTyped( new KeyTyped() );
   }
 
-  /************************************* checkSelectPosition *************************************/
-  public void checkSelectPosition()
-  {
-    // update select cell position only if cursor is selecting
-    if ( getCursor() instanceof ViewBaseCursor cursor && cursor.isSelecting() )
-    {
-      int column = checkColumnPosition();
-      int row = checkRowPosition();
-      getSelectCell().setPosition( column, row );
-    }
-  }
-
-  /************************************* checkColumnPosition *************************************/
-  private int checkColumnPosition()
-  {
-    // if mouse is beyond the table, limit to last visible column
-    var axis = getColumnsAxis();
-    int column = Math.min( axis.getLastVisible(), getMouseCell().getColumn() );
-
-    // if selecting rows ignore mouse column
-    column = getCursor() == Cursors.ROWS_SELECT ? getSelectCell().getColumn() : column;
-
-    // if animating to start or end, ensure selection edge is visible on view
-    var animation = getHorizontalScrollBar().getAnimation();
-    if ( animation == Animation.TO_START )
-    {
-      column = getColumnIndex( getHeaderWidth() );
-      column = axis.getNextVisible( column );
-    }
-    if ( animation == Animation.TO_END )
-    {
-      column = getColumnIndex( (int) getCanvas().getWidth() );
-      column = axis.getPreviousVisible( column );
-    }
-
-    return column;
-  }
-
-  /************************************** checkRowPosition ***************************************/
-  private int checkRowPosition()
-  {
-    // if mouse is beyond the table, limit to last visible row
-    var rowAxis = getRowsAxis();
-    int row = Math.min( rowAxis.getLastVisible(), getMouseCell().getRow() );
-
-    // if selecting columns ignore mouse row
-    row = getCursor() == Cursors.COLUMNS_SELECT ? getSelectCell().getRow() : row;
-
-    var animation = getVerticalScrollBar().getAnimation();
-    if ( animation == Animation.TO_START )
-    {
-      row = getRowIndex( getHeaderHeight() );
-      row = rowAxis.getNextVisible( row );
-    }
-    if ( animation == Animation.TO_END )
-    {
-      row = getRowIndex( (int) getCanvas().getHeight() );
-      row = rowAxis.getPreviousVisible( row );
-    }
-
-    return row;
-  }
-
   /**************************************** tableScrolled ****************************************/
   private void tableScrolled()
   {
@@ -259,11 +200,8 @@ public class TableView extends TableViewComponents
     redraw();
     getMouseCell().checkXY();
     CellEditorBase.endEditing();
-    if ( getCursor() instanceof ViewBaseCursor cursor )
+    if ( getCursor() instanceof ITableViewCursor cursor )
       cursor.tableScrolled();
-
-    // check selected cell position
-    // checkSelectPosition();
   }
 
   /******************************************* redraw ********************************************/

@@ -18,57 +18,29 @@
 
 package rjc.table.view.cursor;
 
-import javafx.geometry.Orientation;
-import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 
 /*************************************************************************************************/
-/************************* Mouse cursor for resizing table-view columns **************************/
+/****************** Interface for table-view mouse cursors with event handling *******************/
 /*************************************************************************************************/
 
-public class ColumnResizeCursor extends AbstractResizeCursor
+public interface ITableViewCursor
 {
-
-  /**************************************** constructor ******************************************/
-  public ColumnResizeCursor( String imageFile, int xHotspot, int yHotstop )
-  {
-    super( imageFile, xHotspot, yHotstop );
-  }
-
   /**************************************** handlePressed ****************************************/
-  @Override
-  public void handlePressed( MouseEvent event )
-  {
-    // mouse button pressed whilst hovering to resize columns
-    extractDetails( event );
-    m_view.requestFocus();
-
-    // if primary mouse button not pressed, don't do anything else
-    if ( m_button != MouseButton.PRIMARY )
-      return;
-
-    // start resizing column(s) - if selected is "null" means all indexes selected
-    setOrientation( Orientation.HORIZONTAL );
-    var selected = m_view.getSelection().getResizableColumns();
-    if ( selected == null )
-      startAll( m_x );
-    else
-      start( m_x, selected );
-  }
-
-  /**************************************** handleDragged ****************************************/
-  @Override
-  public void handleDragged( MouseEvent event )
-  {
-    // resizing column(s)
-    drag( (int) event.getX() );
-  }
+  public void handlePressed( MouseEvent event ); // cursor specific button press handling
 
   /*************************************** handleReleased ****************************************/
-  @Override
-  public void handleReleased( MouseEvent event )
-  {
-    // resizing finished
-    end();
-  }
+  public void handleReleased( MouseEvent event ); // cursor specific button release handling
+
+  /**************************************** handleClicked ****************************************/
+  public void handleClicked( MouseEvent event ); // cursor specific button clicked handling
+
+  /**************************************** handleDragged ****************************************/
+  public void handleDragged( MouseEvent event ); // cursor specific mouse drag handling
+
+  /**************************************** tableScrolled ****************************************/
+  public void tableScrolled(); // cursor specific view scrolled handling
+
+  /************************************* checkSelectPosition *************************************/
+  public void checkSelectPosition(); // cursor specific select position setting
 }

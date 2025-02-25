@@ -25,7 +25,7 @@ import javafx.scene.input.MouseEvent;
 /************************** Mouse cursor for reordering table-view rows **************************/
 /*************************************************************************************************/
 
-public class RowReorderCursor extends ReorderCursor
+public class RowReorderCursor extends AbstractReorderCursor
 {
 
   /**************************************** constructor ******************************************/
@@ -75,7 +75,7 @@ public class RowReorderCursor extends ReorderCursor
   public void tableScrolled()
   {
     // table-view scrolled whilst dragging mouse
-    m_view.checkSelectPosition();
+    checkSelectPosition();
     dragVertical( m_y );
   }
 }

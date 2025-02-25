@@ -27,7 +27,7 @@ import rjc.table.data.IDataReorderColumns;
 import rjc.table.data.IDataReorderRows;
 import rjc.table.data.TableData;
 import rjc.table.undo.IUndoCommand;
-import rjc.table.view.cursor.ReorderCursor;
+import rjc.table.view.cursor.AbstractReorderCursor;
 
 /*************************************************************************************************/
 /******************* UndoCommand for reordering columns or rows in table-data ********************/
@@ -74,7 +74,7 @@ public class CommandReorderData implements IUndoCommand
   public void undo()
   {
     // revert command
-    int newOffset = ReorderCursor.countBefore( m_indexes, m_insert );
+    int newOffset = AbstractReorderCursor.countBefore( m_indexes, m_insert );
     int oldOffset = m_indexes.size() - newOffset;
 
     // create ordered list to process moves in predictable order

@@ -30,10 +30,10 @@ import rjc.table.view.cell.MousePosition;
 import rjc.table.view.cell.ViewPosition;
 
 /*************************************************************************************************/
-/********************** Base class for specialised table-view mouse cursors **********************/
+/******************** Abstract class for specialised table-view mouse cursors ********************/
 /*************************************************************************************************/
 
-public class ViewBaseCursor extends ImageCursor
+abstract public class AbstractCursor extends ImageCursor implements ITableViewCursor
 {
   static int           m_x;          // x position on table-view
   static int           m_y;          // y position on table-view
@@ -48,14 +48,14 @@ public class ViewBaseCursor extends ImageCursor
   static MouseEvent    m_event;      // the full mouse-event
 
   /**************************************** constructor ******************************************/
-  public ViewBaseCursor( String imageFile, int xHotspot, int yHotspot )
+  public AbstractCursor( String imageFile, int xHotspot, int yHotspot )
   {
     // return a cursor based on image file with specified x & y hot spot
     super( new Image( Cursors.class.getResourceAsStream( imageFile ) ), xHotspot, yHotspot );
   }
 
   /**************************************** constructor ******************************************/
-  public ViewBaseCursor()
+  public AbstractCursor()
   {
     // return a cursor which looks like Cursor.DEFAULT
   }
@@ -79,42 +79,46 @@ public class ViewBaseCursor extends ImageCursor
   }
 
   /**************************************** handlePressed ****************************************/
+  @Override
   public void handlePressed( MouseEvent event )
   {
     // default do nothing
   }
 
   /*************************************** handleReleased ****************************************/
+  @Override
   public void handleReleased( MouseEvent event )
   {
     // default do nothing
   }
 
   /**************************************** handleClicked ****************************************/
+  @Override
   public void handleClicked( MouseEvent event )
   {
     // default do nothing
   }
 
   /**************************************** handleDragged ****************************************/
+  @Override
   public void handleDragged( MouseEvent event )
   {
     // default do nothing
   }
 
+  /************************************* checkSelectPosition *************************************/
+  @Override
+  public void checkSelectPosition()
+  {
+    // default do nothing
+  }
+
   /**************************************** tableScrolled ****************************************/
+  @Override
   public void tableScrolled()
   {
     // update select cell position only if cursor is selecting
-    if ( isSelecting() )
-      m_view.checkSelectPosition();
-  }
-
-  /***************************************** isSelecting *****************************************/
-  public boolean isSelecting()
-  {
-    // default cursor is NOT selecting
-    return false;
+    checkSelectPosition();
   }
 
   /*************************************** checkScrollingX ***************************************/

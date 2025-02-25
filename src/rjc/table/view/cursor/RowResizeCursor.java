@@ -26,7 +26,7 @@ import javafx.scene.input.MouseEvent;
 /*************************** Mouse cursor for resizing table-view rows ***************************/
 /*************************************************************************************************/
 
-public class RowResizeCursor extends ResizeCursor
+public class RowResizeCursor extends AbstractResizeCursor
 {
 
   /**************************************** constructor ******************************************/

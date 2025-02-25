@@ -26,7 +26,7 @@ import rjc.table.view.axis.TableAxis;
 /*********************** Mouse cursor when hovering over row header cells ************************/
 /*************************************************************************************************/
 
-public class RowHoverCursor extends ViewBaseCursor
+public class RowHoverCursor extends AbstractCursor
 {
 
   /**************************************** constructor ******************************************/

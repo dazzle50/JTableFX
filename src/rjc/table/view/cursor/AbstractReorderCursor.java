@@ -34,10 +34,10 @@ import rjc.table.view.Colours;
 import rjc.table.view.axis.TableAxis;
 
 /*************************************************************************************************/
-/************** Base Mouse cursor for reordering table-view or data columns & rows ***************/
+/*************** Abstract cursor for reordering table-view or data columns & rows ****************/
 /*************************************************************************************************/
 
-public class ReorderCursor extends ViewBaseCursor
+abstract public class AbstractReorderCursor extends AbstractCursor
 {
   private static final int        LINE_WIDTH = 5;
   private static Line             m_line;
@@ -45,7 +45,7 @@ public class ReorderCursor extends ViewBaseCursor
   private static int              m_pos;         // column or row axis position for reordering
 
   /**************************************** constructor ******************************************/
-  public ReorderCursor( String imageFile, int xHotspot, int yHotstop )
+  public AbstractReorderCursor( String imageFile, int xHotspot, int yHotstop )
   {
     // construct reorder cursor
     super( imageFile, xHotspot, yHotstop );

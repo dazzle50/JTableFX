@@ -25,7 +25,7 @@ import java.util.Set;
 import rjc.table.undo.IUndoCommand;
 import rjc.table.view.TableView;
 import rjc.table.view.axis.TableAxis;
-import rjc.table.view.cursor.ReorderCursor;
+import rjc.table.view.cursor.AbstractReorderCursor;
 
 /*************************************************************************************************/
 /******************* UndoCommand for reordering columns or rows on table-view ********************/
@@ -69,7 +69,7 @@ public class CommandReorderView implements IUndoCommand
   public void undo()
   {
     // revert command
-    int newOffset = ReorderCursor.countBefore( m_indexes, m_insert );
+    int newOffset = AbstractReorderCursor.countBefore( m_indexes, m_insert );
     int oldOffset = m_indexes.size() - newOffset;
 
     // create ordered list to process moves in predictable order

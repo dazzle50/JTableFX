@@ -25,7 +25,7 @@ import javafx.scene.input.MouseEvent;
 /*********************** Mouse cursor when hovering over table body cells ************************/
 /*************************************************************************************************/
 
-public class CellHoverCursor extends ViewBaseCursor
+public class CellHoverCursor extends AbstractCursor
 {
 
   /**************************************** constructor ******************************************/

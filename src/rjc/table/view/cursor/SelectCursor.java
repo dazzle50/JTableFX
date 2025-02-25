@@ -20,12 +20,13 @@ package rjc.table.view.cursor;
 
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import rjc.table.view.TableScrollBar.Animation;
 
 /*************************************************************************************************/
-/************************* Mouse cursor when selecting table body cells **************************/
+/******************* Mouse cursor when selecting table view cells/columns/rows *******************/
 /*************************************************************************************************/
 
-public class SelectCursor extends ViewBaseCursor
+public class SelectCursor extends AbstractCursor
 {
 
   /**************************************** constructor ******************************************/
@@ -61,11 +62,64 @@ public class SelectCursor extends ViewBaseCursor
     m_mouseCell.setXY( m_x, m_y, false );
   }
 
-  /***************************************** isSelecting *****************************************/
+  /************************************* checkSelectPosition *************************************/
   @Override
-  public boolean isSelecting()
+  public void checkSelectPosition()
   {
-    // cursor is selecting cells
-    return true;
+    // update select cell position only if cursor is selecting
+    int column = checkColumnPosition();
+    int row = checkRowPosition();
+    m_view.getSelectCell().setPosition( column, row );
+  }
+
+  /************************************* checkColumnPosition *************************************/
+  private int checkColumnPosition()
+  {
+    // if mouse is beyond the table, limit to last visible column
+    var axis = m_view.getColumnsAxis();
+    int column = Math.min( axis.getLastVisible(), m_mouseCell.getColumn() );
+
+    // if selecting rows ignore mouse column
+    column = this == Cursors.ROWS_SELECT ? m_selectCell.getColumn() : column;
+
+    // if animating to start or end, ensure selection edge is visible on view
+    var animation = m_view.getHorizontalScrollBar().getAnimation();
+    if ( animation == Animation.TO_START )
+    {
+      column = m_view.getColumnIndex( m_view.getHeaderWidth() );
+      column = axis.getNextVisible( column );
+    }
+    if ( animation == Animation.TO_END )
+    {
+      column = m_view.getColumnIndex( (int) m_view.getCanvas().getWidth() );
+      column = axis.getPreviousVisible( column );
+    }
+
+    return column;
+  }
+
+  /************************************** checkRowPosition ***************************************/
+  private int checkRowPosition()
+  {
+    // if mouse is beyond the table, limit to last visible row
+    var rowAxis = m_view.getRowsAxis();
+    int row = Math.min( rowAxis.getLastVisible(), m_mouseCell.getRow() );
+
+    // if selecting columns ignore mouse row
+    row = this == Cursors.COLUMNS_SELECT ? m_selectCell.getRow() : row;
+
+    var animation = m_view.getVerticalScrollBar().getAnimation();
+    if ( animation == Animation.TO_START )
+    {
+      row = m_view.getRowIndex( m_view.getHeaderHeight() );
+      row = rowAxis.getNextVisible( row );
+    }
+    if ( animation == Animation.TO_END )
+    {
+      row = m_view.getRowIndex( (int) m_view.getCanvas().getHeight() );
+      row = rowAxis.getPreviousVisible( row );
+    }
+
+    return row;
   }
 }
