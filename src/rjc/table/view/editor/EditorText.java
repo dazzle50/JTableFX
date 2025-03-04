@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -24,7 +24,7 @@ import rjc.table.control.ExpandingField;
 /******************************* Table cell editor for simple text *******************************/
 /*************************************************************************************************/
 
-public class EditorText extends CellEditorBase
+public class EditorText extends AbstractCellEditor
 {
   private ExpandingField editor = new ExpandingField();
 

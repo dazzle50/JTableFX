@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -31,7 +31,7 @@ import rjc.table.data.types.Date;
 
 public class DateDropDown extends DropDown
 {
-  private DateField       m_dateField;  // date field
+  private DateField       m_dateField;  // date field associated with this drop-down
 
   private MonthSpinField  m_monthField;
   private NumberSpinField m_yearField;
@@ -39,11 +39,10 @@ public class DateDropDown extends DropDown
   private Button          m_todayButton;
 
   /**************************************** constructor ******************************************/
-  public DateDropDown( DateField dateField )
+  public DateDropDown( ButtonField field )
   {
     // create pop-up down-down box
-    super( dateField );
-    m_dateField = dateField;
+    super( field );
 
     // create the date widgets
     m_monthField = new MonthSpinField();
@@ -64,16 +63,21 @@ public class DateDropDown extends DropDown
     m_yearField.setRange( 0, 5000 );
     m_yearField.setFormat( "0", 6, 0 );
     m_todayButton.setPrefWidth( m_calendar.getWidth() );
+    m_todayButton.setFocusTraversable( false );
     m_calendar.requestFocus();
-
-    // listen to parent changes
-    m_dateField.addListener( ( sender, date ) -> setDate( (Date) date[0] ) );
 
     // listen to widget changes
     m_yearField.addListener( ( sender, year ) -> setYear( ( (Double) year[0] ).intValue() ) );
     m_monthField.addListener( ( sender, month ) -> setMonth( (Month) month[0] ) );
     m_calendar.addListener( ( sender, date ) -> setDate( (Date) date[0] ) );
     m_todayButton.setOnAction( event -> setDate( Date.now() ) );
+
+    // if field is a date-field, listen to it for date changes
+    if ( field instanceof DateField dateField )
+    {
+      m_dateField = dateField;
+      m_dateField.addListener( ( sender, date ) -> setDate( (Date) date[0] ) );
+    }
   }
 
   /******************************************* getDate *******************************************/
@@ -84,7 +88,7 @@ public class DateDropDown extends DropDown
   }
 
   /****************************************** setDate ********************************************/
-  private void setDate( Date date )
+  protected void setDate( Date date )
   {
     // set widgets to date
     m_monthField.setValue( date.getMonth() );
@@ -121,8 +125,15 @@ public class DateDropDown extends DropDown
     m_calendar.setDate( new Date( year, month, day ) );
   }
 
+  /***************************************** getCalender *****************************************/
+  protected CalendarWidget getCalender()
+  {
+    // return calendar widget in this drop-down
+    return m_calendar;
+  }
+
   /**************************************** updateParent *****************************************/
-  private void updateParent()
+  void updateParent()
   {
     // update field text if drop-down showing - but run later to allow any field wrapping to complete first
     if ( isShowing() )

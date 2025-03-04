@@ -16,40 +16,54 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.view.editor;
+package rjc.table.control;
 
-import rjc.table.control.NumberSpinField;
+import javafx.application.Platform;
+import rjc.table.data.types.Time;
 
 /*************************************************************************************************/
-/****************************** Table cell spin editor for integer *******************************/
+/**************************** Pop-up window to support selecting time ****************************/
 /*************************************************************************************************/
 
-public class EditorInteger extends AbstractCellEditor
+public class TimeDropDown extends DropDown
 {
-  private NumberSpinField m_spin = new NumberSpinField();
+  private TimeField  m_timeField; // time field associated with this drop-down
+
+  private TimeWidget m_timeWidget;
 
   /**************************************** constructor ******************************************/
-  public EditorInteger()
+  public TimeDropDown( TimeField timeField )
   {
-    // create spin table cell editor for integer
-    super();
-    setControl( m_spin );
+    // create pop-up down-down box
+    super( timeField );
+    m_timeField = timeField;
+    m_timeField.addListener( ( sender, time ) -> setTime( (Time) time[0] ) );
+
+    m_timeWidget = new TimeWidget( m_timeField.getStatus() );
+    getGrid().addRow( 0, m_timeWidget );
   }
 
-  /******************************************* getValue ******************************************/
-  @Override
-  public Object getValue()
+  /******************************************* getDate *******************************************/
+  public Time getTime()
   {
-    // get editor integer value
-    return m_spin.getInteger();
+    // get date from calendar widget
+    return m_timeWidget.getTime();
   }
 
-  /******************************************* setValue ******************************************/
-  @Override
-  public void setValue( Object value )
+  /****************************************** setDate ********************************************/
+  protected void setTime( Time time )
   {
-    // set spin field value
-    m_spin.setValue( value );
+    // set widgets to date
+    m_timeWidget.setTime( time );
+    updateParent();
+  }
+
+  /**************************************** updateParent *****************************************/
+  void updateParent()
+  {
+    // update field text if drop-down showing - but run later to allow any field wrapping to complete first
+    if ( isShowing() )
+      Platform.runLater( () -> m_timeField.setTime( getTime() ) );
   }
 
 }

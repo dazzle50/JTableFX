@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -41,60 +41,18 @@ public class DateTimeField extends ButtonField implements ISignal
     // construct field
     setStatus( status );
     setButtonType( ButtonType.DOWN );
-    new TEMP_DateTimeDropDown( this );
+    new DateTimeDropDown( this );
 
-    // react to text changes, for example user typing new time
-    textProperty().addListener( ( property, oldText, newText ) ->
-    {
-      try
-      {
-        // if no exception raised and date is different send signal (but don't update text)
-        DateTime dt = DateTime.parse( newText,
-            "[uuuuMMdd][uu-M-d][uuuu-M-d][uuuu-DDD][['T'][' '][HHmmss][HHmm][H:m:s][H:m][.SSS][.SS][.S]]" );
-        if ( !dt.equals( m_datetime ) )
-        {
-          m_datetime = dt;
-          signal( dt );
-        }
+    // react to changes & key presses
+    textProperty().addListener( ( property, oldText, newText ) -> parseText( newText ) );
+    addEventFilter( KeyEvent.KEY_PRESSED, event -> keyPressed( event ) );
 
-        getStatus().update( Level.NORMAL, "Date-time: " + formatStatus( dt ) );
-        setStyle( getStatus().getStyle() );
-      }
-      catch ( Exception exception )
-      {
-        getStatus().update( Level.ERROR, "Date-time format is not recognised" );
-        setStyle( getStatus().getStyle() );
-      }
-    } );
-
-    // react to focus change to ensure text shows date-time in correct format
     focusedProperty().addListener( ( property, oldF, newF ) ->
     {
-      setText( format( m_datetime ) );
-      positionCaret( getText().length() );
-      getStatus().update( Level.NORMAL, null );
-    } );
-
-    // modify date-time if up or down arrows pressed
-    addEventFilter( KeyEvent.KEY_PRESSED, event ->
-    {
-      if ( event.getCode() == KeyCode.UP )
-      {
-        event.consume();
-        changeValue( 1, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
-      }
-
-      if ( event.getCode() == KeyCode.DOWN )
-      {
-        event.consume();
-        changeValue( -1, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
-      }
-
-      if ( event.getCode() == KeyCode.ENTER || event.getCode() == KeyCode.ESCAPE )
-      {
-        setText( format( m_datetime ) );
-        positionCaret( getText().length() );
-      }
+      if ( newF )
+        updateStatus( Level.NORMAL );
+      else
+        validText();
     } );
 
     // set default date-time to now truncated to hour
@@ -134,6 +92,69 @@ public class DateTimeField extends ButtonField implements ISignal
   {
     // return date in status format
     return datetime.toString( "eeee d MMMM yyyy HH:mm:ss.SSS" );
+  }
+
+  /***************************************** parseText *******************************************/
+  private void parseText( String newText )
+  {
+    // check if string can be parsed as a date, and update status
+    try
+    {
+      // if no exception raised and date-time is different send signal (but don't update text)
+      DateTime dt = DateTime.parse( newText,
+          "[uuuuMMdd][uu-M-d][uuuu-M-d][uuuu-DDD][['T'][' '][HHmmss][HHmm][H:m:s][H:m][.SSS][.SS][.S]]" );
+      if ( !dt.equals( m_datetime ) )
+      {
+        m_datetime = dt;
+        signal( dt );
+      }
+
+      updateStatus( Level.NORMAL );
+    }
+    catch ( Exception exception )
+    {
+      updateStatus( Level.ERROR );
+    }
+
+  }
+
+  /**************************************** updateStatus *****************************************/
+  private void updateStatus( Level level )
+  {
+    // update status with level and appropriate text
+    String msg = level == Level.NORMAL ? "Date: " + formatStatus( m_datetime ) : "Date-time format is not recognised";
+    getStatus().update( level, msg );
+    setStyle( getStatus().getStyle() );
+  }
+
+  /***************************************** validText *******************************************/
+  private void validText()
+  {
+    // ensure field displays last valid date
+    setText( format( m_datetime ) );
+    positionCaret( getText().length() );
+    getStatus().clear();
+  }
+
+  /***************************************** keyPressed ******************************************/
+  @Override
+  public void keyPressed( KeyEvent event )
+  {
+    // react to certain key presses
+    if ( event.getCode() == KeyCode.UP )
+    {
+      event.consume();
+      changeValue( 1, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
+    }
+
+    if ( event.getCode() == KeyCode.DOWN )
+    {
+      event.consume();
+      changeValue( -1, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
+    }
+
+    if ( event.getCode() == KeyCode.ENTER || event.getCode() == KeyCode.ESCAPE )
+      validText();
   }
 
   /***************************************** changeValue *****************************************/

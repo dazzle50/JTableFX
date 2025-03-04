@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -30,15 +30,15 @@ import rjc.table.view.TableView;
 import rjc.table.view.cell.CellDrawer;
 
 /*************************************************************************************************/
-/****************************** Base class for a table cell editor *******************************/
+/************************** Abstract base class for a table cell editor **************************/
 /*************************************************************************************************/
 
-public class CellEditorBase
+abstract public class AbstractCellEditor
 {
-  private static CellEditorBase m_cellEditorInProgress; // only one editor can be open at any time
+  private static AbstractCellEditor m_cellEditorInProgress; // only one editor can be open at any time
 
-  private Control               m_control;              // primary control that has focus
-  private CellDrawer            m_cell;                 // cell style and position etc
+  private Control                   m_control;              // primary control that has focus
+  private CellDrawer                m_cell;                 // cell style and position etc
 
   /******************************************** open *********************************************/
   public void open( Object value, CellDrawer cell )

@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -109,6 +109,14 @@ public class ExpandingField extends TextField implements IObservableStatus
   {
     // return text field status
     return m_status;
+  }
+
+  /****************************************** toString *******************************************/
+  @Override
+  public String toString()
+  {
+    // return field instance and current text
+    return Utils.name( this ) + "[" + getText() + "]";
   }
 
 }

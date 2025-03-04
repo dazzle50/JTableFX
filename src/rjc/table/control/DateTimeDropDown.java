@@ -16,40 +16,55 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.view.editor;
+package rjc.table.control;
 
-import rjc.table.control.ChooseField;
+import javafx.application.Platform;
+import rjc.table.data.types.DateTime;
 
 /*************************************************************************************************/
-/************************** Table cell spin editor for choosing object ***************************/
+/************************ Pop-up window to support selecting date & time *************************/
 /*************************************************************************************************/
 
-public class EditorChoose extends AbstractCellEditor
+public class DateTimeDropDown extends DateDropDown
 {
-  private ChooseField m_choose;
+  private DateTimeField m_dateTimeField; // date-time field associated with this drop-down
+
+  private TimeWidget    m_timeWidget;
 
   /**************************************** constructor ******************************************/
-  public EditorChoose( Object[] values )
+  public DateTimeDropDown( DateTimeField dateTimeField )
   {
-    // create spin table cell editor for integer
-    super();
-    m_choose = new ChooseField( values );
-    setControl( m_choose );
+    // create pop-up down-down box
+    super( dateTimeField );
+    m_dateTimeField = dateTimeField;
+    m_dateTimeField.addListener( ( sender, datetime ) -> setDateTime( (DateTime) datetime[0] ) );
+
+    // add time widget to date-dropdown
+    m_timeWidget = new TimeWidget( getCalender() );
+    getGrid().add( m_timeWidget, 0, 3, 2, 1 );
   }
 
-  /******************************************* getValue ******************************************/
-  @Override
-  public Object getValue()
+  /******************************************* getDate *******************************************/
+  public DateTime getDateTime()
   {
-    // get editor current value
-    return m_choose.getSelected();
+    // return date-time shown in calendar and time widget
+    return new DateTime( getDate(), m_timeWidget.getTime() );
   }
 
-  /******************************************* setValue ******************************************/
-  @Override
-  public void setValue( Object value )
+  /****************************************** setDate ********************************************/
+  private void setDateTime( DateTime datetime )
   {
-    // set editor current value
-    m_choose.setSelected( value );
+    // set widgets to date-time
+    m_timeWidget.setTime( datetime.getTime() );
+    setDate( datetime.getDate() );
+  }
+
+  /**************************************** updateParent *****************************************/
+  @Override
+  void updateParent()
+  {
+    // update field text if drop-down showing - but run later to allow any field wrapping to complete first
+    if ( isShowing() )
+      Platform.runLater( () -> m_dateTimeField.setDateTime( getDateTime() ) );
   }
 }

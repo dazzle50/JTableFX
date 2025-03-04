@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -24,7 +24,7 @@ import rjc.table.control.NumberSpinField;
 /****************************** Table cell spin editor for double ********************************/
 /*************************************************************************************************/
 
-public class EditorDouble extends CellEditorBase
+public class EditorDouble extends AbstractCellEditor
 {
   private NumberSpinField m_spin = new NumberSpinField();
 

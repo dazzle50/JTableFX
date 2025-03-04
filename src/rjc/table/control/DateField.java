@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -44,8 +44,15 @@ public class DateField extends ButtonField implements ISignal
 
     // react to changes & key presses
     textProperty().addListener( ( property, oldText, newText ) -> parseText( newText ) );
-    focusedProperty().addListener( ( property, oldF, newF ) -> validText() );
     addEventFilter( KeyEvent.KEY_PRESSED, event -> keyPressed( event ) );
+
+    focusedProperty().addListener( ( property, oldF, newF ) ->
+    {
+      if ( newF )
+        updateStatus( Level.NORMAL );
+      else
+        validText();
+    } );
 
     // set default date to today
     setDate( Date.now() );
@@ -72,21 +79,21 @@ public class DateField extends ButtonField implements ISignal
   }
 
   /******************************************* format ********************************************/
-  public String format( Date date )
+  private String format( Date date )
   {
     // return date in display format
     return date.toString();
   }
 
   /**************************************** formatStatus *****************************************/
-  public String formatStatus( Date date )
+  private String formatStatus( Date date )
   {
     // return date in status format
     return date.toString( "eeee d MMMM yyyy" );
   }
 
   /***************************************** parseText *******************************************/
-  public void parseText( String newText )
+  private void parseText( String newText )
   {
     // check if string can be parsed as a date, and update status
     try
@@ -99,18 +106,26 @@ public class DateField extends ButtonField implements ISignal
         signal( date );
       }
 
-      getStatus().update( Level.NORMAL, "Date: " + formatStatus( date ) );
-      setStyle( getStatus().getStyle() );
+      updateStatus( Level.NORMAL );
     }
     catch ( Exception exception )
     {
-      getStatus().update( Level.ERROR, "Date format is not recognised" );
-      setStyle( getStatus().getStyle() );
+      updateStatus( Level.ERROR );
     }
+
+  }
+
+  /**************************************** updateStatus *****************************************/
+  private void updateStatus( Level level )
+  {
+    // update status with level and appropriate text
+    String msg = level == Level.NORMAL ? "Date: " + formatStatus( m_date ) : "Date format is not recognised";
+    getStatus().update( level, msg );
+    setStyle( getStatus().getStyle() );
   }
 
   /***************************************** validText *******************************************/
-  public void validText()
+  private void validText()
   {
     // ensure field displays last valid date
     setText( format( m_date ) );

@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -22,23 +22,42 @@ import javafx.application.Platform;
 import javafx.scene.layout.HBox;
 import rjc.table.data.types.Time;
 import rjc.table.signal.ISignal;
+import rjc.table.signal.ObservableStatus;
+import rjc.table.signal.ObservableStatus.Level;
 
 /*************************************************************************************************/
 /******************* Number spin fields for Hour/Minutes/Seconds/Milliseconds ********************/
 /*************************************************************************************************/
 
-public class TEMP_TimeWidget extends HBox implements ISignal
+public class TimeWidget extends HBox implements ISignal
 {
   private NumberSpinField  m_hours     = new NumberSpinField();
   private NumberSpinField  m_mins      = new NumberSpinField();
   private NumberSpinField  m_secs      = new NumberSpinField();
   private NumberSpinField  m_millisecs = new NumberSpinField();
+  private Time             m_time;
   private Time             m_lastSignal;
+  private ObservableStatus m_status;
 
   private static final int BORDER      = 4;
 
   /**************************************** constructor ******************************************/
-  public TEMP_TimeWidget( CalendarWidget calendar )
+  public TimeWidget( ObservableStatus status )
+  {
+    // create time widget with this observable-status
+    m_status = status;
+    createWidget( new CalendarWidget() );
+  }
+
+  /**************************************** constructor ******************************************/
+  public TimeWidget( CalendarWidget calendar )
+  {
+    // create time widget with this calendar
+    createWidget( calendar );
+  }
+
+  /**************************************** createWidget *****************************************/
+  private void createWidget( CalendarWidget calendar )
   {
     // create layout with the four number spin fields
     double width = calendar.getWidth() - 3 * BORDER;
@@ -80,8 +99,38 @@ public class TEMP_TimeWidget extends HBox implements ISignal
   /******************************************* getTime *******************************************/
   public Time getTime()
   {
-    // get time from spin fields
-    return new Time( m_hours.getInteger(), m_mins.getInteger(), m_secs.getInteger(), m_millisecs.getInteger() );
+    // check if spin-fields represent a valid time, and update status
+    try
+    {
+      // if no exception raised and date is different send signal (but don't update text)
+      m_time = new Time( m_hours.getInteger(), m_mins.getInteger(), m_secs.getInteger(), m_millisecs.getInteger() );
+      updateStatus( Level.NORMAL );
+    }
+    catch ( Exception exception )
+    {
+      updateStatus( Level.ERROR );
+    }
+
+    return m_time;
+  }
+
+  /**************************************** formatStatus *****************************************/
+  public String formatStatus( Time time )
+  {
+    // return date in status format
+    return time.toString();
+  }
+
+  /**************************************** updateStatus *****************************************/
+  private void updateStatus( Level level )
+  {
+    // update status with level and appropriate text
+    if ( m_status != null )
+    {
+      String msg = level == Level.NORMAL ? "Time: " + formatStatus( m_time ) : "Time format is not recognised";
+      m_status.update( level, msg );
+      setStyle( m_status.getStyle() );
+    }
   }
 
   /******************************************* setTime *******************************************/

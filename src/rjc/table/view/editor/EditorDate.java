@@ -18,38 +18,21 @@
 
 package rjc.table.view.editor;
 
-import rjc.table.control.NumberSpinField;
+import rjc.table.control.DateField;
 
 /*************************************************************************************************/
-/****************************** Table cell spin editor for integer *******************************/
+/******************************* Table cell editor for Date fields *******************************/
 /*************************************************************************************************/
 
-public class EditorInteger extends AbstractCellEditor
+public class EditorDate extends AbstractCellEditor
 {
-  private NumberSpinField m_spin = new NumberSpinField();
+  DateField m_editor = new DateField( null ); // date editor
 
   /**************************************** constructor ******************************************/
-  public EditorInteger()
+  public EditorDate()
   {
-    // create spin table cell editor for integer
+    // create date table cell editor
     super();
-    setControl( m_spin );
+    setControl( m_editor );
   }
-
-  /******************************************* getValue ******************************************/
-  @Override
-  public Object getValue()
-  {
-    // get editor integer value
-    return m_spin.getInteger();
-  }
-
-  /******************************************* setValue ******************************************/
-  @Override
-  public void setValue( Object value )
-  {
-    // set spin field value
-    m_spin.setValue( value );
-  }
-
 }

@@ -26,7 +26,7 @@ import rjc.table.view.axis.TableAxis;
 import rjc.table.view.cell.CellDrawer;
 import rjc.table.view.cursor.ITableViewCursor;
 import rjc.table.view.cursor.SelectCursor;
-import rjc.table.view.editor.CellEditorBase;
+import rjc.table.view.editor.AbstractCellEditor;
 import rjc.table.view.events.KeyPressed;
 import rjc.table.view.events.KeyTyped;
 
@@ -199,7 +199,7 @@ public class TableView extends TableViewComponents
     // handle any actions needed due to view being modified usually scrolled
     redraw();
     getMouseCell().checkXY();
-    CellEditorBase.endEditing();
+    AbstractCellEditor.endEditing();
     if ( getCursor() instanceof ITableViewCursor cursor )
       cursor.tableScrolled();
   }
@@ -226,7 +226,7 @@ public class TableView extends TableViewComponents
   }
 
   /**************************************** getCellEditor ****************************************/
-  public CellEditorBase getCellEditor( CellDrawer cell )
+  public AbstractCellEditor getCellEditor( CellDrawer cell )
   {
     // return cell editor for specified cell (or null if cell is read-only)
     return null;

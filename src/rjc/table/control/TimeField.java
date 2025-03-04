@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -25,6 +25,10 @@ import rjc.table.signal.ISignal;
 import rjc.table.signal.ObservableStatus;
 import rjc.table.signal.ObservableStatus.Level;
 
+/*************************************************************************************************/
+/************************************** Time field control ***************************************/
+/*************************************************************************************************/
+
 public class TimeField extends ButtonField implements ISignal
 {
   private Time m_time; // field current time (or most recent valid)
@@ -35,59 +39,18 @@ public class TimeField extends ButtonField implements ISignal
     // construct field
     setStatus( status );
     setButtonType( ButtonType.DOWN );
-    new TEMP_DateTimeDropDown( this );
+    new TimeDropDown( this );
 
-    // react to text changes, for example user typing new time
-    textProperty().addListener( ( property, oldText, newText ) ->
-    {
-      try
-      {
-        // if no exception raised and time is different send signal (but don't update text)
-        Time time = Time.fromString( newText );
-        if ( !time.equals( m_time ) )
-        {
-          m_time = time;
-          signal( time );
-        }
+    // react to changes & key presses
+    textProperty().addListener( ( property, oldText, newText ) -> parseText( newText ) );
+    addEventFilter( KeyEvent.KEY_PRESSED, event -> keyPressed( event ) );
 
-        getStatus().update( Level.NORMAL, "Time: " + formatStatus( time ) );
-        setStyle( getStatus().getStyle() );
-      }
-      catch ( Exception exception )
-      {
-        getStatus().update( Level.ERROR, "Time is not valid" );
-        setStyle( getStatus().getStyle() );
-      }
-    } );
-
-    // react to focus change to ensure text shows time in correct format
     focusedProperty().addListener( ( property, oldF, newF ) ->
     {
-      setText( format( m_time ) );
-      positionCaret( getText().length() );
-      getStatus().update( Level.NORMAL, null );
-    } );
-
-    // react to key presses
-    addEventFilter( KeyEvent.KEY_PRESSED, event ->
-    {
-      if ( event.getCode() == KeyCode.UP )
-      {
-        event.consume();
-        changeValue( 1, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
-      }
-
-      if ( event.getCode() == KeyCode.DOWN )
-      {
-        event.consume();
-        changeValue( -1, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
-      }
-
-      if ( event.getCode() == KeyCode.ENTER || event.getCode() == KeyCode.ESCAPE )
-      {
-        setText( format( m_time ) );
-        positionCaret( getText().length() );
-      }
+      if ( newF )
+        updateStatus( Level.NORMAL );
+      else
+        validText();
     } );
 
     // set initial time truncated to hour
@@ -126,6 +89,68 @@ public class TimeField extends ButtonField implements ISignal
   {
     // return date in status format
     return time.toString();
+  }
+
+  /***************************************** parseText *******************************************/
+  private void parseText( String newText )
+  {
+    // check if string can be parsed as a time, and update status
+    try
+    {
+      // if no exception raised and time is different send signal (but don't update text)
+      Time time = Time.fromString( newText );
+      if ( !time.equals( m_time ) )
+      {
+        m_time = time;
+        signal( time );
+      }
+
+      updateStatus( Level.NORMAL );
+    }
+    catch ( Exception exception )
+    {
+      updateStatus( Level.ERROR );
+    }
+
+  }
+
+  /**************************************** updateStatus *****************************************/
+  private void updateStatus( Level level )
+  {
+    // update status with level and appropriate text
+    String msg = level == Level.NORMAL ? "Time: " + formatStatus( m_time ) : "Time format is not recognised";
+    getStatus().update( level, msg );
+    setStyle( getStatus().getStyle() );
+  }
+
+  /***************************************** validText *******************************************/
+  private void validText()
+  {
+    // ensure field displays last valid date
+    setText( format( m_time ) );
+    positionCaret( getText().length() );
+    getStatus().clear();
+  }
+
+  /***************************************** keyPressed ******************************************/
+  @Override
+  public void keyPressed( KeyEvent event )
+  {
+    // react to certain key presses
+    if ( event.getCode() == KeyCode.UP )
+    {
+      event.consume();
+      changeValue( 1, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
+    }
+
+    if ( event.getCode() == KeyCode.DOWN )
+    {
+      event.consume();
+      changeValue( -1, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
+    }
+
+    if ( event.getCode() == KeyCode.ENTER || event.getCode() == KeyCode.ESCAPE )
+      validText();
   }
 
   /***************************************** changeValue *****************************************/

@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -22,8 +22,9 @@ import rjc.table.data.TableData;
 import rjc.table.demo.edit.EditableData.Fruit;
 import rjc.table.view.TableView;
 import rjc.table.view.cell.CellDrawer;
-import rjc.table.view.editor.CellEditorBase;
+import rjc.table.view.editor.AbstractCellEditor;
 import rjc.table.view.editor.EditorChoose;
+import rjc.table.view.editor.EditorDate;
 import rjc.table.view.editor.EditorDouble;
 import rjc.table.view.editor.EditorInteger;
 import rjc.table.view.editor.EditorText;
@@ -59,7 +60,7 @@ public class TableViewEditable extends TableView
 
   /**************************************** getCellEditor ****************************************/
   @Override
-  public CellEditorBase getCellEditor( CellDrawer cell )
+  public AbstractCellEditor getCellEditor( CellDrawer cell )
   {
     // determine editor appropriate for cell
     int column = cell.getDataColumn();
@@ -71,6 +72,8 @@ public class TableViewEditable extends TableView
       return new EditorDouble();
     if ( column == EditableData.Column.Select.ordinal() )
       return new EditorChoose( Fruit.values() );
+    if ( column == EditableData.Column.Date.ordinal() )
+      return new EditorDate();
 
     return null;
   }
