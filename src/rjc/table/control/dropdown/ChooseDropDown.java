@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -16,7 +16,7 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.control;
+package rjc.table.control.dropdown;
 
 import javafx.beans.value.ChangeListener;
 import javafx.geometry.Bounds;
@@ -31,6 +31,8 @@ import javafx.scene.text.Text;
 import javafx.stage.Popup;
 import javafx.stage.Screen;
 import rjc.table.Utils;
+import rjc.table.control.ButtonField;
+import rjc.table.control.ChooseField;
 import rjc.table.view.Colours;
 
 /*************************************************************************************************/
@@ -75,13 +77,13 @@ public class ChooseDropDown extends Popup
     m_canvas.setOnMousePressed( event -> m_parent.setSelectedIndex( getIndexAtY( (int) event.getY() ) ) );
     m_canvas.setOnMouseDragged( event -> m_parent.setSelectedIndex( getIndexAtY( (int) event.getY() ) ) );
     m_canvas.setOnMouseReleased( event -> hide() );
-    m_canvas.setOnScroll( parent.scrollHandler );
+    m_canvas.setOnScroll( parent.SCROLL_HANDLER );
 
     // react to scroll-bar changes
     m_scrollbar.valueProperty().addListener( ( value ) -> redraw( m_parent.getSelectedIndex() ) );
 
     // toggle pop-up when parent is pressed or to hide when parent loses focus
-    parent.setOnMousePressed( event -> toggle() );
+    parent.getButton().setOnMousePressed( event -> toggle() );
     parent.focusedProperty().addListener( ( focus ) ->
     {
       if ( isShowing() && !m_parent.isFocused() )

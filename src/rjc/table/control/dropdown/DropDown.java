@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -16,7 +16,7 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.control;
+package rjc.table.control.dropdown;
 
 import javafx.beans.value.ChangeListener;
 import javafx.geometry.Insets;
@@ -29,6 +29,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.text.FontSmoothingType;
 import javafx.stage.Popup;
+import rjc.table.control.ButtonField;
 import rjc.table.view.Colours;
 
 /*************************************************************************************************/

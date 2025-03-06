@@ -20,6 +20,7 @@ package rjc.table.control;
 
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import rjc.table.control.dropdown.TimeDropDown;
 import rjc.table.data.types.Time;
 import rjc.table.signal.ISignal;
 import rjc.table.signal.ObservableStatus;
@@ -34,10 +35,9 @@ public class TimeField extends ButtonField implements ISignal
   private Time m_time; // field current time (or most recent valid)
 
   /**************************************** constructor ******************************************/
-  public TimeField( ObservableStatus status )
+  public TimeField()
   {
     // construct field
-    setStatus( status );
     setButtonType( ButtonType.DOWN );
     new TimeDropDown( this );
 
@@ -62,6 +62,20 @@ public class TimeField extends ButtonField implements ISignal
   {
     // return field time (or most recent valid)
     return m_time;
+  }
+
+  /****************************************** setTime ********************************************/
+  public void setTime( Object value )
+  {
+    // set field value depending on object type
+    if ( value instanceof Time time )
+      setTime( time );
+    else
+    {
+      String txt = value == null ? "" : value.toString();
+      setText( txt );
+      positionCaret( getText().length() );
+    }
   }
 
   /****************************************** setTime ********************************************/
@@ -118,9 +132,12 @@ public class TimeField extends ButtonField implements ISignal
   private void updateStatus( Level level )
   {
     // update status with level and appropriate text
-    String msg = level == Level.NORMAL ? "Time: " + formatStatus( m_time ) : "Time format is not recognised";
-    getStatus().update( level, msg );
-    setStyle( getStatus().getStyle() );
+    if ( getStatus() != null )
+    {
+      String msg = level == Level.NORMAL ? "Time: " + formatStatus( m_time ) : "Time format is not recognised";
+      getStatus().update( level, msg );
+    }
+    setStyle( ObservableStatus.getStyle( level ) );
   }
 
   /***************************************** validText *******************************************/

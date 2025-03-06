@@ -67,16 +67,16 @@ public class DemoFields extends Tab
     // layout fields with labels
     int row = 0;
     addToGrid( grid, "ExpandingField", new ExpandingField(), 0, row++ );
-    addToGrid( grid, "DateField", new DateField( status ), 0, row++ );
-    addToGrid( grid, "TimeField", new TimeField( status ), 0, row++ );
-    addToGrid( grid, "DateTimeField", new DateTimeField( status ), 0, row++ );
+    addToGrid( grid, "DateField", new DateField(), 0, row++ );
+    addToGrid( grid, "TimeField", new TimeField(), 0, row++ );
+    addToGrid( grid, "DateTimeField", new DateTimeField(), 0, row++ );
     addToGrid( grid, "ChooseField", new ChooseField( EditableData.Fruit.values() ), 0, row++ );
-    addToGrid( grid, "TimeWidget", new TimeWidget( status ), 0, row++ );
+    addToGrid( grid, "TimeWidget", new TimeWidget(), 0, row++ );
 
     row = 0;
     addToGrid( grid, "NumberSpinField", new NumberSpinField(), 1, row++ );
     row++;
-    addToGrid( grid, "Below month-field overflows  year-number field", null, 1, row++ );
+    addToGrid( grid, "Below month field overflows into year field", null, 1, row++ );
     addToGrid( grid, "MonthSpinField", monthField, 1, row++ );
     addToGrid( grid, "Year Field", yearField, 1, row++ );
 

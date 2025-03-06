@@ -130,10 +130,10 @@ public class ObservableStatus implements ISignal
   }
 
   /****************************************** getStyle *******************************************/
-  public String getStyle()
+  public static String getStyle( Level severity )
   {
-    // return suitable style css for current severity
-    switch ( m_severity )
+    // return suitable style css for specified severity
+    switch ( severity )
     {
       case NORMAL:
         return STYLE_NORMAL;
@@ -143,8 +143,15 @@ public class ObservableStatus implements ISignal
       case FATAL:
         return STYLE_ERROR;
       default:
-        throw new UnsupportedOperationException( m_severity.toString() );
+        throw new UnsupportedOperationException( severity.toString() );
     }
+  }
+
+  /****************************************** getStyle *******************************************/
+  public String getStyle()
+  {
+    // return suitable style css for current severity
+    return getStyle( m_severity );
   }
 
   /****************************************** toString *******************************************/

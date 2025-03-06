@@ -26,7 +26,7 @@ import rjc.table.control.DateField;
 
 public class EditorDate extends AbstractCellEditor
 {
-  DateField m_editor = new DateField( null ); // date editor
+  DateField m_editor = new DateField(); // date editor
 
   /**************************************** constructor ******************************************/
   public EditorDate()
@@ -35,4 +35,21 @@ public class EditorDate extends AbstractCellEditor
     super();
     setControl( m_editor );
   }
+
+  /******************************************* getValue ******************************************/
+  @Override
+  public Object getValue()
+  {
+    // get editor integer value
+    return m_editor.getDate();
+  }
+
+  /******************************************* setValue ******************************************/
+  @Override
+  public void setValue( Object value )
+  {
+    // set editor value
+    m_editor.setDate( value );
+  }
+
 }

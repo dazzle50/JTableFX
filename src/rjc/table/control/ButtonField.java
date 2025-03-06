@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -60,7 +60,7 @@ public class ButtonField extends ExpandingField implements IOverflowField
   }
 
   // handler for mouse scroll events to step increase/decrease numeric value
-  final EventHandler<ScrollEvent> scrollHandler = event ->
+  public final EventHandler<ScrollEvent> SCROLL_HANDLER = event ->
   {
     event.consume();
     double step = event.getDeltaY() > 0 ? m_step : -m_step;
@@ -79,14 +79,14 @@ public class ButtonField extends ExpandingField implements IOverflowField
     // when focused take control of scroll events, otherwise release control
     focusedProperty().addListener( ( observable, oldFocus, newFocus ) ->
     {
-      getScene().getRoot().setOnScroll( newFocus ? scrollHandler : null );
+      getScene().getRoot().setOnScroll( newFocus ? SCROLL_HANDLER : null );
 
       // if this field is on a pop-up, for example a drop-down, also control scroll events on owner node
       if ( getScene().getWindow() instanceof Popup popup )
       {
         var root = popup.getOwnerNode().getScene().getRoot();
         m_popupParentHandler = newFocus ? root.getOnScroll() : m_popupParentHandler;
-        root.setOnScroll( newFocus ? scrollHandler : m_popupParentHandler );
+        root.setOnScroll( newFocus ? SCROLL_HANDLER : m_popupParentHandler );
       }
     } );
   }

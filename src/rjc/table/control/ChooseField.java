@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -23,6 +23,7 @@ import java.util.ArrayList;
 
 import javafx.scene.input.KeyEvent;
 import rjc.table.Utils;
+import rjc.table.control.dropdown.ChooseDropDown;
 
 /*************************************************************************************************/
 /********************** Control for choosing a value from a drop-down list ***********************/
@@ -39,8 +40,10 @@ public class ChooseField extends ButtonField
   public ChooseField( Object[] choices )
   {
     // initiate the field
-    m_choices = choices;
+    setEditable( false );
+    setButtonType( ButtonType.DOWN );
     m_dropdown = new ChooseDropDown( this );
+    m_choices = choices;
 
     // generate string equivalent of choice objects
     m_text = new ArrayList<>( choices.length );
@@ -52,10 +55,6 @@ public class ChooseField extends ButtonField
 
     // default to first choice
     setText( getText( 0 ) );
-
-    // configure the button
-    setEditable( false );
-    setButtonType( ButtonType.DOWN );
 
     // react to key presses and button mouse clicks
     setOnKeyPressed( event -> keyPressed( event ) );

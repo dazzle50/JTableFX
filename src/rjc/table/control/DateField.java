@@ -20,6 +20,7 @@ package rjc.table.control;
 
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import rjc.table.control.dropdown.DateDropDown;
 import rjc.table.data.types.Date;
 import rjc.table.signal.ISignal;
 import rjc.table.signal.ObservableStatus;
@@ -31,16 +32,14 @@ import rjc.table.signal.ObservableStatus.Level;
 
 public class DateField extends ButtonField implements ISignal
 {
-  private Date         m_date;     // field current date (or most recent valid)
-  private DateDropDown m_dropdown; // drop-down for this field
+  private Date m_date; // field current date (or most recent valid)
 
   /**************************************** constructor ******************************************/
-  public DateField( ObservableStatus status )
+  public DateField()
   {
     // construct field
-    setStatus( status );
     setButtonType( ButtonType.DOWN );
-    m_dropdown = new DateDropDown( this );
+    new DateDropDown( this );
 
     // react to changes & key presses
     textProperty().addListener( ( property, oldText, newText ) -> parseText( newText ) );
@@ -63,6 +62,20 @@ public class DateField extends ButtonField implements ISignal
   {
     // return current field date (or most recent valid)
     return m_date;
+  }
+
+  /****************************************** setDate ********************************************/
+  public void setDate( Object value )
+  {
+    // set field value depending on object type
+    if ( value instanceof Date date )
+      setDate( date );
+    else
+    {
+      String txt = value == null ? "" : value.toString();
+      setText( txt );
+      positionCaret( getText().length() );
+    }
   }
 
   /****************************************** setDate ********************************************/
@@ -119,9 +132,12 @@ public class DateField extends ButtonField implements ISignal
   private void updateStatus( Level level )
   {
     // update status with level and appropriate text
-    String msg = level == Level.NORMAL ? "Date: " + formatStatus( m_date ) : "Date format is not recognised";
-    getStatus().update( level, msg );
-    setStyle( getStatus().getStyle() );
+    if ( getStatus() != null )
+    {
+      String msg = level == Level.NORMAL ? "Date: " + formatStatus( m_date ) : "Date format is not recognised";
+      getStatus().update( level, msg );
+    }
+    setStyle( ObservableStatus.getStyle( level ) );
   }
 
   /***************************************** validText *******************************************/

@@ -16,55 +16,56 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.control;
+package rjc.table.control.dropdown;
 
 import javafx.application.Platform;
-import rjc.table.data.types.DateTime;
+import rjc.table.control.TimeField;
+import rjc.table.control.TimeWidget;
+import rjc.table.data.types.Time;
 
 /*************************************************************************************************/
-/************************ Pop-up window to support selecting date & time *************************/
+/**************************** Pop-up window to support selecting time ****************************/
 /*************************************************************************************************/
 
-public class DateTimeDropDown extends DateDropDown
+public class TimeDropDown extends DropDown
 {
-  private DateTimeField m_dateTimeField; // date-time field associated with this drop-down
+  private TimeField  m_timeField; // time field associated with this drop-down
 
-  private TimeWidget    m_timeWidget;
+  private TimeWidget m_timeWidget;
 
   /**************************************** constructor ******************************************/
-  public DateTimeDropDown( DateTimeField dateTimeField )
+  public TimeDropDown( TimeField timeField )
   {
     // create pop-up down-down box
-    super( dateTimeField );
-    m_dateTimeField = dateTimeField;
-    m_dateTimeField.addListener( ( sender, datetime ) -> setDateTime( (DateTime) datetime[0] ) );
+    super( timeField );
+    m_timeField = timeField;
+    m_timeField.addListener( ( sender, time ) -> setTime( (Time) time[0] ) );
 
-    // add time widget to date-dropdown
-    m_timeWidget = new TimeWidget( getCalender() );
-    getGrid().add( m_timeWidget, 0, 3, 2, 1 );
+    m_timeWidget = new TimeWidget();
+    getGrid().addRow( 0, m_timeWidget );
   }
 
   /******************************************* getDate *******************************************/
-  public DateTime getDateTime()
+  public Time getTime()
   {
-    // return date-time shown in calendar and time widget
-    return new DateTime( getDate(), m_timeWidget.getTime() );
+    // get date from calendar widget
+    return m_timeWidget.getTime();
   }
 
   /****************************************** setDate ********************************************/
-  private void setDateTime( DateTime datetime )
+  protected void setTime( Time time )
   {
-    // set widgets to date-time
-    m_timeWidget.setTime( datetime.getTime() );
-    setDate( datetime.getDate() );
+    // set widgets to date
+    m_timeWidget.setTime( time );
+    updateParent();
   }
 
   /**************************************** updateParent *****************************************/
-  @Override
   void updateParent()
   {
     // update field text if drop-down showing - but run later to allow any field wrapping to complete first
     if ( isShowing() )
-      Platform.runLater( () -> m_dateTimeField.setDateTime( getDateTime() ) );
+      Platform.runLater( () -> m_timeField.setTime( getTime() ) );
   }
+
 }

@@ -20,6 +20,7 @@ package rjc.table.control;
 
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import rjc.table.control.dropdown.DateTimeDropDown;
 
 /*************************************************************************************************/
 /************************************ Date-time field control ************************************/
@@ -36,10 +37,9 @@ public class DateTimeField extends ButtonField implements ISignal
   private DateTime m_datetime; // field current date-time (or most recent valid)
 
   /**************************************** constructor ******************************************/
-  public DateTimeField( ObservableStatus status )
+  public DateTimeField()
   {
     // construct field
-    setStatus( status );
     setButtonType( ButtonType.DOWN );
     new DateTimeDropDown( this );
 
@@ -65,6 +65,20 @@ public class DateTimeField extends ButtonField implements ISignal
   {
     // return field date-time (or most recent valid)
     return m_datetime;
+  }
+
+  /**************************************** setDateTime ******************************************/
+  public void setDateTime( Object value )
+  {
+    // set field value depending on object type
+    if ( value instanceof DateTime dt )
+      setDateTime( dt );
+    else
+    {
+      String txt = value == null ? "" : value.toString();
+      setText( txt );
+      positionCaret( getText().length() );
+    }
   }
 
   /**************************************** setDateTime ******************************************/
@@ -122,9 +136,13 @@ public class DateTimeField extends ButtonField implements ISignal
   private void updateStatus( Level level )
   {
     // update status with level and appropriate text
-    String msg = level == Level.NORMAL ? "Date: " + formatStatus( m_datetime ) : "Date-time format is not recognised";
-    getStatus().update( level, msg );
-    setStyle( getStatus().getStyle() );
+    if ( getStatus() != null )
+    {
+      String msg = level == Level.NORMAL ? "Date-time: " + formatStatus( m_datetime )
+          : "Date-time format is not recognised";
+      getStatus().update( level, msg );
+    }
+    setStyle( ObservableStatus.getStyle( level ) );
   }
 
   /***************************************** validText *******************************************/

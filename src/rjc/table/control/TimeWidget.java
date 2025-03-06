@@ -29,7 +29,7 @@ import rjc.table.signal.ObservableStatus.Level;
 /******************* Number spin fields for Hour/Minutes/Seconds/Milliseconds ********************/
 /*************************************************************************************************/
 
-public class TimeWidget extends HBox implements ISignal
+public class TimeWidget extends HBox implements ISignal, IObservableStatus
 {
   private NumberSpinField  m_hours     = new NumberSpinField();
   private NumberSpinField  m_mins      = new NumberSpinField();
@@ -42,10 +42,9 @@ public class TimeWidget extends HBox implements ISignal
   private static final int BORDER      = 4;
 
   /**************************************** constructor ******************************************/
-  public TimeWidget( ObservableStatus status )
+  public TimeWidget()
   {
-    // create time widget with this observable-status
-    m_status = status;
+    // create time widget (with non-visible calendar for overflow)
     createWidget( new CalendarWidget() );
   }
 
@@ -125,12 +124,12 @@ public class TimeWidget extends HBox implements ISignal
   private void updateStatus( Level level )
   {
     // update status with level and appropriate text
-    if ( m_status != null )
+    if ( getStatus() != null )
     {
       String msg = level == Level.NORMAL ? "Time: " + formatStatus( m_time ) : "Time format is not recognised";
-      m_status.update( level, msg );
-      setStyle( m_status.getStyle() );
+      getStatus().update( level, msg );
     }
+    setStyle( ObservableStatus.getStyle( level ) );
   }
 
   /******************************************* setTime *******************************************/
@@ -158,4 +157,19 @@ public class TimeWidget extends HBox implements ISignal
     } );
   }
 
+  /***************************************** setStatus *******************************************/
+  @Override
+  public void setStatus( ObservableStatus status )
+  {
+    // set widget status
+    m_status = status;
+  }
+
+  /***************************************** getStatus *******************************************/
+  @Override
+  public ObservableStatus getStatus()
+  {
+    // return widget status
+    return m_status;
+  }
 }
