@@ -66,13 +66,18 @@ abstract public class AbstractCellEditor
       field.setFont( cell.getZoomFont() );
       field.setWidths( min, max );
 
-      // also when text changes, test value
+      // also when text changes, test value (but only if error not already detected)
       field.textProperty().addListener( ( observable, oldText, newText ) ->
       {
-        var decline = testValue( getValue() );
-        var level = decline == null ? Level.NORMAL : Level.ERROR;
-        field.getStatus().update( level, decline );
-        field.setStyle( field.getStatus().getStyle() );
+        if ( field.getStatus().getSeverity() == Level.NORMAL )
+        {
+          var decline = testValue( getValue() );
+          if ( decline != null )
+          {
+            field.getStatus().update( Level.ERROR, decline );
+            field.setStyle( field.getStatus().getStyle() );
+          }
+        }
       } );
     }
 
@@ -85,6 +90,16 @@ abstract public class AbstractCellEditor
     view.add( m_control );
     m_control.requestFocus();
     setValue( value );
+  }
+
+  /***************************************** isValueValid ****************************************/
+  public boolean isValueValid( Object value )
+  {
+    // return if value is valid for starting cell editor
+    if ( m_control instanceof ExpandingField field )
+      return value == null || field.isAllowed( value.toString() );
+
+    return true;
   }
 
   /******************************************* getValue ******************************************/

@@ -25,9 +25,11 @@ import rjc.table.view.cell.CellDrawer;
 import rjc.table.view.editor.AbstractCellEditor;
 import rjc.table.view.editor.EditorChoose;
 import rjc.table.view.editor.EditorDate;
+import rjc.table.view.editor.EditorDateTime;
 import rjc.table.view.editor.EditorDouble;
 import rjc.table.view.editor.EditorInteger;
 import rjc.table.view.editor.EditorText;
+import rjc.table.view.editor.EditorTime;
 
 /*************************************************************************************************/
 /*********************** Example customised table view for editable table ************************/
@@ -74,6 +76,10 @@ public class TableViewEditable extends TableView
       return new EditorChoose( Fruit.values() );
     if ( column == EditableData.Column.Date.ordinal() )
       return new EditorDate();
+    if ( column == EditableData.Column.DateTime.ordinal() )
+      return new EditorDateTime();
+    if ( column == EditableData.Column.Time.ordinal() )
+      return new EditorTime();
 
     return null;
   }

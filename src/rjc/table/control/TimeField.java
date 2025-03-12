@@ -45,12 +45,12 @@ public class TimeField extends ButtonField implements ISignal
     textProperty().addListener( ( property, oldText, newText ) -> parseText( newText ) );
     addEventFilter( KeyEvent.KEY_PRESSED, event -> keyPressed( event ) );
 
-    focusedProperty().addListener( ( property, oldF, newF ) ->
+    focusedProperty().addListener( ( property, oldFocus, newFocus ) ->
     {
-      if ( newF )
-        updateStatus( Level.NORMAL );
+      if ( newFocus )
+        updateStatus( Level.NORMAL ); // gained focus
       else
-        validText();
+        validText(); // lost focus
     } );
 
     // set initial time truncated to hour
@@ -131,12 +131,14 @@ public class TimeField extends ButtonField implements ISignal
   /**************************************** updateStatus *****************************************/
   private void updateStatus( Level level )
   {
-    // update status with level and appropriate text
-    if ( getStatus() != null )
+    // if focused, update status with level and appropriate text
+    if ( getStatus() != null && focusWithinProperty().get() )
     {
       String msg = level == Level.NORMAL ? "Time: " + formatStatus( m_time ) : "Time format is not recognised";
       getStatus().update( level, msg );
     }
+
+    // set style based on severity level
     setStyle( ObservableStatus.getStyle( level ) );
   }
 
@@ -166,7 +168,7 @@ public class TimeField extends ButtonField implements ISignal
       changeValue( -1, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
     }
 
-    if ( event.getCode() == KeyCode.ENTER || event.getCode() == KeyCode.ESCAPE )
+    if ( event.getCode() == KeyCode.ESCAPE )
       validText();
   }
 

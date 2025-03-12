@@ -43,6 +43,8 @@ public class DateTimeDropDown extends DateDropDown
 
     // add time widget to date-dropdown
     m_timeWidget = new TimeWidget( getCalender() );
+    m_timeWidget.addListener( ( sender, time ) -> setDateTime( getDateTime() ) );
+    Platform.runLater( () -> m_timeWidget.setStatus( dateTimeField.getStatus() ) );
     getGrid().add( m_timeWidget, 0, 3, 2, 1 );
   }
 

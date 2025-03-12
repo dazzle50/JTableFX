@@ -19,6 +19,7 @@
 package rjc.table.view.editor;
 
 import rjc.table.control.DateField;
+import rjc.table.data.types.Date;
 
 /*************************************************************************************************/
 /******************************* Table cell editor for Date fields *******************************/
@@ -48,8 +49,20 @@ public class EditorDate extends AbstractCellEditor
   @Override
   public void setValue( Object value )
   {
-    // set editor value
-    m_editor.setDate( value );
+    // set value depending on type
+    if ( value == null )
+      m_editor.setDate( Date.now() );
+    else if ( value instanceof Date )
+      m_editor.setDate( (Date) value );
+    else if ( value instanceof String )
+    {
+      // seed editor with a valid date before setting with input string which may not be a valid date
+      m_editor.setDate( Date.now() );
+      m_editor.setText( (String) value );
+      m_editor.positionCaret( ( (String) value ).length() );
+    }
+    else
+      throw new IllegalArgumentException( "Don't know how to handle " + value.getClass() + " " + value );
   }
 
 }

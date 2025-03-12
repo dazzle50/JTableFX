@@ -16,58 +16,53 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.control.dropdown;
+package rjc.table.view.editor;
 
-import javafx.application.Platform;
 import rjc.table.control.TimeField;
-import rjc.table.control.TimeWidget;
 import rjc.table.data.types.Time;
 
 /*************************************************************************************************/
-/**************************** Pop-up window to support selecting time ****************************/
+/********************************** Table cell editor for times **********************************/
 /*************************************************************************************************/
 
-public class TimeDropDown extends DropDown
+public class EditorTime extends AbstractCellEditor
 {
-  private TimeField  m_timeField; // time field associated with this drop-down
-
-  private TimeWidget m_timeWidget;
+  private TimeField m_editor = new TimeField();
 
   /**************************************** constructor ******************************************/
-  public TimeDropDown( TimeField timeField )
+  public EditorTime()
   {
-    // create pop-up down-down box
-    super( timeField );
-    m_timeField = timeField;
-    m_timeField.addListener( ( sender, time ) -> setTime( (Time) time[0] ) );
-
-    m_timeWidget = new TimeWidget();
-    m_timeWidget.addListener( ( sender, time ) -> setTime( getTime() ) );
-    Platform.runLater( () -> m_timeWidget.setStatus( timeField.getStatus() ) );
-    getGrid().addRow( 0, m_timeWidget );
+    // create table cell editor for time
+    super();
+    setControl( m_editor );
   }
 
-  /******************************************* getDate *******************************************/
-  public Time getTime()
+  /******************************************* getValue ******************************************/
+  @Override
+  public Object getValue()
   {
-    // get date from calendar widget
-    return m_timeWidget.getTime();
+    // get editor time value
+    return m_editor.getTime();
   }
 
-  /****************************************** setDate ********************************************/
-  protected void setTime( Time time )
+  /******************************************* setValue ******************************************/
+  @Override
+  public void setValue( Object value )
   {
-    // set widgets to date
-    m_timeWidget.setTime( time );
-    updateParent();
-  }
-
-  /**************************************** updateParent *****************************************/
-  void updateParent()
-  {
-    // update field text if drop-down showing - but run later to allow any field wrapping to complete first
-    if ( isShowing() )
-      Platform.runLater( () -> m_timeField.setTime( getTime() ) );
+    // set value depending on type
+    if ( value == null )
+      m_editor.setTime( Time.now() );
+    else if ( value instanceof Time )
+      m_editor.setTime( (Time) value );
+    else if ( value instanceof String )
+    {
+      // seed editor with a valid time before setting with input string which may not be a valid time
+      m_editor.setTime( Time.now() );
+      m_editor.setText( (String) value );
+      m_editor.positionCaret( ( (String) value ).length() );
+    }
+    else
+      throw new IllegalArgumentException( "Don't know how to handle " + value.getClass() + " " + value );
   }
 
 }

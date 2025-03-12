@@ -16,58 +16,53 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.control.dropdown;
+package rjc.table.view.editor;
 
-import javafx.application.Platform;
-import rjc.table.control.TimeField;
-import rjc.table.control.TimeWidget;
-import rjc.table.data.types.Time;
+import rjc.table.control.DateTimeField;
+import rjc.table.data.types.DateTime;
 
 /*************************************************************************************************/
-/**************************** Pop-up window to support selecting time ****************************/
+/******************************* Table cell editor for date-times ********************************/
 /*************************************************************************************************/
 
-public class TimeDropDown extends DropDown
+public class EditorDateTime extends AbstractCellEditor
 {
-  private TimeField  m_timeField; // time field associated with this drop-down
-
-  private TimeWidget m_timeWidget;
+  private DateTimeField m_editor = new DateTimeField();
 
   /**************************************** constructor ******************************************/
-  public TimeDropDown( TimeField timeField )
+  public EditorDateTime()
   {
-    // create pop-up down-down box
-    super( timeField );
-    m_timeField = timeField;
-    m_timeField.addListener( ( sender, time ) -> setTime( (Time) time[0] ) );
-
-    m_timeWidget = new TimeWidget();
-    m_timeWidget.addListener( ( sender, time ) -> setTime( getTime() ) );
-    Platform.runLater( () -> m_timeWidget.setStatus( timeField.getStatus() ) );
-    getGrid().addRow( 0, m_timeWidget );
+    // create table cell editor for date-time
+    super();
+    setControl( m_editor );
   }
 
-  /******************************************* getDate *******************************************/
-  public Time getTime()
+  /******************************************* getValue ******************************************/
+  @Override
+  public Object getValue()
   {
-    // get date from calendar widget
-    return m_timeWidget.getTime();
+    // get editor date-time value
+    return m_editor.getDateTime();
   }
 
-  /****************************************** setDate ********************************************/
-  protected void setTime( Time time )
+  /******************************************* setValue ******************************************/
+  @Override
+  public void setValue( Object value )
   {
-    // set widgets to date
-    m_timeWidget.setTime( time );
-    updateParent();
-  }
-
-  /**************************************** updateParent *****************************************/
-  void updateParent()
-  {
-    // update field text if drop-down showing - but run later to allow any field wrapping to complete first
-    if ( isShowing() )
-      Platform.runLater( () -> m_timeField.setTime( getTime() ) );
+    // set value depending on type
+    if ( value == null )
+      m_editor.setDateTime( DateTime.now() );
+    else if ( value instanceof DateTime )
+      m_editor.setDateTime( (DateTime) value );
+    else if ( value instanceof String )
+    {
+      // seed editor with a valid date-time before setting with input string which may not be a valid date-time
+      m_editor.setDateTime( DateTime.now() );
+      m_editor.setText( (String) value );
+      m_editor.positionCaret( ( (String) value ).length() );
+    }
+    else
+      throw new IllegalArgumentException( "Don't know how to handle " + value.getClass() + " " + value );
   }
 
 }

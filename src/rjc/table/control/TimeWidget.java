@@ -19,7 +19,10 @@
 package rjc.table.control;
 
 import javafx.application.Platform;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
+import javafx.stage.Popup;
 import rjc.table.data.types.Time;
 import rjc.table.signal.ISignal;
 import rjc.table.signal.ObservableStatus;
@@ -63,24 +66,24 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
 
     m_hours.setMaxWidth( width * 0.24 );
     m_hours.setFormat( "00", 4, 0 );
-    m_hours.setRange( 0, 23 );
+    m_hours.setRange( 0, 24 );
     m_hours.setStepPage( 1, 6 );
     m_hours.setOverflowField( calendar );
-    m_hours.setValue( 0 );
+    m_hours.setId( "Hours" );
     m_hours.addListener( ( sender, msg ) -> signalTime() );
 
     m_mins.setMaxWidth( width * 0.24 );
     m_mins.setFormat( "00", 4, 0 );
     m_mins.setRange( 0, 59 );
     m_mins.setOverflowField( m_hours );
-    m_mins.setValue( 0 );
+    m_mins.setId( "Minutes" );
     m_mins.addListener( ( sender, msg ) -> signalTime() );
 
     m_secs.setMaxWidth( width * 0.24 );
     m_secs.setFormat( "00", 4, 0 );
     m_secs.setRange( 0, 59 );
     m_secs.setOverflowField( m_mins );
-    m_secs.setValue( 0 );
+    m_secs.setId( "Seconds" );
     m_secs.addListener( ( sender, msg ) -> signalTime() );
 
     m_millisecs.setMaxWidth( 1 + width - m_hours.getMaxWidth() - m_mins.getMaxWidth() - m_secs.getMaxWidth() );
@@ -88,29 +91,93 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
     m_millisecs.setRange( 0, 999 );
     m_millisecs.setStepPage( 1, 100 );
     m_millisecs.setOverflowField( m_secs );
-    m_millisecs.setValue( 0 );
+    m_millisecs.setId( "Milliseconds" );
     m_millisecs.addListener( ( sender, msg ) -> signalTime() );
 
     setSpacing( BORDER - 1 );
     getChildren().addAll( m_hours, m_mins, m_secs, m_millisecs );
+    setTime( Time.fromHours( Time.now().getHours() ) );
+
+    addEventFilter( KeyEvent.KEY_PRESSED, event -> keyPressed( event ) );
+    focusWithinProperty().addListener( ( observable, oldFocus, newFocus ) ->
+    {
+      if ( newFocus )
+        // gained focus
+        updateStatus( Level.NORMAL );
+      else
+      {
+        // lost focus
+        setTime( m_time );
+        getStatus().clear();
+      }
+    } );
+  }
+
+  /***************************************** keyPressed ******************************************/
+  public void keyPressed( KeyEvent event )
+  {
+    // react to certain key presses
+    if ( event.getCode() == KeyCode.ESCAPE )
+      setTime( m_time );
   }
 
   /******************************************* getTime *******************************************/
   public Time getTime()
   {
     // check if spin-fields represent a valid time, and update status
-    try
+    boolean msValid = isValid( m_millisecs, 0, 999 );
+    boolean sValid = isValid( m_secs, 0, 59 );
+    boolean mValid = isValid( m_mins, 0, 59 );
+    boolean hValid = isValid( m_hours, 0, 24 );
+
+    if ( hValid && mValid && sValid && msValid )
     {
-      // if no exception raised and date is different send signal (but don't update text)
-      m_time = new Time( m_hours.getInteger(), m_mins.getInteger(), m_secs.getInteger(), m_millisecs.getInteger() );
+      // check time does not exceed max 24h
+      int hrs = m_hours.getInteger();
+      int mins = m_mins.getInteger();
+      int secs = m_secs.getInteger();
+      int ms = m_millisecs.getInteger();
+      if ( hrs == 24 && ( mins > 0 || secs > 0 || ms > 0 ) )
+      {
+        getStatus().update( Level.ERROR, "Max time is 24:00:00.000" );
+        m_mins.setStyle( getStatus().getStyle() );
+        m_secs.setStyle( getStatus().getStyle() );
+        m_millisecs.setStyle( getStatus().getStyle() );
+        return m_time;
+      }
+
+      // collect the new valid time from widgets
+      m_time = new Time( hrs, mins, secs, ms );
       updateStatus( Level.NORMAL );
-    }
-    catch ( Exception exception )
-    {
-      updateStatus( Level.ERROR );
     }
 
     return m_time;
+  }
+
+  /******************************************* isValid *******************************************/
+  private boolean isValid( NumberSpinField field, int min, int max )
+  {
+    // return if field value is between min & max inclusive + set status
+    String msg;
+    try
+    {
+      int value = Integer.parseInt( field.getText() );
+      if ( value >= min && value <= max )
+      {
+        field.setStyle( ObservableStatus.getStyle( Level.NORMAL ) );
+        return true;
+      }
+
+      msg = field.getId() + " needs to between " + min + " and " + max + " (inclusive)";
+    }
+    catch ( Exception exception )
+    {
+      msg = field.getId() + " is invalid";
+    }
+
+    getStatus().update( Level.ERROR, msg );
+    field.setStyle( getStatus().getStyle() );
+    return false;
   }
 
   /**************************************** formatStatus *****************************************/
@@ -123,13 +190,16 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
   /**************************************** updateStatus *****************************************/
   private void updateStatus( Level level )
   {
-    // update status with level and appropriate text
-    if ( getStatus() != null )
+    // if focused, update status with level and appropriate text
+    if ( getStatus() != null && focusWithinProperty().get() )
     {
+      // if widget in popup don't update status (assume status updated elsewhere)
+      if ( getScene().getWindow() instanceof Popup )
+        return;
+
       String msg = level == Level.NORMAL ? "Time: " + formatStatus( m_time ) : "Time format is not recognised";
       getStatus().update( level, msg );
     }
-    setStyle( ObservableStatus.getStyle( level ) );
   }
 
   /******************************************* setTime *******************************************/

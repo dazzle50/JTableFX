@@ -22,6 +22,8 @@ import java.text.DecimalFormat;
 import java.util.regex.Pattern;
 
 import rjc.table.signal.ISignal;
+import rjc.table.signal.ObservableStatus;
+import rjc.table.signal.ObservableStatus.Level;
 
 /*************************************************************************************************/
 /**************************** Generic spin control for number values *****************************/
@@ -48,10 +50,13 @@ public class NumberSpinField extends ButtonField implements ISignal
           && m_numberFormat.getMinimumIntegerDigits() == 1 )
         super.setValue( text.substring( 1 ) );
 
-      // emit signal when number changes
+      // emit signal & clear status when number changes
       double num = getDouble();
       if ( num != m_lastSignal )
       {
+        setStyle( ObservableStatus.getStyle( Level.NORMAL ) );
+        if ( getStatus() != null )
+          getStatus().clear();
         signal( num );
         m_lastSignal = num;
       }
