@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -31,15 +31,18 @@ import rjc.table.view.TableView;
 
 public class DemoTableLarge extends Tab
 {
-  private TableData m_data; // data for the table view
+  private static TableData m_data; // data for the table view
 
   /**************************************** constructor ******************************************/
   public DemoTableLarge( UndoStack undostack, ObservableStatus status )
   {
     // create default table (but with many rows & columns)
-    m_data = new TableData();
-    m_data.setColumnCount( 1_000_000 );
-    m_data.setRowCount( 1_000_000 );
+    if ( m_data == null )
+    {
+      m_data = new TableData();
+      m_data.setColumnCount( 1_000_000 );
+      m_data.setRowCount( 1_000_000 );
+    }
 
     // create specialised view
     TableView view = new LargeView( m_data, "Large" );

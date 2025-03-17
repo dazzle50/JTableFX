@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -31,13 +31,14 @@ import rjc.table.undo.UndoStack;
 
 public class DemoTableEditable extends Tab
 {
-  private TableData m_data; // data for the table view
+  private static TableData m_data; // data for the table view
 
   /**************************************** constructor ******************************************/
   public DemoTableEditable( UndoStack undostack, ObservableStatus status )
   {
     // create customised table
-    m_data = new TableDataEditable();
+    if ( m_data == null )
+      m_data = new TableDataEditable();
 
     // create customised view
     TableViewEditable view = new TableViewEditable( m_data, "Editable" );

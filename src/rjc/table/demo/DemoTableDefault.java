@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -30,13 +30,14 @@ import rjc.table.view.TableView;
 
 public class DemoTableDefault extends Tab
 {
-  private TableData m_data; // data for the table view
+  private static TableData m_data; // data for the table view
 
   /**************************************** constructor ******************************************/
   public DemoTableDefault( UndoStack undostack, ObservableStatus status )
   {
     // create default table with default view
-    m_data = new TableData();
+    if ( m_data == null )
+      m_data = new TableData();
     TableView view = new TableView( m_data, "Default" );
     view.setUndostack( undostack );
     view.setStatus( status );

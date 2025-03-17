@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -19,7 +19,7 @@
 package rjc.table.signal;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.WeakHashMap;
 
 import javafx.application.Platform;
 
@@ -31,8 +31,8 @@ public interface ISignal
 {
   static class SignalHelper
   {
-    final private static HashMap<ISignal, ArrayList<IListener>> m_listeners      = new HashMap<>();
-    final private static HashMap<ISignal, ArrayList<IListener>> m_laterListeners = new HashMap<>();
+    final private static WeakHashMap<ISignal, ArrayList<IListener>> m_listeners      = new WeakHashMap<>();
+    final private static WeakHashMap<ISignal, ArrayList<IListener>> m_laterListeners = new WeakHashMap<>();
 
     /****************************************** signal *******************************************/
     private static void signal( ISignal signaller, Object[] objects )

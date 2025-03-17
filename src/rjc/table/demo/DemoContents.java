@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2024 by Richard Crook                                   *
+ *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -20,6 +20,7 @@ package rjc.table.demo;
 
 import javafx.application.Platform;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
@@ -28,11 +29,14 @@ import javafx.scene.control.TabPane;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
+import javafx.stage.Stage;
 import rjc.table.Utils;
 import rjc.table.signal.ObservableStatus;
 import rjc.table.signal.ObservableStatus.Level;
 import rjc.table.undo.UndoStack;
 import rjc.table.undo.UndoStackWindow;
+import rjc.table.view.TableView;
+import rjc.table.view.editor.EditorDateTime;
 
 /*************************************************************************************************/
 /****************************** Contents of demo application window ******************************/
@@ -41,20 +45,24 @@ import rjc.table.undo.UndoStackWindow;
 public class DemoContents extends GridPane
 {
   private ObservableStatus m_status;     // shared status for whole demo application & shown on status bar
-
+  private TabPane          m_tabs;       // tab-pane containing the different demo tables
   private UndoStack        m_undostack;  // shared undostack for whole demo application
   private UndoStackWindow  m_undoWindow; // window to interact with undo-stack
 
   /**************************************** constructor ******************************************/
   public DemoContents()
   {
+    // create undostack & demo status
+    m_undostack = new UndoStack();
+    m_status = new ObservableStatus();
+
     // create demo window layout
     add( getMenuBar(), 0, 0 );
 
-    var tabs = getTabs();
-    add( tabs, 0, 1 );
-    setHgrow( tabs, Priority.ALWAYS );
-    setVgrow( tabs, Priority.ALWAYS );
+    m_tabs = getTabs();
+    add( m_tabs, 0, 1 );
+    setHgrow( m_tabs, Priority.ALWAYS );
+    setVgrow( m_tabs, Priority.ALWAYS );
 
     add( getStatusBar(), 0, 2 );
   }
@@ -75,10 +83,24 @@ public class DemoContents extends GridPane
     Menu view = new Menu( "View" );
     CheckMenuItem undoWindow = new CheckMenuItem( "Undo Stack ..." );
     undoWindow.setOnAction( event -> showUndoWindow( undoWindow ) );
-    view.getItems().addAll( undoWindow );
 
-    menuBar.getMenus().addAll( help, view );
+    MenuItem newWindow = new MenuItem( "New window ..." );
+    newWindow.setOnAction( event -> openNewWindow() );
+
+    view.getItems().addAll( undoWindow, newWindow );
+
+    menuBar.getMenus().addAll( help, view, getBenchmarks() );
     return menuBar;
+  }
+
+  /**************************************** openNewWindow ****************************************/
+  private void openNewWindow()
+  {
+    // open new window with different views to same data
+    Stage stage = new Stage();
+    stage.setScene( new Scene( getTabs() ) );
+    stage.setTitle( "New window" );
+    stage.show();
   }
 
   /******************************************* getTabs *******************************************/
@@ -90,8 +112,6 @@ public class DemoContents extends GridPane
         ( observable, oldTab, newTab ) -> Platform.runLater( () -> ( newTab.getContent() ).requestFocus() ) );
 
     // create demo tabs with shared undostack & status
-    m_undostack = new UndoStack();
-    m_status = new ObservableStatus();
     tabs.getTabs().add( new DemoTableDefault( m_undostack, m_status ) );
     tabs.getTabs().add( new DemoTableLarge( m_undostack, m_status ) );
     tabs.getTabs().add( new DemoTableEditable( m_undostack, m_status ) );
@@ -138,6 +158,114 @@ public class DemoContents extends GridPane
       m_undoWindow.show();
       m_undoWindow.toFront();
     }
+  }
+
+  /**************************************** getBenchmarks ****************************************/
+  private Menu getBenchmarks()
+  {
+    // create benchmarks menu
+    Menu benchmarks = new Menu( "Benchmarks" );
+
+    // add the benchmarks
+    addBenchmark( benchmarks, "Null", () ->
+    {
+    }, 1000 );
+
+    addBenchmark( benchmarks, "Trace Here", () -> Utils.trace( "Here" ), 100 );
+
+    addBenchmark( benchmarks, "Redraw", () ->
+    {
+      var tab = m_tabs.getSelectionModel().getSelectedItem();
+      TableView view = (TableView) tab.getContent();
+      view.redraw();
+    }, 1000 );
+
+    addBenchmark( benchmarks, "DateTimeEditor", () ->
+    {
+      new EditorDateTime();
+    }, 1000 );
+
+    addBenchmark( benchmarks, "Garbage collection", () ->
+    {
+      System.gc();
+    }, 1 );
+    return benchmarks;
+  }
+
+  /**************************************** addBenchmark *****************************************/
+  private MenuItem addBenchmark( Menu menu, String name, Runnable test, int count )
+  {
+    // add benchmark test to menu
+    MenuItem benchmark = new MenuItem( "BenchMark - " + count + " " + name );
+    menu.getItems().addAll( benchmark );
+
+    benchmark.setOnAction( event ->
+    {
+      // run benchmark once to get over any first-run unique delays
+      test.run();
+
+      // run benchmark requested number of times
+      long[] nanos = new long[count + 1];
+      Utils.trace( "######### BENCHMARK START - " + name + " " + count + " times" );
+      nanos[0] = System.nanoTime();
+      for ( int num = 1; num <= count; num++ )
+      {
+        test.run();
+        nanos[num] = System.nanoTime();
+      }
+
+      // report each run duration
+      long min = Long.MAX_VALUE;
+      long max = Long.MIN_VALUE;
+      for ( int num = 0; num < count; num++ )
+      {
+        long nano = nanos[num + 1] - nanos[num];
+        report( "Run " + ( num + 1 ) + " duration =", nano );
+        if ( nano < min )
+          min = nano;
+        if ( nano > max )
+          max = nano;
+      }
+
+      // report total & average duration
+      long total = nanos[count] - nanos[0];
+      Utils.trace( "######### BENCHMARK END - " + name + " " + count + " times" );
+      report( "  Total duration =", total );
+      report( "Average duration =", total / count );
+      report( "Minimum duration =", min );
+      report( "Maximum duration =", max );
+      Utils.trace( "BENCHMARK       Per second = " + String.format( "%,.1f", 1e9 * count / total ) );
+    } );
+
+    return benchmark;
+  }
+
+  /******************************************* report ********************************************/
+  private void report( String text, long nanos )
+  {
+    // generate trace output with nano-seconds in human readable format
+    String units = " ns";
+    double div = 1.0;
+
+    if ( nanos > 1000L )
+    {
+      units = " \u00B5s";
+      div = 1000.0;
+    }
+
+    if ( nanos > 1000000L )
+    {
+      units = " ms";
+      div = 1000000.0;
+    }
+
+    if ( nanos > 1000000000L )
+    {
+      units = " s";
+      div = 1000000000.0;
+    }
+
+    Utils.trace( "BENCHMARK " + text + String.format( "%8.3f", nanos / div ) + units );
   }
 
 }
