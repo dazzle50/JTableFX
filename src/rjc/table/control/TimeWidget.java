@@ -24,6 +24,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
 import javafx.stage.Popup;
 import rjc.table.data.types.Time;
+import rjc.table.signal.IListener;
 import rjc.table.signal.ISignal;
 import rjc.table.signal.ObservableStatus;
 import rjc.table.signal.ObservableStatus.Level;
@@ -43,6 +44,17 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
   private ObservableStatus m_status;
 
   private static final int BORDER      = 4;
+
+  private static IListener SIGNAL_TIME = new IListener()
+                                       {
+                                         @Override
+                                         public void slot( ISignal sender, Object... msg )
+                                         {
+                                           if ( sender instanceof NumberSpinField field )
+                                             if ( field.getParent() instanceof TimeWidget widget )
+                                               widget.signalTime();
+                                         }
+                                       };
 
   /**************************************** constructor ******************************************/
   public TimeWidget()
@@ -70,21 +82,21 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
     m_hours.setStepPage( 1, 6 );
     m_hours.setOverflowField( calendar );
     m_hours.setId( "Hours" );
-    m_hours.addListener( ( sender, msg ) -> signalTime() );
+    m_hours.addListener( SIGNAL_TIME );
 
     m_mins.setMaxWidth( width * 0.24 );
     m_mins.setFormat( "00", 4, 0 );
     m_mins.setRange( 0, 59 );
     m_mins.setOverflowField( m_hours );
     m_mins.setId( "Minutes" );
-    m_mins.addListener( ( sender, msg ) -> signalTime() );
+    m_mins.addListener( SIGNAL_TIME );
 
     m_secs.setMaxWidth( width * 0.24 );
     m_secs.setFormat( "00", 4, 0 );
     m_secs.setRange( 0, 59 );
     m_secs.setOverflowField( m_mins );
     m_secs.setId( "Seconds" );
-    m_secs.addListener( ( sender, msg ) -> signalTime() );
+    m_secs.addListener( SIGNAL_TIME );
 
     m_millisecs.setMaxWidth( 1 + width - m_hours.getMaxWidth() - m_mins.getMaxWidth() - m_secs.getMaxWidth() );
     m_millisecs.setFormat( "000", 6, 0 );
@@ -92,7 +104,7 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
     m_millisecs.setStepPage( 1, 100 );
     m_millisecs.setOverflowField( m_secs );
     m_millisecs.setId( "Milliseconds" );
-    m_millisecs.addListener( ( sender, msg ) -> signalTime() );
+    m_millisecs.addListener( SIGNAL_TIME );
 
     setSpacing( BORDER - 1 );
     getChildren().addAll( m_hours, m_mins, m_secs, m_millisecs );

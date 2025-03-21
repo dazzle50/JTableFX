@@ -35,10 +35,10 @@ import rjc.table.view.cell.CellDrawer;
 
 abstract public class AbstractCellEditor
 {
-  private static AbstractCellEditor m_cellEditorInProgress; // only one editor can be open at any time
+  private static AbstractCellEditor m_editorInProgress; // only one editor can be open at any time
 
-  private Control                   m_control;              // primary control that has focus
-  private CellDrawer                m_cell;                 // cell style and position etc
+  private Control                   m_control;          // primary control that has focus
+  private CellDrawer                m_cell;             // cell style and position etc
 
   /******************************************** open *********************************************/
   public void open( Object value, CellDrawer cell )
@@ -71,7 +71,7 @@ abstract public class AbstractCellEditor
       {
         if ( field.getStatus().getSeverity() == Level.NORMAL )
         {
-          var decline = testValue( getValue() );
+          var decline = m_editorInProgress.testValue( m_editorInProgress.getValue() );
           if ( decline != null )
           {
             field.getStatus().update( Level.ERROR, decline );
@@ -86,7 +86,7 @@ abstract public class AbstractCellEditor
       field.setStatus( cell.view.getStatus() );
 
     // display editor, give focus, and set editor value
-    m_cellEditorInProgress = this;
+    m_editorInProgress = this;
     view.add( m_control );
     m_control.requestFocus();
     setValue( value );
@@ -128,7 +128,7 @@ abstract public class AbstractCellEditor
   public void close( boolean commit )
   {
     // clear any error message, remove control from table, and give focus back to table
-    m_cellEditorInProgress = null;
+    m_editorInProgress = null;
     if ( m_cell.view.getStatus() != null )
       m_cell.view.getStatus().clear();
     m_cell.view.requestFocus();
@@ -160,16 +160,16 @@ abstract public class AbstractCellEditor
     m_control.focusedProperty().addListener( ( observable, oldFocus, newFocus ) ->
     {
       if ( !newFocus )
-        endEditing();
+        AbstractCellEditor.endEditing();
     } );
 
     // add key press event handler to close if escape or enter pressed
     m_control.addEventHandler( KeyEvent.KEY_PRESSED, event ->
     {
       if ( event.getCode() == KeyCode.ESCAPE )
-        close( false ); // abandon edit
-      if ( event.getCode() == KeyCode.ENTER && !isError() )
-        close( true ); // commit edit
+        m_editorInProgress.close( false ); // abandon edit
+      if ( event.getCode() == KeyCode.ENTER && !m_editorInProgress.isError() )
+        m_editorInProgress.close( true ); // commit edit
       if ( event.getCode() == KeyCode.ENTER )
         event.consume(); // consume event so not propagated to table-view
     } );
@@ -186,8 +186,8 @@ abstract public class AbstractCellEditor
   public static void endEditing()
   {
     // if there is a currently active editor, close it
-    if ( m_cellEditorInProgress != null )
-      m_cellEditorInProgress.close( !m_cellEditorInProgress.isError() );
+    if ( m_editorInProgress != null )
+      m_editorInProgress.close( !m_editorInProgress.isError() );
   }
 
   /******************************************* isError *******************************************/

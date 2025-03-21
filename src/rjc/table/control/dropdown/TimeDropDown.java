@@ -47,14 +47,14 @@ public class TimeDropDown extends DropDown
     getGrid().addRow( 0, m_timeWidget );
   }
 
-  /******************************************* getDate *******************************************/
+  /******************************************* getTime *******************************************/
   public Time getTime()
   {
     // get date from calendar widget
     return m_timeWidget.getTime();
   }
 
-  /****************************************** setDate ********************************************/
+  /****************************************** setTime ********************************************/
   protected void setTime( Time time )
   {
     // set widgets to date

@@ -31,12 +31,14 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.stage.Stage;
 import rjc.table.Utils;
+import rjc.table.control.TimeWidget;
 import rjc.table.signal.ObservableStatus;
 import rjc.table.signal.ObservableStatus.Level;
 import rjc.table.undo.UndoStack;
 import rjc.table.undo.UndoStackWindow;
 import rjc.table.view.TableView;
 import rjc.table.view.editor.EditorDateTime;
+import rjc.table.view.editor.EditorTime;
 
 /*************************************************************************************************/
 /****************************** Contents of demo application window ******************************/
@@ -185,10 +187,20 @@ public class DemoContents extends GridPane
       new EditorDateTime();
     }, 1000 );
 
+    addBenchmark( benchmarks, "EditorTime", () ->
+    {
+      new EditorTime();
+    }, 1000 );
+
+    addBenchmark( benchmarks, "TimeWidget", () ->
+    {
+      new TimeWidget();
+    }, 1000 );
+
     addBenchmark( benchmarks, "Garbage collection", () ->
     {
       System.gc();
-    }, 1 );
+    }, 5 );
     return benchmarks;
   }
 
@@ -234,7 +246,7 @@ public class DemoContents extends GridPane
       report( "Average duration =", total / count );
       report( "Minimum duration =", min );
       report( "Maximum duration =", max );
-      Utils.trace( "BENCHMARK       Per second = " + String.format( "%,.1f", 1e9 * count / total ) );
+      Utils.trace( "BENCHMARK       Per second = " + String.format( "%,.1f", 1e9 * count / total ) + " " + name );
     } );
 
     return benchmark;
