@@ -18,14 +18,11 @@
 
 package rjc.table.control.dropdown;
 
-import javafx.beans.value.ChangeListener;
 import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.effect.DropShadow;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.text.FontSmoothingType;
 import javafx.stage.Popup;
@@ -38,20 +35,16 @@ import rjc.table.view.Colours;
 
 public class DropDown extends Popup
 {
-  private ButtonField            m_parent;
-  private Canvas                 m_canvas;
-  private DropShadow             m_shadow;
-  private GridPane               m_grid;
+  private Canvas          m_canvas;
+  private DropShadow      m_shadow;
+  private GridPane        m_grid;
 
-  private ChangeListener<Object> HIDE_LISTENER;
-
-  public static final int        GRID_BORDER = 4;
+  public static final int GRID_BORDER = 4;
 
   /**************************************** constructor ******************************************/
-  public DropDown( ButtonField parent )
+  public DropDown()
   {
     // create pop-up window with background canvas
-    m_parent = parent;
     m_canvas = new Canvas();
     getContent().add( m_canvas );
 
@@ -71,31 +64,6 @@ public class DropDown extends Popup
     // when grid size changes ensure background size matches
     m_grid.widthProperty().addListener( x -> setBackgroundSize( m_grid.getWidth(), m_grid.getHeight() ) );
     m_grid.heightProperty().addListener( x -> setBackgroundSize( m_grid.getWidth(), m_grid.getHeight() ) );
-
-    // toggle pop-up when button is pressed
-    parent.getButton().setOnMousePressed( event ->
-    {
-      event.consume();
-      parent.requestFocus();
-      toggle();
-    } );
-
-    // toggle pop-up when F2 pressed in parent or drop-down
-    parent.addEventFilter( KeyEvent.KEY_PRESSED, event -> toggleOnF2( event ) );
-    addEventFilter( KeyEvent.KEY_PRESSED, event -> toggleOnF2( event ) );
-
-    // hide drop-down when parent (not button) pressed
-    parent.setOnMousePressed( event -> hideDropDown() );
-
-    // hide drop-down when parent loses focus
-    parent.focusedProperty().addListener( ( observable, oldFocus, newFocus ) ->
-    {
-      if ( !newFocus )
-        hideDropDown();
-    } );
-
-    // create listener for hiding drop-down on window movement
-    HIDE_LISTENER = ( o, oldV, newV ) -> hideDropDown();
   }
 
   /****************************************** getGrid ********************************************/
@@ -106,49 +74,34 @@ public class DropDown extends Popup
   }
 
   /******************************************* toggle ********************************************/
-  public void toggle()
+  public void toggle( ButtonField field )
   {
     // if drop-down is showing, hide, otherwise show
     if ( isShowing() )
-      hideDropDown();
+      hide( field );
     else
-      showDropDown();
+      show( field );
   }
 
-  /***************************************** toggleOnF2 ******************************************/
-  public void toggleOnF2( KeyEvent event )
+  /******************************************** hide *********************************************/
+  public void hide( ButtonField field )
   {
-    // if F2 pressed and drop-down is showing, hide, otherwise show
-    if ( event.getCode() == KeyCode.F2 )
-    {
-      event.consume();
-      toggle();
-    }
-  }
-
-  /**************************************** hideDropDown *****************************************/
-  public void hideDropDown()
-  {
-    // ensure down-drop pop-up is hide (not showing)
-    m_parent.getScene().getWindow().xProperty().removeListener( HIDE_LISTENER );
-    m_parent.getScene().getWindow().yProperty().removeListener( HIDE_LISTENER );
-    m_parent.setEditable( true );
+    // hide drop-down and set field to editable
+    field.setEditable( true );
     hide();
   }
 
-  /**************************************** showDropDown *****************************************/
-  public void showDropDown()
+  /******************************************** show *********************************************/
+  public void show( ButtonField field )
   {
-    // if parent window moves need to hide this drop-down
-    m_parent.getScene().getWindow().xProperty().addListener( HIDE_LISTENER );
-    m_parent.getScene().getWindow().yProperty().addListener( HIDE_LISTENER );
-    m_parent.setEditable( false );
+    // show drop-down and set field to non-editable
+    field.setEditable( false );
 
-    // ensure down-drop pop-up is showing (not hidden) - cannot determine in constructor
-    Point2D point = m_parent.localToScreen( 0.0, m_parent.getHeight() );
+    // determine drop-down location and show - cannot determine in constructor
+    Point2D point = field.localToScreen( 0.0, field.getHeight() );
     double x = point.getX() - m_shadow.getRadius() + 1.0;
     double y = point.getY() - m_shadow.getRadius() + 1.0;
-    show( m_parent, x, y );
+    show( field, x, y );
   }
 
   /************************************** setBackgroundSize **************************************/

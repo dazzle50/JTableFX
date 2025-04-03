@@ -18,46 +18,57 @@
 
 package rjc.table.control;
 
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
-import rjc.table.control.dropdown.DateTimeDropDown;
+import java.lang.ref.WeakReference;
 
-/*************************************************************************************************/
-/************************************ Date-time field control ************************************/
-/*************************************************************************************************/
-
+import javafx.application.Platform;
+import rjc.table.data.types.Date;
 import rjc.table.data.types.DateTime;
 import rjc.table.data.types.Time;
-import rjc.table.signal.ISignal;
-import rjc.table.signal.ObservableStatus;
 import rjc.table.signal.ObservableStatus.Level;
 
-public class DateTimeField extends ButtonField implements ISignal
+/*************************************************************************************************/
+/**************************** Date-time field control with drop-down *****************************/
+/*************************************************************************************************/
+
+public class DateTimeField extends DateField
 {
-  private DateTime m_datetime; // field current date-time (or most recent valid)
+  private DateTime   m_datetime;   // field current date-time (or most recent valid)
+  private TimeWidget m_timeWidget; // time-widget in drop-down
 
   /**************************************** constructor ******************************************/
   public DateTimeField()
   {
-    // construct field
-    setButtonType( ButtonType.DOWN );
-    new DateTimeDropDown( this );
+    // prepare time-widget and add to the date drop-down
+    m_timeWidget = new TimeWidget();
+    getGrid().add( m_timeWidget, 0, 3, 2, 1 );
 
-    // react to changes & key presses
-    textProperty().addListener( ( property, oldText, newText ) -> parseText( newText ) );
-    addEventFilter( KeyEvent.KEY_PRESSED, event -> keyPressed( event ) );
+    // listen to changes to keep field & drop-down aligned
+    var weak = new WeakReference<DateTimeField>( this );
+    m_timeWidget.addListener( ( sender, time ) -> weak.get().setTime( (Time) time[0] ) );
 
-    focusedProperty().addListener( ( property, oldFocus, newFocus ) ->
-    {
-      if ( newFocus )
-        updateStatus( Level.NORMAL ); // gained focus
-      else
-        validText(); // lost focus
-    } );
+    // add status later as not yet set
+    Platform.runLater( () -> m_timeWidget.setStatus( getStatus() ) );
 
     // set default date-time to now truncated to hour
-    long now = DateTime.now().getMilliseconds() / 3600000L;
-    setDateTime( new DateTime( now * 3600000L ) );
+    long now = DateTime.now().getMilliseconds() / Time.ONE_HOUR;
+    setDateTime( new DateTime( now * Time.ONE_HOUR ) );
+  }
+
+  /************************************ updateDropDownWidgets ************************************/
+  @Override
+  protected void updateDropDownWidgets()
+  {
+    // update the widgets in drop-down to reflect current date-time
+    m_date = m_datetime.getDate();
+    super.updateDropDownWidgets();
+    m_timeWidget.setTime( m_datetime.getTime() );
+  }
+
+  /****************************************** setTime ********************************************/
+  private void setTime( Time time )
+  {
+    // set time component of date-time
+    setDateTime( new DateTime( m_datetime.getDate(), time ) );
   }
 
   /**************************************** getDateTime ******************************************/
@@ -94,6 +105,16 @@ public class DateTimeField extends ButtonField implements ISignal
     }
   }
 
+  /****************************************** setDate ********************************************/
+  @Override
+  public void setDate( Date date )
+  {
+    // overloaded to add time component
+    Time time = m_datetime == null ? Time.MIN_VALUE : m_datetime.getTime();
+    DateTime dt = new DateTime( date, time );
+    setDateTime( dt );
+  }
+
   /******************************************* format ********************************************/
   public String format( DateTime datetime )
   {
@@ -109,72 +130,35 @@ public class DateTimeField extends ButtonField implements ISignal
   }
 
   /***************************************** parseText *******************************************/
-  private void parseText( String newText )
+  @Override
+  protected void parseText( String text )
   {
-    // check if string can be parsed as a date, and update status
-    try
+    // convert text to date-time, and if different signal (any exception handled in abstract)
+    DateTime dt = DateTime.parse( text,
+        "[uuuuMMdd][uu-M-d][uuuu-M-d][uuuu-DDD][['T'][' '][HHmmss][HHmm][H:m:s][H:m][.SSS][.SS][.S]]" );
+    if ( !dt.equals( m_datetime ) )
     {
-      // if no exception raised and date-time is different send signal (but don't update text)
-      DateTime dt = DateTime.parse( newText,
-          "[uuuuMMdd][uu-M-d][uuuu-M-d][uuuu-DDD][['T'][' '][HHmmss][HHmm][H:m:s][H:m][.SSS][.SS][.S]]" );
-      if ( !dt.equals( m_datetime ) )
-      {
-        m_datetime = dt;
-        signal( dt );
-      }
-
-      updateStatus( Level.NORMAL );
+      m_datetime = dt;
+      signal( dt );
     }
-    catch ( Exception exception )
-    {
-      updateStatus( Level.ERROR );
-    }
-
   }
 
-  /**************************************** updateStatus *****************************************/
-  private void updateStatus( Level level )
+  /***************************************** statusText ******************************************/
+  @Override
+  protected String statusText( Level level )
   {
-    // if focused, update status with level and appropriate text
-    if ( getStatus() != null && focusWithinProperty().get() )
-    {
-      String msg = level == Level.NORMAL ? "Date-time: " + formatStatus( m_datetime )
-          : "Date-time format is not recognised";
-      getStatus().update( level, msg );
-    }
-
-    // set style based on severity level
-    setStyle( ObservableStatus.getStyle( level ) );
+    // return status text appropriate to the level
+    return level == Level.NORMAL ? "Date-time: " + formatStatus( m_datetime ) : "Date-time format is not recognised";
   }
 
   /***************************************** validText *******************************************/
-  private void validText()
+  @Override
+  protected void validText()
   {
-    // ensure field displays last valid date
+    // ensure field displays last valid date-time
     setText( format( m_datetime ) );
     positionCaret( getText().length() );
     getStatus().clear();
-  }
-
-  /***************************************** keyPressed ******************************************/
-  @Override
-  public void keyPressed( KeyEvent event )
-  {
-    // react to certain key presses
-    if ( event.getCode() == KeyCode.UP )
-    {
-      event.consume();
-      changeValue( 1, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
-    }
-
-    if ( event.getCode() == KeyCode.DOWN )
-    {
-      event.consume();
-      changeValue( -1, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
-    }
-
-    if ( event.getCode() == KeyCode.ESCAPE )
-      validText();
   }
 
   /***************************************** changeValue *****************************************/

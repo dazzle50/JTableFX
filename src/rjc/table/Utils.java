@@ -18,8 +18,11 @@
 
 package rjc.table;
 
+import java.lang.reflect.Array;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
 /*************************************************************************************************/
 /******************* Miscellaneous utility public static methods and variables *******************/
@@ -48,9 +51,23 @@ public class Utils
   /********************************************* path ********************************************/
   public static void path( Object... objects )
   {
-    // sends to standard out date-time, the input objects, suffixed by file+line-number & method x5
-    System.out.println(
-        timestamp() + objectsString( objects ) + caller( 1 ) + caller( 2 ) + caller( 3 ) + caller( 4 ) + caller( 5 ) );
+    final String EARLY_EXIT = "com.sun.javafx.application.LauncherImpl";
+    final String SKIP_ISIGNAL = "rjc.table.signal.ISignal$SignalHelper";
+
+    // sends to standard out date-time, the input objects, and simplified stack path
+    StackTraceElement[] stack = new Throwable().getStackTrace();
+    StringBuilder str = new StringBuilder();
+    for ( int i = 1; i < stack.length; i++ )
+    {
+      String name = stack[i].getClassName();
+      if ( name == EARLY_EXIT )
+        break;
+      if ( name == SKIP_ISIGNAL )
+        i++;
+      else
+        str.append( caller( i ) );
+    }
+    System.out.println( timestamp() + objectsString( objects ) + str );
   }
 
   /******************************************* stack *********************************************/
@@ -85,12 +102,27 @@ public class Utils
     {
       if ( obj == null )
         str.append( "null " );
-      else if ( obj.getClass().isArray() )
-        str.append( "[" + objectsString( (Object[]) obj ) + "] " );
       else if ( obj instanceof String )
         str.append( "\"" + obj + "\" " );
       else if ( obj instanceof Character )
         str.append( "'" + obj + "' " );
+      else if ( obj.getClass().isArray() )
+      {
+        if ( obj.getClass().getComponentType().isPrimitive() )
+        {
+          // convert array of primitives into object list (limited to 20 items)
+          int len = Array.getLength( obj );
+          int box = clamp( len, 0, 20 );
+          List<Object> list = new ArrayList<>( box );
+          for ( int i = 0; i < box; i++ )
+            list.add( Array.get( obj, i ) );
+          if ( box < len )
+            list.add( "...of " + len );
+          str.append( objectsString( list ) + " " );
+        }
+        else
+          str.append( "[" + objectsString( (Object[]) obj ) + "] " );
+      }
       else
         str.append( obj + " " );
     }

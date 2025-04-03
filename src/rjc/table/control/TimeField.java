@@ -18,43 +18,46 @@
 
 package rjc.table.control;
 
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
-import rjc.table.control.dropdown.TimeDropDown;
+import java.lang.ref.WeakReference;
+
+import javafx.application.Platform;
+import rjc.table.control.dropdown.AbstractDropDownField;
 import rjc.table.data.types.Time;
-import rjc.table.signal.ISignal;
-import rjc.table.signal.ObservableStatus;
 import rjc.table.signal.ObservableStatus.Level;
 
 /*************************************************************************************************/
-/************************************** Time field control ***************************************/
+/******************************* Time field control with drop-down *******************************/
 /*************************************************************************************************/
 
-public class TimeField extends ButtonField implements ISignal
+public class TimeField extends AbstractDropDownField
 {
-  private Time m_time; // field current time (or most recent valid)
+  private Time       m_time;       // field current time (or most recent valid)
+  private TimeWidget m_timeWidget; // time-widget in drop-down
 
   /**************************************** constructor ******************************************/
   public TimeField()
   {
-    // construct field
-    setButtonType( ButtonType.DOWN );
-    new TimeDropDown( this );
+    // prepare time-widget and add to the drop-down
+    m_timeWidget = new TimeWidget();
+    getGrid().addRow( 0, m_timeWidget );
 
-    // react to changes & key presses
-    textProperty().addListener( ( property, oldText, newText ) -> parseText( newText ) );
-    addEventFilter( KeyEvent.KEY_PRESSED, event -> keyPressed( event ) );
+    // listen to changes to keep field & drop-down aligned
+    var weak = new WeakReference<TimeField>( this );
+    m_timeWidget.addListener( ( sender, time ) -> weak.get().setTime( (Time) time[0] ) );
 
-    focusedProperty().addListener( ( property, oldFocus, newFocus ) ->
-    {
-      if ( newFocus )
-        updateStatus( Level.NORMAL ); // gained focus
-      else
-        validText(); // lost focus
-    } );
+    // add status later as not yet set
+    Platform.runLater( () -> m_timeWidget.setStatus( getStatus() ) );
 
     // set initial time truncated to hour
     setTime( Time.fromHours( Time.now().getHours() ) );
+  }
+
+  /************************************ updateDropDownWidgets ************************************/
+  @Override
+  protected void updateDropDownWidgets()
+  {
+    // update the widgets in drop-down to reflect current time
+    m_timeWidget.setTime( m_time );
   }
 
   /****************************************** getTime ********************************************/
@@ -81,7 +84,7 @@ public class TimeField extends ButtonField implements ISignal
   /****************************************** setTime ********************************************/
   public void setTime( Time time )
   {
-    // set current field time, display in text, signal change
+    // set current field time, display in text and signal change
     if ( !time.equals( m_time ) )
     {
       m_time = time;
@@ -101,75 +104,39 @@ public class TimeField extends ButtonField implements ISignal
   /**************************************** formatStatus *****************************************/
   public String formatStatus( Time time )
   {
-    // return date in status format
+    // return time in status format
     return time.toString();
   }
 
   /***************************************** parseText *******************************************/
-  private void parseText( String newText )
+  @Override
+  protected void parseText( String text )
   {
-    // check if string can be parsed as a time, and update status
-    try
+    // convert text to time, and if different signal (any exception handled in abstract)
+    Time time = Time.fromString( text );
+    if ( !time.equals( m_time ) )
     {
-      // if no exception raised and time is different send signal (but don't update text)
-      Time time = Time.fromString( newText );
-      if ( !time.equals( m_time ) )
-      {
-        m_time = time;
-        signal( time );
-      }
-
-      updateStatus( Level.NORMAL );
+      m_time = time;
+      signal( time );
     }
-    catch ( Exception exception )
-    {
-      updateStatus( Level.ERROR );
-    }
-
   }
 
-  /**************************************** updateStatus *****************************************/
-  private void updateStatus( Level level )
+  /***************************************** statusText ******************************************/
+  @Override
+  protected String statusText( Level level )
   {
-    // if focused, update status with level and appropriate text
-    if ( getStatus() != null && focusWithinProperty().get() )
-    {
-      String msg = level == Level.NORMAL ? "Time: " + formatStatus( m_time ) : "Time format is not recognised";
-      getStatus().update( level, msg );
-    }
-
-    // set style based on severity level
-    setStyle( ObservableStatus.getStyle( level ) );
+    // return status text appropriate to the level
+    return level == Level.NORMAL ? "Time: " + formatStatus( m_time ) : "Time format is not recognised";
   }
 
   /***************************************** validText *******************************************/
-  private void validText()
+  @Override
+  protected void validText()
   {
-    // ensure field displays last valid date
+    // ensure field displays last valid time
     setText( format( m_time ) );
     positionCaret( getText().length() );
     getStatus().clear();
-  }
-
-  /***************************************** keyPressed ******************************************/
-  @Override
-  public void keyPressed( KeyEvent event )
-  {
-    // react to certain key presses
-    if ( event.getCode() == KeyCode.UP )
-    {
-      event.consume();
-      changeValue( 1, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
-    }
-
-    if ( event.getCode() == KeyCode.DOWN )
-    {
-      event.consume();
-      changeValue( -1, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
-    }
-
-    if ( event.getCode() == KeyCode.ESCAPE )
-      validText();
   }
 
   /***************************************** changeValue *****************************************/
@@ -189,5 +156,4 @@ public class TimeField extends ButtonField implements ISignal
     positionCaret( getText().length() );
     signal( m_time );
   }
-
 }

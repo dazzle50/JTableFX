@@ -18,43 +18,72 @@
 
 package rjc.table.control;
 
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
-import rjc.table.control.dropdown.DateDropDown;
+import java.lang.ref.WeakReference;
+import java.time.Month;
+import java.time.YearMonth;
+
+import javafx.scene.control.Button;
+import rjc.table.control.dropdown.AbstractDropDownField;
+import rjc.table.control.dropdown.DropDown;
 import rjc.table.data.types.Date;
-import rjc.table.signal.ISignal;
-import rjc.table.signal.ObservableStatus;
 import rjc.table.signal.ObservableStatus.Level;
 
 /*************************************************************************************************/
-/************************************** Date field control ***************************************/
+/******************************* Date field control with drop-down *******************************/
 /*************************************************************************************************/
 
-public class DateField extends ButtonField implements ISignal
+public class DateField extends AbstractDropDownField
 {
-  private Date m_date; // field current date (or most recent valid)
+  protected Date          m_date;       // field current date (or most recent valid)
+
+  private MonthSpinField  m_monthField;
+  private NumberSpinField m_yearField;
+  private CalendarWidget  m_calendar;
+  private Button          m_todayButton;
 
   /**************************************** constructor ******************************************/
   public DateField()
   {
-    // construct field
-    setButtonType( ButtonType.DOWN );
-    new DateDropDown( this );
+    // create the date widgets for the drop-down
+    m_monthField = new MonthSpinField();
+    m_yearField = new NumberSpinField();
+    m_calendar = new CalendarWidget();
+    m_todayButton = new Button( "Today" );
 
-    // react to changes & key presses
-    textProperty().addListener( ( property, oldText, newText ) -> parseText( newText ) );
-    addEventFilter( KeyEvent.KEY_PRESSED, event -> keyPressed( event ) );
+    // layout the date widgets
+    getGrid().addRow( 0, m_monthField, m_yearField );
+    getGrid().add( m_calendar, 0, 1, 2, 1 );
+    getGrid().add( m_todayButton, 0, 2, 2, 1 );
 
-    focusedProperty().addListener( ( property, oldFocus, newFocus ) ->
-    {
-      if ( newFocus )
-        updateStatus( Level.NORMAL ); // gained focus
-      else
-        validText(); // lost focus
-    } );
+    // configure the date widgets
+    int w = (int) ( m_calendar.getWidth() * 0.6 );
+    m_monthField.setMaxWidth( w );
+    m_monthField.setOverflowField( m_yearField );
+    m_yearField.setMaxWidth( m_calendar.getWidth() - DropDown.GRID_BORDER - w );
+    m_yearField.setRange( 0, 5000 );
+    m_yearField.setFormat( "0", 6, 0 );
+    m_todayButton.setPrefWidth( m_calendar.getWidth() );
+    m_calendar.requestFocus();
+
+    // listen to widget changes
+    var weak = new WeakReference<DateField>( this );
+    m_yearField.addListener( ( sender, year ) -> weak.get().setYear( ( (Double) year[0] ).intValue() ) );
+    m_monthField.addListener( ( sender, month ) -> weak.get().setMonth( (Month) month[0] ) );
+    m_calendar.addListener( ( sender, date ) -> weak.get().setDate( (Date) date[0] ) );
+    m_todayButton.setOnAction( event -> weak.get().setDate( Date.now() ) );
 
     // set default date to today
     setDate( Date.now() );
+  }
+
+  /************************************ updateDropDownWidgets ************************************/
+  @Override
+  protected void updateDropDownWidgets()
+  {
+    // update the widgets in drop-down to reflect current date
+    m_calendar.setDate( m_date );
+    m_monthField.setValue( m_date.getMonth() );
+    m_yearField.setValue( m_date.getYear() );
   }
 
   /****************************************** getDate ********************************************/
@@ -91,6 +120,34 @@ public class DateField extends ButtonField implements ISignal
     }
   }
 
+  /****************************************** setMonth *******************************************/
+  private void setMonth( Month month )
+  {
+    // change calendar widget month - ensuring day is valid
+    Date date = m_calendar.getDate();
+    int year = date.getYear();
+    int day = date.getDayOfMonth();
+    YearMonth ym = YearMonth.of( year, month );
+    if ( day > ym.lengthOfMonth() )
+      day = ym.lengthOfMonth();
+
+    m_calendar.setDate( new Date( year, month.getValue(), day ) );
+  }
+
+  /******************************************* setYear *******************************************/
+  private void setYear( int year )
+  {
+    // change calendar widget year - ensuring day is valid
+    Date date = m_calendar.getDate();
+    int month = date.getMonth();
+    int day = date.getDayOfMonth();
+    YearMonth ym = YearMonth.of( year, month );
+    if ( day > ym.lengthOfMonth() )
+      day = ym.lengthOfMonth();
+
+    m_calendar.setDate( new Date( year, month, day ) );
+  }
+
   /******************************************* format ********************************************/
   private String format( Date date )
   {
@@ -106,70 +163,34 @@ public class DateField extends ButtonField implements ISignal
   }
 
   /***************************************** parseText *******************************************/
-  private void parseText( String newText )
+  @Override
+  protected void parseText( String text )
   {
-    // check if string can be parsed as a date, and update status
-    try
+    // convert text to date, and if different signal (any exception handled in abstract)
+    Date date = Date.parse( text, "uuuu-MM-dd" );
+    if ( !date.equals( m_date ) )
     {
-      // if no exception raised and date is different send signal (but don't update text)
-      Date date = Date.parse( newText, "uuuu-MM-dd" );
-      if ( !date.equals( m_date ) )
-      {
-        m_date = date;
-        signal( date );
-      }
-
-      updateStatus( Level.NORMAL );
+      m_date = date;
+      signal( date );
     }
-    catch ( Exception exception )
-    {
-      updateStatus( Level.ERROR );
-    }
-
   }
 
-  /**************************************** updateStatus *****************************************/
-  private void updateStatus( Level level )
+  /***************************************** statusText ******************************************/
+  @Override
+  protected String statusText( Level level )
   {
-    // if focused, update status with level and appropriate text
-    if ( getStatus() != null && focusWithinProperty().get() )
-    {
-      String msg = level == Level.NORMAL ? "Date: " + formatStatus( m_date ) : "Date format is not recognised";
-      getStatus().update( level, msg );
-    }
-
-    // set style based on severity level
-    setStyle( ObservableStatus.getStyle( level ) );
+    // return status text appropriate to the level
+    return level == Level.NORMAL ? "Date: " + formatStatus( m_date ) : "Date format is not recognised";
   }
 
   /***************************************** validText *******************************************/
-  private void validText()
+  @Override
+  protected void validText()
   {
     // ensure field displays last valid date
     setText( format( m_date ) );
     positionCaret( getText().length() );
     getStatus().clear();
-  }
-
-  /***************************************** keyPressed ******************************************/
-  @Override
-  public void keyPressed( KeyEvent event )
-  {
-    // react to certain key presses
-    if ( event.getCode() == KeyCode.UP )
-    {
-      event.consume();
-      changeValue( 1, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
-    }
-
-    if ( event.getCode() == KeyCode.DOWN )
-    {
-      event.consume();
-      changeValue( -1, event.isShiftDown(), event.isControlDown(), event.isAltDown() );
-    }
-
-    if ( event.getCode() == KeyCode.ESCAPE )
-      validText();
   }
 
   /***************************************** changeValue *****************************************/
