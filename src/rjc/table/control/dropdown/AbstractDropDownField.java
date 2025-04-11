@@ -107,8 +107,8 @@ abstract public class AbstractDropDownField extends ButtonField implements ISign
     } );
   }
 
-  /******************************************* getGrid *******************************************/
-  protected GridPane getGrid()
+  /*************************************** getDropDownGrid ***************************************/
+  protected GridPane getDropDownGrid()
   {
     // return drop-down grid-pane
     return m_dropdown.getGrid();

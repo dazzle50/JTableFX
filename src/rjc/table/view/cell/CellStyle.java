@@ -129,7 +129,7 @@ public class CellStyle extends CellLocation
   protected Paint getBackgroundPaintDefault()
   {
     // default table cell background
-    return Colours.CELL_DEFAULT_FILL;
+    return Colours.CELL_DEFAULT_BACKGROUND;
   }
 
   /********************************** getBackgroundPaintHeader ***********************************/

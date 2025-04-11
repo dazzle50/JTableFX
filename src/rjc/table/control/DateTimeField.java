@@ -40,7 +40,7 @@ public class DateTimeField extends DateField
   {
     // prepare time-widget and add to the date drop-down
     m_timeWidget = new TimeWidget();
-    getGrid().add( m_timeWidget, 0, 3, 2, 1 );
+    getDropDownGrid().add( m_timeWidget, 0, 3, 2, 1 );
 
     // listen to changes to keep field & drop-down aligned
     var weak = new WeakReference<DateTimeField>( this );
@@ -61,7 +61,8 @@ public class DateTimeField extends DateField
     // update the widgets in drop-down to reflect current date-time
     m_date = m_datetime.getDate();
     super.updateDropDownWidgets();
-    m_timeWidget.setTime( m_datetime.getTime() );
+    if ( m_timeWidget != null )
+      m_timeWidget.setTime( m_datetime.getTime() );
   }
 
   /****************************************** setTime ********************************************/
@@ -101,6 +102,7 @@ public class DateTimeField extends DateField
       m_datetime = datetime;
       setText( format( datetime ) );
       positionCaret( getText().length() );
+      updateDropDownWidgets();
       signal( datetime );
     }
   }
@@ -169,15 +171,11 @@ public class DateTimeField extends DateField
     {
       // modify field time-part
       if ( !shift && !ctrl )
-        m_datetime.addMilliseconds( (int) ( delta * Time.ONE_HOUR ) );
+        setDateTime( getDateTime().plusMilliseconds( (int) delta * Time.ONE_HOUR ) );
       if ( shift && !ctrl )
-        m_datetime.addMilliseconds( (int) ( delta * Time.ONE_MINUTE ) );
+        setDateTime( getDateTime().plusMilliseconds( (int) delta * Time.ONE_MINUTE ) );
       if ( !shift && ctrl )
-        m_datetime.addMilliseconds( (int) ( delta * Time.ONE_SECOND ) );
-
-      setText( format( m_datetime ) );
-      positionCaret( getText().length() );
-      signal( m_datetime );
+        setDateTime( getDateTime().plusMilliseconds( (int) delta * Time.ONE_SECOND ) );
     }
     else
     {

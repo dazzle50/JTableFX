@@ -51,9 +51,9 @@ public class DateField extends AbstractDropDownField
     m_todayButton = new Button( "Today" );
 
     // layout the date widgets
-    getGrid().addRow( 0, m_monthField, m_yearField );
-    getGrid().add( m_calendar, 0, 1, 2, 1 );
-    getGrid().add( m_todayButton, 0, 2, 2, 1 );
+    getDropDownGrid().addRow( 0, m_monthField, m_yearField );
+    getDropDownGrid().add( m_calendar, 0, 1, 2, 1 );
+    getDropDownGrid().add( m_todayButton, 0, 2, 2, 1 );
 
     // configure the date widgets
     int w = (int) ( m_calendar.getWidth() * 0.6 );
@@ -116,6 +116,7 @@ public class DateField extends AbstractDropDownField
       m_date = date;
       setText( format( date ) );
       positionCaret( getText().length() );
+      updateDropDownWidgets();
       signal( date );
     }
   }

@@ -31,7 +31,8 @@ public class Colours
   public static final Color SELECTED_BORDER          = Color.rgb( 0, 150, 255 );      // light blue
 
   public static final Color CELL_BORDER              = Color.gray( 0.8 );
-  public static final Color CELL_DEFAULT_FILL        = Color.WHITE;
+  public static final Color CELL_DEFAULT_BACKGROUND  = Color.WHITE;
+  public static final Color CELL_DISABLED_BACKGROUND = Color.gray( 0.9 );
 
   public static final Color HEADER_DEFAULT_FILL      = Color.gray( 0.95 );
   public static final Color HEADER_FOCUS_FILL        = Color.LIGHTYELLOW;

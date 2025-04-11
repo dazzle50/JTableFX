@@ -39,7 +39,7 @@ public class TimeField extends AbstractDropDownField
   {
     // prepare time-widget and add to the drop-down
     m_timeWidget = new TimeWidget();
-    getGrid().addRow( 0, m_timeWidget );
+    getDropDownGrid().addRow( 0, m_timeWidget );
 
     // listen to changes to keep field & drop-down aligned
     var weak = new WeakReference<TimeField>( this );
@@ -90,6 +90,7 @@ public class TimeField extends AbstractDropDownField
       m_time = time;
       setText( format( time ) );
       positionCaret( getText().length() );
+      updateDropDownWidgets();
       signal( time );
     }
   }

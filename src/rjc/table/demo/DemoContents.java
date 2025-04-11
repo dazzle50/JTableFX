@@ -31,7 +31,13 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.stage.Stage;
 import rjc.table.Utils;
-import rjc.table.control.TimeWidget;
+import rjc.table.control.ChooseField;
+import rjc.table.control.DateField;
+import rjc.table.control.DateTimeField;
+import rjc.table.control.MonthSpinField;
+import rjc.table.control.NumberSpinField;
+import rjc.table.control.TimeField;
+import rjc.table.demo.edit.EditableData;
 import rjc.table.signal.ObservableStatus;
 import rjc.table.signal.ObservableStatus.Level;
 import rjc.table.undo.UndoStack;
@@ -192,9 +198,14 @@ public class DemoContents extends GridPane
       new EditorTime();
     }, 1000 );
 
-    addBenchmark( benchmarks, "TimeWidget", () ->
+    addBenchmark( benchmarks, "~~~~~~~ Fields", () ->
     {
-      new TimeWidget();
+      new TimeField();
+      new DateField();
+      new DateTimeField();
+      new MonthSpinField();
+      new NumberSpinField();
+      new ChooseField( EditableData.Fruit.values() );
     }, 1000 );
 
     addBenchmark( benchmarks, "Garbage collection", () ->
