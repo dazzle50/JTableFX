@@ -22,6 +22,7 @@ import rjc.table.Utils;
 import rjc.table.signal.ISignal;
 import rjc.table.signal.ObservableInteger;
 import rjc.table.signal.ObservableInteger.ReadOnlyInteger;
+import rjc.table.view.cell.CellVisual;
 
 /*************************************************************************************************/
 /************** Table data source, column & row counts, signals to announce changes **************/
@@ -32,6 +33,8 @@ public class TableData implements ISignal
   // observable integers for table body column & row counts
   private ObservableInteger m_columnCount = new ObservableInteger( 3 );
   private ObservableInteger m_rowCount    = new ObservableInteger( 10 );
+
+  private CellVisual        m_cellVisual  = new CellVisual();
 
   public enum Signal
   {
@@ -81,6 +84,13 @@ public class TableData implements ISignal
   {
     // return read-only property for row count
     return m_rowCount.getReadOnly();
+  }
+
+  /***************************************** getVisual *******************************************/
+  public CellVisual getVisual( int dataColumn, int dataRow )
+  {
+    // cell visual settings for specified cell index
+    return m_cellVisual;
   }
 
   /****************************************** getValue *******************************************/
@@ -185,4 +195,5 @@ public class TableData implements ISignal
     // return as string
     return Utils.name( this ) + "[m_columnCount=" + m_columnCount + " m_rowCount=" + m_rowCount + "]";
   }
+
 }

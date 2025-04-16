@@ -19,6 +19,7 @@
 package rjc.table.demo.edit;
 
 import rjc.table.data.TableData;
+import rjc.table.demo.edit.EditableData.Column;
 import rjc.table.demo.edit.EditableData.Fruit;
 import rjc.table.view.TableView;
 import rjc.table.view.cell.CellDrawer;
@@ -53,11 +54,11 @@ public class TableViewEditable extends TableView
     super.reset();
 
     var axis = getColumnsAxis();
-    axis.setIndexSize( EditableData.Column.ReadOnly.ordinal(), 120 );
-    axis.setIndexSize( EditableData.Column.Text.ordinal(), 120 );
-    axis.setIndexSize( EditableData.Column.Integer.ordinal(), 80 );
-    axis.setIndexSize( EditableData.Column.Double.ordinal(), 80 );
-    axis.setIndexSize( EditableData.Column.DateTime.ordinal(), 180 );
+    axis.setIndexSize( Column.ReadOnly.ordinal(), 120 );
+    axis.setIndexSize( Column.Text.ordinal(), 120 );
+    axis.setIndexSize( Column.Integer.ordinal(), 80 );
+    axis.setIndexSize( Column.Double.ordinal(), 80 );
+    axis.setIndexSize( Column.DateTime.ordinal(), 180 );
   }
 
   /**************************************** getCellEditor ****************************************/
@@ -65,23 +66,25 @@ public class TableViewEditable extends TableView
   public AbstractCellEditor getCellEditor( CellDrawer cell )
   {
     // determine editor appropriate for cell
-    int column = cell.getDataColumn();
-    if ( column == EditableData.Column.Text.ordinal() )
-      return new EditorText();
-    if ( column == EditableData.Column.Integer.ordinal() )
-      return new EditorInteger();
-    if ( column == EditableData.Column.Double.ordinal() )
-      return new EditorDouble();
-    if ( column == EditableData.Column.Select.ordinal() )
-      return new EditorChoose( Fruit.values() );
-    if ( column == EditableData.Column.Date.ordinal() )
-      return new EditorDate();
-    if ( column == EditableData.Column.DateTime.ordinal() )
-      return new EditorDateTime();
-    if ( column == EditableData.Column.Time.ordinal() )
-      return new EditorTime();
-
-    return null;
+    switch ( Column.values()[cell.dataColumn] )
+    {
+      case Text:
+        return new EditorText();
+      case Integer:
+        return new EditorInteger();
+      case Double:
+        return new EditorDouble();
+      case Date:
+        return new EditorDate();
+      case DateTime:
+        return new EditorDateTime();
+      case Time:
+        return new EditorTime();
+      case Select:
+        return new EditorChoose( Fruit.values() );
+      default:
+        return null;
+    }
   }
 
   /**************************************** getCellDrawer ****************************************/

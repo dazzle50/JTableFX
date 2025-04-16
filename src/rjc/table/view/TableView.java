@@ -238,6 +238,7 @@ public class TableView extends TableViewComponents
     // open editor for focus cell with specified value
     var cell = getCellDrawer();
     cell.setIndex( this, getFocusCell().getColumn(), getFocusCell().getRow() );
+    cell.getValueVisual();
 
     var editor = getCellEditor( cell );
     if ( editor != null && editor.isValueValid( value ) )

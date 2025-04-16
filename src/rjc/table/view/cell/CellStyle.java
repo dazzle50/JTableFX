@@ -33,14 +33,26 @@ import rjc.table.view.axis.TableAxis;
 
 public class CellStyle extends CellLocation
 {
-  // text insets to avoid the border lines (which are on right & bottom)
-  protected final static Insets CELL_TEXT_INSERTS = new Insets( 0.0, 1.0, 1.0, 0.0 );
+  // default text insets to avoid the border lines (which are on right & bottom)
+  public int        dataColumn; // cell data column index
+  public int        dataRow;    // cell data row index
+  public Object     value;      // cell value from data-model
+  public CellVisual visual;     // cell visual settings from data-model
+
+  /*************************************** getValueVisual ****************************************/
+  public void getValueVisual()
+  {
+    // get cell value and cell visuals from table-model
+    dataColumn = getDataColumn();
+    dataRow = getDataRow();
+    value = view.getData().getValue( dataColumn, dataRow );
+    visual = view.getData().getVisual( dataColumn, dataRow );
+  }
 
   /****************************************** getText ********************************************/
   protected String getText()
   {
     // return cell value as string
-    Object value = getData();
     return value == null ? null : value.toString();
   }
 
@@ -48,42 +60,42 @@ public class CellStyle extends CellLocation
   protected Pos getTextAlignment()
   {
     // return cell text alignment
-    return Pos.CENTER;
+    return visual.textAlignment;
   }
 
   /*************************************** getTextFamily *****************************************/
   protected String getTextFamily()
   {
     // return cell text family
-    return Font.getDefault().getFamily();
+    return visual.textFamily;
   }
 
   /**************************************** getTextSize ******************************************/
   protected double getTextSize()
   {
     // return cell text family
-    return Font.getDefault().getSize();
+    return visual.textSize;
   }
 
   /*************************************** getTextWeight *****************************************/
   protected FontWeight getTextWeight()
   {
     // return cell text weight
-    return FontWeight.NORMAL;
+    return visual.textWeight;
   }
 
   /*************************************** getTextPosture ****************************************/
   protected FontPosture getTextPosture()
   {
     // return cell text posture
-    return FontPosture.REGULAR;
+    return visual.textPosture;
   }
 
   /**************************************** getTextInsets ****************************************/
   protected Insets getTextInsets()
   {
     // return cell text insets
-    return CELL_TEXT_INSERTS;
+    return visual.textInsets;
   }
 
   /************************************** getZoomTextInsets **************************************/
@@ -111,7 +123,7 @@ public class CellStyle extends CellLocation
   protected Paint getBorderPaint()
   {
     // return cell border paint
-    return Colours.CELL_BORDER;
+    return visual.borderPaint;
   }
 
   /************************************* getBackgroundPaint **************************************/
@@ -129,7 +141,7 @@ public class CellStyle extends CellLocation
   protected Paint getBackgroundPaintDefault()
   {
     // default table cell background
-    return Colours.CELL_DEFAULT_BACKGROUND;
+    return visual.cellBackground;
   }
 
   /********************************** getBackgroundPaintHeader ***********************************/
@@ -161,7 +173,7 @@ public class CellStyle extends CellLocation
   protected Paint getTextPaint()
   {
     // return cell text paint
-    return Colours.TEXT_DEFAULT;
+    return visual.textPaint;
   }
 
 }

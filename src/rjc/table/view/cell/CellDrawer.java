@@ -58,6 +58,7 @@ public class CellDrawer extends CellStyle
       int headerWidth = view.getHeaderWidth();
       int headerHeight = view.getHeaderHeight();
 
+      // ensure body cell does not draw over header column or row
       double cx = x > headerWidth ? x : headerWidth;
       double cy = y > headerHeight ? y : headerHeight;
       double cw = w + x - cx;
@@ -76,6 +77,7 @@ public class CellDrawer extends CellStyle
   protected void drawUnclipped()
   {
     // draw table body or header cell
+    getValueVisual();
     drawBackground();
     drawContent();
     drawBorder();

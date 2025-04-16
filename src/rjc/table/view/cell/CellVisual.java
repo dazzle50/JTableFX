@@ -16,30 +16,31 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.demo.edit;
+package rjc.table.view.cell;
 
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import rjc.table.view.axis.TableAxis;
-import rjc.table.view.cell.CellDrawer;
+import javafx.scene.paint.Paint;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontPosture;
+import javafx.scene.text.FontWeight;
+import rjc.table.view.Colours;
 
 /*************************************************************************************************/
-/******************************** Example customised cell drawer *********************************/
+/**************************** Default table-view cell visual settings ****************************/
 /*************************************************************************************************/
 
-public class CellDrawerEditable extends CellDrawer
+public class CellVisual
 {
-  /************************************ getTextAlignment *************************************/
-  @Override
-  protected Pos getTextAlignment()
-  {
-    // return left alignment for the two text columns
-    int dataColumn = getDataColumn();
-    if ( viewRow > TableAxis.HEADER )
-      if ( dataColumn == EditableData.Column.ReadOnly.ordinal() || dataColumn == EditableData.Column.Text.ordinal() )
-        return Pos.CENTER_LEFT;
+  protected final static Insets CELL_TEXT_INSERTS = new Insets( 0.0, 5.0, 1.0, 4.0 );
 
-    // otherwise centre alignment
-    return Pos.CENTER;
-  }
-
+  public Pos                    textAlignment     = Pos.CENTER;
+  public String                 textFamily        = Font.getDefault().getFamily();
+  public double                 textSize          = Font.getDefault().getSize();
+  public FontWeight             textWeight        = FontWeight.NORMAL;
+  public FontPosture            textPosture       = FontPosture.REGULAR;
+  public Insets                 textInsets        = CELL_TEXT_INSERTS;
+  public Paint                  textPaint         = Colours.TEXT_DEFAULT;
+  public Paint                  borderPaint       = Colours.CELL_BORDER;
+  public Paint                  cellBackground    = Colours.CELL_DEFAULT_BACKGROUND;
 }

@@ -43,6 +43,10 @@ abstract public class AbstractCellEditor
   /******************************************** open *********************************************/
   public void open( Object value, CellDrawer cell )
   {
+    // do nothing if an editor already open
+    if ( m_editorInProgress != null )
+      return;
+
     // open editor - check editor is set
     if ( m_control == null )
       throw new IllegalStateException( "Editor control not set" );
