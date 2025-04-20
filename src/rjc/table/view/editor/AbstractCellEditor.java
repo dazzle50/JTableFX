@@ -18,7 +18,10 @@
 
 package rjc.table.view.editor;
 
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.scene.control.Control;
+import javafx.scene.control.TextInputControl;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import rjc.table.control.ExpandingField;
@@ -35,10 +38,11 @@ import rjc.table.view.cell.CellDrawer;
 
 abstract public class AbstractCellEditor
 {
-  private static AbstractCellEditor m_editorInProgress; // only one editor can be open at any time
+  private static AbstractCellEditor     m_editorInProgress;     // only one editor can be open at any time
+  private static ChangeListener<String> m_removeSelectListener; // change listener to remove text selection
 
-  private Control                   m_control;          // primary control that has focus
-  private CellDrawer                m_cell;             // cell style and position etc
+  private Control                       m_control;              // primary control that has focus
+  private CellDrawer                    m_cell;                 // cell style and position etc
 
   /******************************************** open *********************************************/
   public void open( Object value, CellDrawer cell )
@@ -73,7 +77,7 @@ abstract public class AbstractCellEditor
       // also when text changes, test value (but only if error not already detected)
       field.textProperty().addListener( ( observable, oldText, newText ) ->
       {
-        if ( field.getStatus().getSeverity() == Level.NORMAL )
+        if ( m_editorInProgress != null && field.getStatus().getSeverity() == Level.NORMAL )
         {
           var decline = m_editorInProgress.testValue( m_editorInProgress.getValue() );
           if ( decline != null )
@@ -94,6 +98,26 @@ abstract public class AbstractCellEditor
     view.add( m_control );
     m_control.requestFocus();
     setValue( value );
+
+    // if editor opening value is not same as cell value, removed default text selection
+    if ( m_control instanceof TextInputControl textInput )
+      if ( value != m_cell.getValue() )
+      {
+        // ensure change listener has been created
+        if ( m_removeSelectListener == null )
+          m_removeSelectListener = new ChangeListener<String>()
+          {
+            @Override
+            public void changed( ObservableValue<? extends String> observable, String oldText, String newText )
+            {
+              observable.removeListener( m_removeSelectListener );
+              ( (TextInputControl) m_editorInProgress.getControl() ).end();
+            }
+          };
+
+        // remove default text selection (via listener so happens after selection)
+        textInput.selectedTextProperty().addListener( m_removeSelectListener );
+      }
   }
 
   /***************************************** isValueValid ****************************************/
@@ -123,8 +147,8 @@ abstract public class AbstractCellEditor
   public String testValue( Object value )
   {
     // test if data model would accept new value
-    int col = m_cell.getDataColumn();
-    int row = m_cell.getDataRow();
+    int col = m_cell.dataColumn;
+    int row = m_cell.dataRow;
     return m_cell.view.getData().testValue( col, row, getValue() );
   }
 
@@ -146,8 +170,8 @@ abstract public class AbstractCellEditor
   {
     // attempt to commit editor value to data source
     TableData data = m_cell.view.getData();
-    int dataColumn = m_cell.getDataColumn();
-    int dataRow = m_cell.getDataRow();
+    int dataColumn = m_cell.dataColumn;
+    int dataRow = m_cell.dataRow;
 
     // push new command on undo-stack to update cell value
     var command = new CommandSetValue( data, dataColumn, dataRow, getValue() );

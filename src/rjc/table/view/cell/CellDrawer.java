@@ -21,7 +21,6 @@ package rjc.table.view.cell;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.text.Font;
-import rjc.table.view.TableView;
 import rjc.table.view.axis.TableAxis;
 
 /*************************************************************************************************/
@@ -30,19 +29,6 @@ import rjc.table.view.axis.TableAxis;
 
 public class CellDrawer extends CellStyle
 {
-
-  /**************************************** constructor ******************************************/
-  protected CellDrawer()
-  {
-    // create empty table cell location - protected, don't use
-  }
-
-  /**************************************** constructor ******************************************/
-  public CellDrawer( TableView view )
-  {
-    // create empty table cell location
-    this.view = view;
-  }
 
   /******************************************** draw *********************************************/
   public void draw()

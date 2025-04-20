@@ -59,7 +59,6 @@ public class EditorDate extends AbstractCellEditor
       // seed editor with a valid date before setting with input string which may not be a valid date
       m_editor.setDate( Date.now() );
       m_editor.setText( (String) value );
-      m_editor.positionCaret( ( (String) value ).length() );
     }
     else
       throw new IllegalArgumentException( "Don't know how to handle " + value.getClass() + " " + value );

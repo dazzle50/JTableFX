@@ -59,7 +59,6 @@ public class EditorTime extends AbstractCellEditor
       // seed editor with a valid time before setting with input string which may not be a valid time
       m_editor.setTime( Time.now() );
       m_editor.setText( (String) value );
-      m_editor.positionCaret( ( (String) value ).length() );
     }
     else
       throw new IllegalArgumentException( "Don't know how to handle " + value.getClass() + " " + value );

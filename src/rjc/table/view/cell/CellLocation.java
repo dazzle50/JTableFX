@@ -67,10 +67,10 @@ public class CellLocation
     return view.getRowsAxis().getDataIndex( viewRow );
   }
 
-  /****************************************** getData ********************************************/
-  public Object getData()
+  /***************************************** getValue ********************************************/
+  public Object getValue()
   {
-    // return data-model object for this cell
+    // return data-model object value for this cell
     return view.getData().getValue( getDataColumn(), getDataRow() );
   }
 

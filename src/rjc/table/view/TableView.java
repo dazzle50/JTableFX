@@ -36,7 +36,8 @@ import rjc.table.view.events.KeyTyped;
 
 public class TableView extends TableViewComponents
 {
-  private TableData m_data;
+  private TableData    m_data;   // data-model for table size and contents
+  protected CellDrawer m_drawer; // cell-drawer for drawing header & body cells
 
   /**************************************** constructor ******************************************/
   public TableView( TableData data, String name )
@@ -45,6 +46,7 @@ public class TableView extends TableViewComponents
     if ( data == null )
       throw new NullPointerException( "TableData must not be null" );
     m_data = data;
+    m_drawer = new CellDrawer();
     setId( name );
 
     // assemble view components and add listeners & event handlers
@@ -57,18 +59,28 @@ public class TableView extends TableViewComponents
   /************************************** addDataListeners ***************************************/
   protected void addDataListeners()
   {
-    // react to data model signals
+    // react to data model signals, convert data indexes into view indexes
     getData().addListener( ( sender, msg ) ->
     {
       Signal change = (Signal) msg[0];
       if ( change == Signal.TABLE_VALUES_CHANGED )
         redraw();
       else if ( change == Signal.COLUMN_VALUES_CHANGED )
-        getCanvas().redrawColumn( (int) msg[1] );
+      {
+        int viewColumn = getColumnsAxis().getViewIndex( (int) msg[1] );
+        getCanvas().redrawColumn( viewColumn );
+      }
       else if ( change == Signal.ROW_VALUES_CHANGED )
-        getCanvas().redrawRow( (int) msg[1] );
+      {
+        int viewRow = getRowsAxis().getViewIndex( (int) msg[1] );
+        getCanvas().redrawRow( viewRow );
+      }
       else if ( change == Signal.CELL_VALUE_CHANGED )
-        getCanvas().redrawCell( (int) msg[1], (int) msg[2] );
+      {
+        int viewColumn = getColumnsAxis().getViewIndex( (int) msg[1] );
+        int viewRow = getRowsAxis().getViewIndex( (int) msg[2] );
+        getCanvas().redrawCell( viewColumn, viewRow );
+      }
     } );
   }
 
@@ -221,8 +233,8 @@ public class TableView extends TableViewComponents
   /**************************************** getCellDrawer ****************************************/
   public CellDrawer getCellDrawer()
   {
-    // return new instance of class responsible for drawing the cells on canvas
-    return new CellDrawer( this );
+    // return the cell drawer responsible for drawing the cells on canvas
+    return m_drawer;
   }
 
   /**************************************** getCellEditor ****************************************/

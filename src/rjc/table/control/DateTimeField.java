@@ -89,7 +89,6 @@ public class DateTimeField extends DateField
     {
       String txt = value == null ? "" : value.toString();
       setText( txt );
-      positionCaret( getText().length() );
     }
   }
 
@@ -101,7 +100,6 @@ public class DateTimeField extends DateField
     {
       m_datetime = datetime;
       setText( format( datetime ) );
-      positionCaret( getText().length() );
       updateDropDownWidgets();
       signal( datetime );
     }
@@ -159,7 +157,6 @@ public class DateTimeField extends DateField
   {
     // ensure field displays last valid date-time
     setText( format( m_datetime ) );
-    positionCaret( getText().length() );
     getStatus().clear();
   }
 

@@ -63,6 +63,21 @@ public class AxisMap extends AxisSize
     return INVALID;
   }
 
+  /**************************************** getViewIndex *****************************************/
+  public int getViewIndex( int dataIndex )
+  {
+    // return the table-view index from the data-model index
+    if ( dataIndex >= FIRSTCELL && dataIndex < m_dataIndexFromViewIndex.size() )
+      return m_dataIndexFromViewIndex.indexOf( dataIndex );
+
+    // if not in mapping but within count, then return data index as not re-ordered
+    if ( dataIndex >= INVALID && dataIndex < getCount() )
+      return dataIndex;
+
+    // data index is out of bounds so return invalid
+    return INVALID;
+  }
+
   /******************************************* reorder *******************************************/
   public void reorder( Set<Integer> toBeMovedIndexes, int insertIndex )
   {

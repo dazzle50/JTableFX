@@ -33,7 +33,6 @@ public class CellDrawerEditable extends CellDrawer
   protected Pos getTextAlignment()
   {
     // return left alignment for the two text columns
-    int dataColumn = getDataColumn();
     if ( viewRow > TableAxis.HEADER )
       if ( dataColumn == EditableData.Column.ReadOnly.ordinal() || dataColumn == EditableData.Column.Text.ordinal() )
         return Pos.CENTER_LEFT;

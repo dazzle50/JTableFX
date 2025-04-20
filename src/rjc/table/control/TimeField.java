@@ -77,7 +77,6 @@ public class TimeField extends AbstractDropDownField
     {
       String txt = value == null ? "" : value.toString();
       setText( txt );
-      positionCaret( getText().length() );
     }
   }
 
@@ -89,7 +88,6 @@ public class TimeField extends AbstractDropDownField
     {
       m_time = time;
       setText( format( time ) );
-      positionCaret( getText().length() );
       updateDropDownWidgets();
       signal( time );
     }
@@ -136,7 +134,6 @@ public class TimeField extends AbstractDropDownField
   {
     // ensure field displays last valid time
     setText( format( m_time ) );
-    positionCaret( getText().length() );
     getStatus().clear();
   }
 
@@ -154,7 +151,6 @@ public class TimeField extends AbstractDropDownField
 
     // display in text and signal change
     setText( format( m_time ) );
-    positionCaret( getText().length() );
     signal( m_time );
   }
 }

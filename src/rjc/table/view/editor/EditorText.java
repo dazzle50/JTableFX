@@ -51,7 +51,6 @@ public class EditorText extends AbstractCellEditor
     // set editor text
     String str = value == null ? "" : value.toString();
     editor.setText( str );
-    editor.positionCaret( str.length() );
   }
 
   /****************************************** setAllowed *****************************************/

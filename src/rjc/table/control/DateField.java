@@ -103,7 +103,6 @@ public class DateField extends AbstractDropDownField
     {
       String txt = value == null ? "" : value.toString();
       setText( txt );
-      positionCaret( getText().length() );
     }
   }
 
@@ -115,7 +114,6 @@ public class DateField extends AbstractDropDownField
     {
       m_date = date;
       setText( format( date ) );
-      positionCaret( getText().length() );
       updateDropDownWidgets();
       signal( date );
     }
@@ -190,7 +188,6 @@ public class DateField extends AbstractDropDownField
   {
     // ensure field displays last valid date
     setText( format( m_date ) );
-    positionCaret( getText().length() );
     getStatus().clear();
   }
 
