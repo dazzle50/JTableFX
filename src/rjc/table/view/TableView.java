@@ -130,11 +130,11 @@ public class TableView extends TableViewComponents
     } );
 
     // react to mouse wheel scroll events
-    overlay.setOnScroll( event ->
+    setOnScroll( event ->
     {
       // scroll up or down depending on mouse wheel scroll event
       var scrollbar = getVerticalScrollBar();
-
+      event.consume();
       if ( scrollbar.isVisible() )
       {
         if ( event.getDeltaY() > 0 )

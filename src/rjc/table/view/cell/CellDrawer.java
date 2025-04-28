@@ -73,24 +73,31 @@ public class CellDrawer extends CellStyle
   protected void drawBackground()
   {
     // draw cell background
-    gc.setFill( getBackgroundPaint() );
-    gc.fillRect( x, y, w, h );
+    if ( getBackgroundPaint() != null )
+    {
+      gc.setFill( getBackgroundPaint() );
+      gc.fillRect( x, y, w, h );
+    }
   }
 
   /***************************************** drawBorder ******************************************/
   protected void drawBorder()
   {
     // draw cell border
-    gc.setStroke( getBorderPaint() );
-    gc.strokeLine( x + w - 0.5, y + 0.5, x + w - 0.5, y + h - 0.5 );
-    gc.strokeLine( x + 0.5, y + h - 0.5, x + w - 1.5, y + h - 0.5 );
+    if ( getBorderPaint() != null )
+    {
+      gc.setStroke( getBorderPaint() );
+      gc.strokeLine( x + w - 0.5, y + 0.5, x + w - 0.5, y + h - 0.5 );
+      gc.strokeLine( x + 0.5, y + h - 0.5, x + w - 1.5, y + h - 0.5 );
+    }
   }
 
   /**************************************** drawContent ******************************************/
   protected void drawContent()
   {
     // draw cell contents
-    drawText( getText() );
+    if ( getTextPaint() != null )
+      drawText( getText() );
   }
 
   /****************************************** drawText *******************************************/

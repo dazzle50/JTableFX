@@ -21,6 +21,7 @@ package rjc.table.control;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.scene.Cursor;
+import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.input.KeyEvent;
@@ -50,6 +51,7 @@ public class ButtonField extends ExpandingField implements IOverflowField
 
   private IOverflowField                    m_overflowField;       // field for overflow support
   private EventHandler<? super ScrollEvent> m_popupParentHandler;  // popup parent scroll event handler replaced
+  private Scene                             m_scene;               // field's last valid scene
 
   public static final int                   BUTTONS_WIDTH_MAX = 16;
   public static final int                   BUTTONS_PADDING   = 2;
@@ -76,13 +78,17 @@ public class ButtonField extends ExpandingField implements IOverflowField
     setStepPage( 1.0, 10.0 );
     setOnKeyPressed( event -> keyPressed( event ) );
 
+    // keep copy of field's last non-null scene
+    sceneProperty()
+        .addListener( ( property, oldScene, newScene ) -> m_scene = newScene == null ? m_scene : getScene() );
+
     // when focused take control of scroll events, otherwise release control
-    focusedProperty().addListener( ( observable, oldFocus, newFocus ) ->
+    focusedProperty().addListener( ( property, oldFocus, newFocus ) ->
     {
-      getScene().getRoot().setOnScroll( newFocus ? SCROLL_HANDLER : null );
+      m_scene.getRoot().setOnScroll( newFocus ? SCROLL_HANDLER : null );
 
       // if this field is on a pop-up, for example a drop-down, also control scroll events on owner node
-      if ( getScene().getWindow() instanceof Popup popup )
+      if ( m_scene.getWindow() instanceof Popup popup )
       {
         var root = popup.getOwnerNode().getScene().getRoot();
         m_popupParentHandler = newFocus ? root.getOnScroll() : m_popupParentHandler;

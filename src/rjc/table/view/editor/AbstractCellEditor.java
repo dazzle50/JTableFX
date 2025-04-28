@@ -20,10 +20,12 @@ package rjc.table.view.editor;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.event.EventHandler;
 import javafx.scene.control.Control;
 import javafx.scene.control.TextInputControl;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.ScrollEvent;
 import rjc.table.control.ExpandingField;
 import rjc.table.control.IObservableStatus;
 import rjc.table.data.TableData;
@@ -38,11 +40,12 @@ import rjc.table.view.cell.CellDrawer;
 
 abstract public class AbstractCellEditor
 {
-  private static AbstractCellEditor     m_editorInProgress;     // only one editor can be open at any time
-  private static ChangeListener<String> m_removeSelectListener; // change listener to remove text selection
+  private static AbstractCellEditor         m_editorInProgress;     // only one editor can be open at any time
+  private static ChangeListener<String>     m_removeSelectListener; // change listener to remove text selection
 
-  private Control                       m_control;              // primary control that has focus
-  private CellDrawer                    m_cell;                 // cell style and position etc
+  private Control                           m_control;              // primary control that has focus
+  private CellDrawer                        m_cell;                 // cell style and position etc
+  private EventHandler<? super ScrollEvent> m_viewScrollHandler;    // table view scroll event handler
 
   /******************************************** open *********************************************/
   public void open( Object value, CellDrawer cell )
@@ -92,6 +95,10 @@ abstract public class AbstractCellEditor
     // if control has observable status, set to view observable status
     if ( m_control instanceof IObservableStatus field )
       field.setStatus( cell.view.getStatus() );
+
+    // get copy then remove the table view scroll event handler
+    m_viewScrollHandler = cell.view.getOnScroll();
+    cell.view.setOnScroll( null );
 
     // display editor, give focus, and set editor value
     m_editorInProgress = this;
@@ -161,12 +168,14 @@ abstract public class AbstractCellEditor
       m_cell.view.getStatus().clear();
     m_cell.view.requestFocus();
     m_cell.view.remove( m_control );
+    m_cell.view.setOnScroll( m_viewScrollHandler );
+
     if ( commit )
       commit();
   }
 
   /******************************************** commit ********************************************/
-  public boolean commit()
+  private boolean commit()
   {
     // attempt to commit editor value to data source
     TableData data = m_cell.view.getData();
