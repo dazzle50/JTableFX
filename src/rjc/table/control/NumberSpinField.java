@@ -43,7 +43,7 @@ public class NumberSpinField extends ButtonField implements ISignal
     setButtonType( ButtonType.UP_DOWN );
 
     // add listener to remove any excess leading zeros
-    textProperty().addListener( ( observable, oldText, newText ) ->
+    textProperty().addListener( ( property, oldText, newText ) ->
     {
       String text = getValue();
       if ( text.length() > 1 && text.charAt( 0 ) == '0' && Character.isDigit( text.charAt( 1 ) )

@@ -67,12 +67,12 @@ public class TableDataEditable extends TableData implements IDataReorderRows
     return m_rows.get( dataRow ).getValue( dataColumn );
   }
 
-  /***************************************** processValue ****************************************/
+  /****************************************** setValue *******************************************/
   @Override
-  protected String processValue( int dataColumn, int dataRow, Object newValue, Boolean setValue )
+  protected String setValue( int dataColumn, int dataRow, Object newValue, Boolean commit )
   {
     // test if value can/could be set
-    return m_rows.get( dataRow ).processValue( dataColumn, newValue, setValue );
+    return m_rows.get( dataRow ).setValue( dataColumn, newValue, commit );
   }
 
   /***************************************** reorderRows *****************************************/

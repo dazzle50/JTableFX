@@ -52,4 +52,32 @@ public class EditorInteger extends AbstractCellEditor
     m_spin.setValue( value );
   }
 
+  /****************************************** setFormat ******************************************/
+  public void setFormat( String format, int maxIntegerDigits )
+  {
+    // set number format
+    m_spin.setFormat( format, maxIntegerDigits, 0 );
+  }
+
+  /******************************************* setRange ******************************************/
+  public void setRange( int minValue, int maxValue )
+  {
+    // set range
+    m_spin.setRange( minValue, maxValue );
+  }
+
+  /***************************************** setStepPage *****************************************/
+  public void setStepPage( int step, int page )
+  {
+    // set step and page increment/decrement sizes
+    m_spin.setStepPage( step, page );
+  }
+
+  /*************************************** setPrefixSuffix ***************************************/
+  public void setPrefixSuffix( String prefix, String suffix )
+  {
+    // set prefix and suffix
+    m_spin.setPrefixSuffix( prefix, suffix );
+  }
+
 }

@@ -82,7 +82,7 @@ public class CalendarWidget extends Canvas implements ISignal, IOverflowField
     };
 
     // when has focus add drop-shadow and handle scroll events
-    focusedProperty().addListener( ( observable, oldFocus, newFocus ) ->
+    focusedProperty().addListener( ( property, oldFocus, newFocus ) ->
     {
       setStyle( newFocus ? "-fx-effect: dropshadow(gaussian, #039ed3, 4, 0.75, 0, 0);" : "" );
       getScene().getRoot().setOnScroll( newFocus ? scrollHandler : null );

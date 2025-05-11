@@ -36,8 +36,7 @@ import rjc.table.view.events.KeyTyped;
 
 public class TableView extends TableViewComponents
 {
-  private TableData    m_data;   // data-model for table size and contents
-  protected CellDrawer m_drawer; // cell-drawer for drawing header & body cells
+  private TableData m_data; // data-model for table size and contents
 
   /**************************************** constructor ******************************************/
   public TableView( TableData data, String name )
@@ -46,7 +45,6 @@ public class TableView extends TableViewComponents
     if ( data == null )
       throw new NullPointerException( "TableData must not be null" );
     m_data = data;
-    m_drawer = new CellDrawer();
     setId( name );
 
     // assemble view components and add listeners & event handlers
@@ -155,8 +153,8 @@ public class TableView extends TableViewComponents
   protected void addEventHandlers()
   {
     // react to losing & gaining focus and visibility
-    focusedProperty().addListener( ( observable, oldFocus, newFocus ) -> redraw() );
-    visibleProperty().addListener( ( observable, oldVisibility, newVisibility ) ->
+    focusedProperty().addListener( ( property, oldFocus, newFocus ) -> redraw() );
+    visibleProperty().addListener( ( property, oldVisibility, newVisibility ) ->
     {
       updateLayout();
       redraw();
@@ -167,8 +165,8 @@ public class TableView extends TableViewComponents
     heightProperty().addListener( ( sender, msg ) -> updateLayout() );
 
     // react to scroll bar position value changes
-    getHorizontalScrollBar().valueProperty().addListener( ( observable, oldValue, newValue ) -> tableScrolled() );
-    getVerticalScrollBar().valueProperty().addListener( ( observable, oldValue, newValue ) -> tableScrolled() );
+    getHorizontalScrollBar().valueProperty().addListener( ( property, oldValue, newValue ) -> tableScrolled() );
+    getVerticalScrollBar().valueProperty().addListener( ( property, oldValue, newValue ) -> tableScrolled() );
 
     // react to select-cell position and changes to cell selections
     getSelectCell().addLaterListener( ( sender, msg ) ->
@@ -233,8 +231,8 @@ public class TableView extends TableViewComponents
   /**************************************** getCellDrawer ****************************************/
   public CellDrawer getCellDrawer()
   {
-    // return the cell drawer responsible for drawing the cells on canvas
-    return m_drawer;
+    // return a new cell drawer instance responsible for drawing the cells on canvas
+    return new CellDrawer();
   }
 
   /**************************************** getCellEditor ****************************************/

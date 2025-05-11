@@ -122,12 +122,12 @@ public class TableData implements ISignal
   /****************************************** testValue ******************************************/
   final public String testValue( int dataColumn, int dataRow, Object newValue )
   {
-    // checks if possible to set cell value but does not set, returns string reason if not possible (final method)
+    // checks if would be possible to set cell value, returns non-null String reason if not possible (final method)
     return tryValue( dataColumn, dataRow, newValue, false );
   }
 
   /******************************************* tryValue ******************************************/
-  protected String tryValue( int dataColumn, int dataRow, Object newValue, Boolean setValue )
+  protected String tryValue( int dataColumn, int dataRow, Object newValue, Boolean commit )
   {
     // check specified column & row are in range
     if ( dataColumn <= HEADER || dataColumn >= getColumnCount() || dataRow <= HEADER || dataRow >= getRowCount() )
@@ -136,27 +136,27 @@ public class TableData implements ISignal
     try
     {
       // attempt to process value test/set
-      String decline = processValue( dataColumn, dataRow, newValue, setValue );
+      String decline = setValue( dataColumn, dataRow, newValue, commit );
 
       // if not declined and setting, signal cell changed (might not have different value)
-      if ( decline == null && setValue )
+      if ( decline == null && commit )
         signalCellChanged( dataColumn, dataRow );
       return decline;
     }
     catch ( Exception exception )
     {
       // processing the value caused exception, so return decline string
-      String msg = "Error " + dataColumn + " " + dataRow + " " + setValue + " ";
+      String msg = "Error " + dataColumn + " " + dataRow + " " + commit + " ";
       return msg + Utils.objectsString( newValue ) + " : " + exception.toString();
     }
   }
 
-  /***************************************** processValue ****************************************/
-  protected String processValue( int dataColumn, int dataRow, Object newValue, Boolean setValue )
+  /****************************************** setValue *******************************************/
+  protected String setValue( int dataColumn, int dataRow, Object newValue, Boolean commit )
   {
     // returns null if cell value can be set to new-value for specified data index
     // returns non-null decline reason String if cannot set cell value
-    // cell value is only set if setValue is true, but value is always validated to return correct reason
+    // cell value is only set if commit is true, but value is always validated to return correct reason
     return "Not implemented";
   }
 

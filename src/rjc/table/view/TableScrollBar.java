@@ -74,7 +74,7 @@ public class TableScrollBar extends ScrollBar
     }
 
     // record last time scroll bar value changed to support smoother animated scrolling
-    valueProperty().addListener( ( observable, oldV, newV ) -> m_lastScrollNanos = System.nanoTime() );
+    valueProperty().addListener( ( property, oldV, newV ) -> m_lastScrollNanos = System.nanoTime() );
 
     // change cursor to default when mouse enters
     addEventFilter( MouseEvent.MOUSE_ENTERED, event -> setCursor( Cursors.DEFAULT ) );

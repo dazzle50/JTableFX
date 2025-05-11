@@ -111,7 +111,7 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
     setTime( Time.fromHours( Time.now().getHours() ) );
 
     addEventFilter( KeyEvent.KEY_PRESSED, event -> keyPressed( event ) );
-    focusWithinProperty().addListener( ( observable, oldFocus, newFocus ) ->
+    focusWithinProperty().addListener( ( property, oldFocus, newFocus ) ->
     {
       if ( newFocus )
         // gained focus

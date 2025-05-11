@@ -33,8 +33,8 @@ public class TableCanvas extends TableCanvasDraw
     m_view = view;
 
     // when canvas size changes draw new areas
-    widthProperty().addListener( ( observable, oldW, newW ) -> widthChange( oldW.intValue(), newW.intValue() ) );
-    heightProperty().addListener( ( observable, oldH, newH ) -> heightChange( oldH.intValue(), newH.intValue() ) );
+    widthProperty().addListener( ( property, oldW, newW ) -> widthChange( oldW.intValue(), newW.intValue() ) );
+    heightProperty().addListener( ( property, oldH, newH ) -> heightChange( oldH.intValue(), newH.intValue() ) );
 
     // ensure canvas visibility is same as parent table-view
     visibleProperty().bind( view.visibleProperty() );

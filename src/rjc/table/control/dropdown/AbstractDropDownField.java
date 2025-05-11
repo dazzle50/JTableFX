@@ -84,7 +84,7 @@ abstract public class AbstractDropDownField extends ButtonField implements ISign
     m_dropdown.addEventFilter( KeyEvent.KEY_PRESSED, event -> toggleOnF2( event ) );
 
     // hide drop-down when field loses focus
-    focusedProperty().addListener( ( observable, oldFocus, newFocus ) ->
+    focusedProperty().addListener( ( proprerty, oldFocus, newFocus ) ->
     {
       if ( !newFocus )
         m_dropdown.hide( this );

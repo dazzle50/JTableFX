@@ -91,8 +91,8 @@ public class EditableData
     }
   }
 
-  /***************************************** processValue ****************************************/
-  public String processValue( int dataColumn, Object newValue, Boolean setValue )
+  /****************************************** setValue *******************************************/
+  public String setValue( int dataColumn, Object newValue, Boolean commit )
   {
     // set/check field value and return null if successful/possible
     switch ( Column.values()[dataColumn] )
@@ -103,7 +103,7 @@ public class EditableData
 
       case Text:
         // can always set Text field
-        if ( setValue )
+        if ( commit )
           m_text = newValue == null ? null : newValue.toString();
         return null;
 
@@ -113,7 +113,7 @@ public class EditableData
         {
           if ( newInt < 0 || newInt > 999 )
             return "Value not between 0 and 999";
-          if ( setValue )
+          if ( commit )
             m_integer = newInt;
           return null;
         }
@@ -125,7 +125,7 @@ public class EditableData
         {
           if ( newDouble < 0.0 || newDouble > 999.0 )
             return "Value not between 0.0 and 999.0";
-          if ( setValue )
+          if ( commit )
             m_double = newDouble;
           return null;
         }
@@ -135,7 +135,7 @@ public class EditableData
         // check new value is date
         if ( newValue instanceof Date newDate )
         {
-          if ( setValue )
+          if ( commit )
             m_date = newDate;
           return null;
         }
@@ -145,7 +145,7 @@ public class EditableData
         // check new value is time
         if ( newValue instanceof Time newTime )
         {
-          if ( setValue )
+          if ( commit )
             m_time = newTime;
           return null;
         }
@@ -155,7 +155,7 @@ public class EditableData
         // check new value is date-time
         if ( newValue instanceof DateTime newDT )
         {
-          if ( setValue )
+          if ( commit )
             m_datetime = newDT;
           return null;
         }
@@ -165,7 +165,7 @@ public class EditableData
         // check new value is a fruit
         if ( newValue instanceof Fruit newFruit )
         {
-          if ( setValue )
+          if ( commit )
             m_fruit = newFruit;
           return null;
         }

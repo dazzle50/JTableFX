@@ -45,7 +45,7 @@ public class MonthSpinField extends ButtonField implements ISignal
     setOnKeyTyped( event -> keyTyped( event ) );
 
     // signal when month changes
-    textProperty().addListener( ( o, newT, oldT ) -> signal( getMonth() ) );
+    textProperty().addListener( ( property, newText, oldText ) -> signal( getMonth() ) );
   }
 
   /****************************************** setValue *******************************************/

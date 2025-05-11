@@ -78,12 +78,17 @@ abstract public class AbstractCellEditor
       field.setWidths( min, max );
 
       // also when text changes, test value (but only if error not already detected)
-      field.textProperty().addListener( ( observable, oldText, newText ) ->
+      field.textProperty().addListener( ( property, oldText, newText ) ->
       {
         if ( m_editorInProgress != null && field.getStatus().getSeverity() == Level.NORMAL )
         {
           var decline = m_editorInProgress.testValue( m_editorInProgress.getValue() );
-          if ( decline != null )
+          if ( decline == null )
+          {
+            field.getStatus().setSeverity( Level.NORMAL );
+            field.setStyle( field.getStatus().getStyle() );
+          }
+          else
           {
             field.getStatus().update( Level.ERROR, decline );
             field.setStyle( field.getStatus().getStyle() );
@@ -194,7 +199,7 @@ abstract public class AbstractCellEditor
     m_control = control;
 
     // add listener to end editing if focus lost
-    m_control.focusedProperty().addListener( ( observable, oldFocus, newFocus ) ->
+    m_control.focusedProperty().addListener( ( property, oldFocus, newFocus ) ->
     {
       if ( !newFocus )
         AbstractCellEditor.endEditing();

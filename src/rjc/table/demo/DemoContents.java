@@ -117,7 +117,7 @@ public class DemoContents extends GridPane
     // when selected tab changes, request focus for the newly selected tab contents
     TabPane tabs = new TabPane();
     tabs.getSelectionModel().selectedItemProperty().addListener(
-        ( observable, oldTab, newTab ) -> Platform.runLater( () -> ( newTab.getContent() ).requestFocus() ) );
+        ( property, oldTab, newTab ) -> Platform.runLater( () -> ( newTab.getContent() ).requestFocus() ) );
 
     // create demo tabs with shared undostack & status
     tabs.getTabs().add( new DemoTableDefault( m_undostack, m_status ) );

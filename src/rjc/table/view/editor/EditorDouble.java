@@ -53,4 +53,32 @@ public class EditorDouble extends AbstractCellEditor
     m_spin.setValue( value );
   }
 
+  /****************************************** setFormat ******************************************/
+  public void setFormat( String format, int maxIntegerDigits, int maxFractionDigits )
+  {
+    // set number format
+    m_spin.setFormat( format, maxIntegerDigits, maxFractionDigits );
+  }
+
+  /******************************************* setRange ******************************************/
+  public void setRange( double minValue, double maxValue )
+  {
+    // set range
+    m_spin.setRange( minValue, maxValue );
+  }
+
+  /***************************************** setStepPage *****************************************/
+  public void setStepPage( double step, double page )
+  {
+    // set step and page increment/decrement sizes
+    m_spin.setStepPage( step, page );
+  }
+
+  /*************************************** setPrefixSuffix ***************************************/
+  public void setPrefixSuffix( String prefix, String suffix )
+  {
+    // set prefix and suffix
+    m_spin.setPrefixSuffix( prefix, suffix );
+  }
+
 }

@@ -41,7 +41,7 @@ public class ExpandingField extends TextField implements IObservableStatus
   public ExpandingField()
   {
     // listen to text changes to check if field width needs changing
-    textProperty().addListener( ( observable, oldText, newText ) ->
+    textProperty().addListener( ( property, oldText, newText ) ->
     {
       // if min & max width set, increase editor width if needed to show whole text
       if ( m_minWidth > 0.0 && m_maxWidth > m_minWidth )
@@ -68,7 +68,11 @@ public class ExpandingField extends TextField implements IObservableStatus
     String newText = oldText.substring( 0, start ) + text + oldText.substring( end );
 
     if ( isAllowed( newText ) )
+    {
+      if ( m_status != null )
+        m_status.clear(); // assume any errors cleared until re-checked & found
       super.replaceText( start, end, text );
+    }
   }
 
   /****************************************** setAllowed *****************************************/
