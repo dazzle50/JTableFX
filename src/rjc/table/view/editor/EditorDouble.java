@@ -32,7 +32,6 @@ public class EditorDouble extends AbstractCellEditor
   public EditorDouble()
   {
     // create spin table cell editor for double
-    super();
     m_spin.setFormat( "0.0", 10, 1 );
     setControl( m_spin );
   }

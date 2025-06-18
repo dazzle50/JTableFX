@@ -32,7 +32,6 @@ public class EditorText extends AbstractCellEditor
   public EditorText()
   {
     // create text table cell editor
-    super();
     setControl( editor );
   }
 

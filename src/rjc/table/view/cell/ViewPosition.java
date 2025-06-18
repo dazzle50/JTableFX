@@ -33,7 +33,6 @@ public class ViewPosition extends ObservablePosition
   public ViewPosition( TableView view )
   {
     // construct
-    super();
     m_view = view;
   }
 

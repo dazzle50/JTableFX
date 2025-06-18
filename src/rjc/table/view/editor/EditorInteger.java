@@ -32,7 +32,6 @@ public class EditorInteger extends AbstractCellEditor
   public EditorInteger()
   {
     // create spin table cell editor for integer
-    super();
     setControl( m_spin );
   }
 

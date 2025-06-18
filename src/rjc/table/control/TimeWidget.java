@@ -35,26 +35,35 @@ import rjc.table.signal.ObservableStatus.Level;
 
 public class TimeWidget extends HBox implements ISignal, IObservableStatus
 {
-  private NumberSpinField  m_hours     = new NumberSpinField();
-  private NumberSpinField  m_mins      = new NumberSpinField();
-  private NumberSpinField  m_secs      = new NumberSpinField();
-  private NumberSpinField  m_millisecs = new NumberSpinField();
-  private Time             m_time;
-  private Time             m_lastSignal;
-  private ObservableStatus m_status;
+  private NumberSpinField        m_hours      = new NumberSpinField();
+  private NumberSpinField        m_mins       = new NumberSpinField();
+  private NumberSpinField        m_secs       = new NumberSpinField();
+  private NumberSpinField        m_millisecs  = new NumberSpinField();
 
-  private static final int BORDER      = 4;
+  private Time                   m_time;
+  private Time                   m_lastSignal;
+  private ObservableStatus       m_status;
+  private double                 m_width;
 
-  private static IListener SIGNAL_TIME = new IListener()
-                                       {
-                                         @Override
-                                         public void slot( ISignal sender, Object... msg )
-                                         {
-                                           if ( sender instanceof NumberSpinField field )
-                                             if ( field.getParent() instanceof TimeWidget widget )
-                                               widget.signalTime();
-                                         }
-                                       };
+  private static final int       BORDER       = 4;
+
+  // ratios for initial field widths
+  private static final double    HOURS_RATIO  = 0.24;
+  private static final double    MINS_RATIO   = 0.24;
+  private static final double    SECS_RATIO   = 0.24;
+  private static final double    MILLIS_RATIO = 0.28;
+
+  // listener shared by all fields
+  private static final IListener SIGNAL_TIME  = new IListener()
+                                              {
+                                                @Override
+                                                public void slot( ISignal sender, Object... msg )
+                                                {
+                                                  if ( sender instanceof NumberSpinField field )
+                                                    if ( field.getParent() instanceof TimeWidget widget )
+                                                      widget.signalTime();
+                                                }
+                                              };
 
   /**************************************** constructor ******************************************/
   public TimeWidget()
@@ -74,9 +83,9 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
   private void createWidget( CalendarWidget calendar )
   {
     // create layout with the four number spin fields
-    double width = calendar.getWidth() - 3 * BORDER;
+    m_width = calendar.getWidth() - 3 * BORDER;
 
-    m_hours.setMaxWidth( width * 0.24 );
+    m_hours.setMaxWidth( m_width * HOURS_RATIO );
     m_hours.setFormat( "00", 4, 0 );
     m_hours.setRange( 0, 24 );
     m_hours.setStepPage( 1, 6 );
@@ -84,21 +93,21 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
     m_hours.setId( "Hours" );
     m_hours.addListener( SIGNAL_TIME );
 
-    m_mins.setMaxWidth( width * 0.24 );
+    m_mins.setMaxWidth( m_width * MINS_RATIO );
     m_mins.setFormat( "00", 4, 0 );
     m_mins.setRange( 0, 59 );
     m_mins.setOverflowField( m_hours );
     m_mins.setId( "Minutes" );
     m_mins.addListener( SIGNAL_TIME );
 
-    m_secs.setMaxWidth( width * 0.24 );
+    m_secs.setMaxWidth( m_width * SECS_RATIO );
     m_secs.setFormat( "00", 4, 0 );
     m_secs.setRange( 0, 59 );
     m_secs.setOverflowField( m_mins );
     m_secs.setId( "Seconds" );
     m_secs.addListener( SIGNAL_TIME );
 
-    m_millisecs.setMaxWidth( 1 + width - m_hours.getMaxWidth() - m_mins.getMaxWidth() - m_secs.getMaxWidth() );
+    m_millisecs.setMaxWidth( 1 + m_width - m_hours.getMaxWidth() - m_mins.getMaxWidth() - m_secs.getMaxWidth() );
     m_millisecs.setFormat( "000", 6, 0 );
     m_millisecs.setRange( 0, 999 );
     m_millisecs.setStepPage( 1, 100 );
@@ -110,7 +119,10 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
     getChildren().addAll( m_hours, m_mins, m_secs, m_millisecs );
     setTime( Time.fromHours( Time.now().getHours() ) );
 
+    // filter for key events (e.g., ESCAPE resets the time).
     addEventFilter( KeyEvent.KEY_PRESSED, event -> keyPressed( event ) );
+
+    // listen for focus changes to update or clear the status accordingly
     focusWithinProperty().addListener( ( property, oldFocus, newFocus ) ->
     {
       if ( newFocus )
@@ -123,6 +135,59 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
         getStatus().clear();
       }
     } );
+  }
+
+  /***************************************** showFields ******************************************/
+  public void showFields( boolean showHours, boolean showMins, boolean showSecs, boolean showMilli )
+  {
+    // check at least one field is shown
+    if ( !showHours && !showMins && !showSecs && !showMilli )
+      throw new IllegalArgumentException( "Must show at least one field" );
+
+    // control which fields are show
+    double ratio = showHours ? HOURS_RATIO : 0.0;
+    ratio += showMins ? MINS_RATIO : 0.0;
+    ratio += showSecs ? SECS_RATIO : 0.0;
+    ratio += showMilli ? MILLIS_RATIO : 0.0;
+
+    // calculate new max widths accounting for hidden fields
+    m_width += ( showHours ? 0 : BORDER ) + ( showMins ? 0 : BORDER ) + ( showSecs ? 0 : BORDER )
+        + ( showMilli ? 0 : BORDER );
+    m_hours.setMaxWidth( m_width * HOURS_RATIO / ratio );
+    m_mins.setMaxWidth( m_width * MINS_RATIO / ratio );
+    m_secs.setMaxWidth( m_width * SECS_RATIO / ratio );
+    m_millisecs.setMaxWidth( m_width * MILLIS_RATIO / ratio );
+    getChildren().clear();
+
+    // add fields and adjust width of last visible field
+    if ( showHours )
+    {
+      getChildren().add( m_hours );
+      if ( !showMins && !showSecs && !showMilli )
+        m_hours.setMinWidth( m_width );
+    }
+
+    if ( showMins )
+    {
+      getChildren().add( m_mins );
+      if ( !showSecs && !showMilli )
+        m_mins.setMinWidth( 1 + m_width - ( showHours ? m_hours.getMaxWidth() : 0 ) );
+    }
+
+    if ( showSecs )
+    {
+      getChildren().add( m_secs );
+      if ( !showMilli )
+        m_secs.setMinWidth(
+            1 + m_width - ( showHours ? m_hours.getMaxWidth() : 0 ) - ( showMins ? m_mins.getMaxWidth() : 0 ) );
+    }
+
+    if ( showMilli )
+    {
+      getChildren().add( m_millisecs );
+      m_millisecs.setMinWidth( 1 + m_width - ( showHours ? m_hours.getMaxWidth() : 0 )
+          - ( showMins ? m_mins.getMaxWidth() : 0 ) - ( showSecs ? m_secs.getMaxWidth() : 0 ) );
+    }
   }
 
   /***************************************** keyPressed ******************************************/

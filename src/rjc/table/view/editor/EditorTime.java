@@ -27,13 +27,21 @@ import rjc.table.data.types.Time;
 
 public class EditorTime extends AbstractCellEditor
 {
-  private TimeField m_editor = new TimeField();
+  private TimeField m_editor;
 
   /**************************************** constructor ******************************************/
   public EditorTime()
   {
     // create table cell editor for time
-    super();
+    m_editor = new TimeField();
+    setControl( m_editor );
+  }
+
+  /**************************************** constructor ******************************************/
+  public EditorTime( boolean showHours, boolean showMins, boolean showSecs, boolean showMilli )
+  {
+    // create time-editor with specified time components in drop-down
+    m_editor = new TimeField( showHours, showMins, showSecs, showMilli );
     setControl( m_editor );
   }
 
@@ -52,13 +60,13 @@ public class EditorTime extends AbstractCellEditor
     // set value depending on type
     if ( value == null )
       m_editor.setTime( Time.now() );
-    else if ( value instanceof Time )
-      m_editor.setTime( (Time) value );
-    else if ( value instanceof String )
+    else if ( value instanceof Time time )
+      m_editor.setTime( time );
+    else if ( value instanceof String str )
     {
       // seed editor with a valid time before setting with input string which may not be a valid time
       m_editor.setTime( Time.now() );
-      m_editor.setText( (String) value );
+      m_editor.setText( str );
     }
     else
       throw new IllegalArgumentException( "Don't know how to handle " + value.getClass() + " " + value );

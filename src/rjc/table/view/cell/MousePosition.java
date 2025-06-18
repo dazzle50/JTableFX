@@ -49,7 +49,6 @@ public class MousePosition extends ObservablePosition
   public MousePosition( TableView view )
   {
     // construct
-    super();
     m_view = view;
   }
 

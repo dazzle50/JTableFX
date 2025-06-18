@@ -32,7 +32,6 @@ public class EditorChoose extends AbstractCellEditor
   public EditorChoose( Object[] values )
   {
     // create spin table cell editor for integer
-    super();
     m_choose = new ChooseField( values );
     setControl( m_choose );
   }

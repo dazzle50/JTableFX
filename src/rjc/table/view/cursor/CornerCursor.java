@@ -22,7 +22,7 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 
 /*************************************************************************************************/
-/*********************** Mouse cursor when hovering over table body cells ************************/
+/******************* Mouse cursor when hovering over table header corner cell ********************/
 /*************************************************************************************************/
 
 public class CornerCursor extends AbstractCursor
@@ -32,7 +32,6 @@ public class CornerCursor extends AbstractCursor
   public CornerCursor()
   {
     // construct cursor that looks like default
-    super();
   }
 
   /**************************************** handlePressed ****************************************/

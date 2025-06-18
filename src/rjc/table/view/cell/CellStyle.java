@@ -151,7 +151,8 @@ public class CellStyle extends CellLocation
     if ( viewRow == TableAxis.HEADER )
     {
       if ( viewColumn == view.getFocusCell().getColumn() )
-        return Colours.HEADER_FOCUS_FILL;
+        return view.isFocused() ? Colours.HEADER_FOCUS_FILL
+            : Colours.HEADER_FOCUS_FILL.interpolate( Colours.HEADER_SELECTED_FILL, 0.3 );
       else
         return view.getSelection().hasColumnSelection( viewColumn ) ? Colours.HEADER_SELECTED_FILL
             : Colours.HEADER_DEFAULT_FILL;
@@ -160,7 +161,8 @@ public class CellStyle extends CellLocation
     if ( viewColumn == TableAxis.HEADER )
     {
       if ( viewRow == view.getFocusCell().getRow() )
-        return Colours.HEADER_FOCUS_FILL;
+        return view.isFocused() ? Colours.HEADER_FOCUS_FILL
+            : Colours.HEADER_FOCUS_FILL.interpolate( Colours.HEADER_SELECTED_FILL, 0.3 );
       else
         return view.getSelection().hasRowSelection( viewRow ) ? Colours.HEADER_SELECTED_FILL
             : Colours.HEADER_DEFAULT_FILL;

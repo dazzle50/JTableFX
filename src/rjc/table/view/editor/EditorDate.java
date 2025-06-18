@@ -33,7 +33,6 @@ public class EditorDate extends AbstractCellEditor
   public EditorDate()
   {
     // create date table cell editor
-    super();
     setControl( m_editor );
   }
 

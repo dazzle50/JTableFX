@@ -180,9 +180,9 @@ abstract public class AbstractCellEditor
   }
 
   /******************************************** commit ********************************************/
-  private boolean commit()
+  protected boolean commit()
   {
-    // attempt to commit editor value to data source
+    // attempt to commit editor value to data source - override if different undo-command wanted
     TableData data = m_cell.view.getData();
     int dataColumn = m_cell.dataColumn;
     int dataRow = m_cell.dataRow;

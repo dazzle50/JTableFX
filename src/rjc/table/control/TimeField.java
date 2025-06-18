@@ -40,16 +40,29 @@ public class TimeField extends AbstractDropDownField
     // prepare time-widget and add to the drop-down
     m_timeWidget = new TimeWidget();
     getDropDownGrid().addRow( 0, m_timeWidget );
+    setAllowed( "\\d*[:. ]?\\d*[:. ]?\\d*[. ]?\\d*[a]?[p]?" );
 
-    // listen to changes to keep field & drop-down aligned
+    // if time-widget has focus and changes, update the field time to match
     var weak = new WeakReference<TimeField>( this );
-    m_timeWidget.addListener( ( sender, time ) -> weak.get().setTime( (Time) time[0] ) );
+    m_timeWidget.addListener( ( sender, time ) ->
+    {
+      if ( weak.get().m_timeWidget.isFocusWithin() )
+        weak.get().setTime( (Time) time[0] );
+    } );
 
     // add status later as not yet set
     Platform.runLater( () -> m_timeWidget.setStatus( getStatus() ) );
 
     // set initial time truncated to hour
     setTime( Time.fromHours( Time.now().getHours() ) );
+  }
+
+  /**************************************** constructor ******************************************/
+  public TimeField( boolean showHours, boolean showMins, boolean showSecs, boolean showMilli )
+  {
+    // create time-field with specified time components in drop-down
+    this();
+    m_timeWidget.showFields( showHours, showMins, showSecs, showMilli );
   }
 
   /************************************ updateDropDownWidgets ************************************/
