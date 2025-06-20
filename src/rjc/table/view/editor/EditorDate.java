@@ -51,13 +51,13 @@ public class EditorDate extends AbstractCellEditor
     // set value depending on type
     if ( value == null )
       m_editor.setDate( Date.now() );
-    else if ( value instanceof Date )
-      m_editor.setDate( (Date) value );
-    else if ( value instanceof String )
+    else if ( value instanceof Date date )
+      m_editor.setDate( date );
+    else if ( value instanceof String str )
     {
       // seed editor with a valid date before setting with input string which may not be a valid date
       m_editor.setDate( Date.now() );
-      m_editor.setText( (String) value );
+      m_editor.setText( str );
     }
     else
       throw new IllegalArgumentException( "Don't know how to handle " + value.getClass() + " " + value );

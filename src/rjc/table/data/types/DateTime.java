@@ -313,7 +313,7 @@ public class DateTime implements Comparable<DateTime>, Serializable
   /***************************************** plusYears *******************************************/
   public DateTime plusYears( int years )
   {
-    // return new date-time specified months added or subtracted
+    // return new date-time specified years added or subtracted
     return new DateTime( getDate().plusYears( years ), getTime() );
   }
 
@@ -353,8 +353,8 @@ public class DateTime implements Comparable<DateTime>, Serializable
   public boolean equals( Object other )
   {
     // return true if other object represents same date-time
-    if ( other != null && other instanceof DateTime )
-      return m_milliseconds == ( (DateTime) other ).m_milliseconds;
+    if ( other != null && other instanceof DateTime dt )
+      return m_milliseconds == dt.m_milliseconds;
 
     return false;
   }

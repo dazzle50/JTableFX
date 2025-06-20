@@ -234,7 +234,7 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
   /******************************************* isValid *******************************************/
   private boolean isValid( NumberSpinField field, int min, int max )
   {
-    // return if field value is between min & max inclusive + set status
+    // validate field value is between min & max inclusive + set status
     String msg;
     try
     {
@@ -245,7 +245,7 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
         return true;
       }
 
-      msg = field.getId() + " needs to between " + min + " and " + max + " (inclusive)";
+      msg = field.getId() + " must be between " + min + " and " + max + " (inclusive)";
     }
     catch ( Exception exception )
     {
@@ -260,7 +260,7 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
   /**************************************** formatStatus *****************************************/
   public String formatStatus( Time time )
   {
-    // return date in status format
+    // return time in status format
     return time.toString();
   }
 

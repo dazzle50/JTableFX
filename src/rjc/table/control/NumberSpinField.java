@@ -86,9 +86,9 @@ public class NumberSpinField extends ButtonField implements ISignal
   {
     // check inputs
     if ( maxFractionDigits < 0 || maxFractionDigits > 8 )
-      throw new IllegalArgumentException( "Digits after deciminal place out of 0-8 range! " + maxFractionDigits );
+      throw new IllegalArgumentException( "Digits after decimal place out of 0-8 range! " + maxFractionDigits );
     if ( maxIntegerDigits < 0 || maxIntegerDigits > 99 )
-      throw new IllegalArgumentException( "Digits before deciminal place out of 0-99 range! " + maxIntegerDigits );
+      throw new IllegalArgumentException( "Digits before decimal place out of 0-99 range! " + maxIntegerDigits );
 
     // set number format
     m_numberFormat = new DecimalFormat( format );

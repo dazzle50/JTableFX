@@ -51,13 +51,13 @@ public class EditorDateTime extends AbstractCellEditor
     // set value depending on type
     if ( value == null )
       m_editor.setDateTime( DateTime.now() );
-    else if ( value instanceof DateTime )
-      m_editor.setDateTime( (DateTime) value );
-    else if ( value instanceof String )
+    else if ( value instanceof DateTime dt )
+      m_editor.setDateTime( dt );
+    else if ( value instanceof String str )
     {
       // seed editor with a valid date-time before setting with input string which may not be a valid date-time
       m_editor.setDateTime( DateTime.now() );
-      m_editor.setText( (String) value );
+      m_editor.setText( str );
     }
     else
       throw new IllegalArgumentException( "Don't know how to handle " + value.getClass() + " " + value );

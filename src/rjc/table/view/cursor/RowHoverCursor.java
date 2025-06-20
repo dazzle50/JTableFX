@@ -30,9 +30,9 @@ public class RowHoverCursor extends AbstractCursor
 {
 
   /**************************************** constructor ******************************************/
-  public RowHoverCursor( String imageFile, int xHotspot, int yHotstop )
+  public RowHoverCursor( String imageFile, int xHotspot, int yHotspot )
   {
-    super( imageFile, xHotspot, yHotstop );
+    super( imageFile, xHotspot, yHotspot );
   }
 
   /**************************************** handlePressed ****************************************/

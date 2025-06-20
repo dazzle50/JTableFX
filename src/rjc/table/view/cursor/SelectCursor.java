@@ -30,9 +30,9 @@ public class SelectCursor extends AbstractCursor
 {
 
   /**************************************** constructor ******************************************/
-  public SelectCursor( String imageFile, int xHotspot, int yHotstop )
+  public SelectCursor( String imageFile, int xHotspot, int yHotspot )
   {
-    super( imageFile, xHotspot, yHotstop );
+    super( imageFile, xHotspot, yHotspot );
   }
 
   /*************************************** handleReleased ****************************************/

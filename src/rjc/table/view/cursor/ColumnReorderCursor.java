@@ -29,9 +29,9 @@ public class ColumnReorderCursor extends AbstractReorderCursor
 {
 
   /**************************************** constructor ******************************************/
-  public ColumnReorderCursor( String imageFile, int xHotspot, int yHotstop )
+  public ColumnReorderCursor( String imageFile, int xHotspot, int yHotspot )
   {
-    super( imageFile, xHotspot, yHotstop );
+    super( imageFile, xHotspot, yHotspot );
   }
 
   /**************************************** handlePressed ****************************************/

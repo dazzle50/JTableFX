@@ -40,7 +40,7 @@ public class TimeField extends AbstractDropDownField
     // prepare time-widget and add to the drop-down
     m_timeWidget = new TimeWidget();
     getDropDownGrid().addRow( 0, m_timeWidget );
-    setAllowed( "\\d*[:. ]?\\d*[:. ]?\\d*[. ]?\\d*[a]?[p]?" );
+    setAllowed( "\\d*[-:. ]?\\d*[-:. ]?\\d*[-. ]?\\d*" );
 
     // if time-widget has focus and changes, update the field time to match
     var weak = new WeakReference<TimeField>( this );

@@ -29,9 +29,9 @@ public class CellHoverCursor extends AbstractCursor
 {
 
   /**************************************** constructor ******************************************/
-  public CellHoverCursor( String imageFile, int xHotspot, int yHotstop )
+  public CellHoverCursor( String imageFile, int xHotspot, int yHotspot )
   {
-    super( imageFile, xHotspot, yHotstop );
+    super( imageFile, xHotspot, yHotspot );
   }
 
   /**************************************** handlePressed ****************************************/

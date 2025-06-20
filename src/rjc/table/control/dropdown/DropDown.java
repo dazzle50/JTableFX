@@ -44,7 +44,7 @@ public class DropDown extends Popup
   /**************************************** constructor ******************************************/
   public DropDown()
   {
-    // create pop-up window with background canvas
+    // create pop-up window with contents canvas
     m_canvas = new Canvas();
     getContent().add( m_canvas );
 

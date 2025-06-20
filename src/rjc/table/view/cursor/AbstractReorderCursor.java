@@ -45,10 +45,10 @@ abstract public class AbstractReorderCursor extends AbstractCursor
   private static int              m_pos;         // column or row axis position for reordering
 
   /**************************************** constructor ******************************************/
-  public AbstractReorderCursor( String imageFile, int xHotspot, int yHotstop )
+  public AbstractReorderCursor( String imageFile, int xHotspot, int yHotspot )
   {
     // construct reorder cursor
-    super( imageFile, xHotspot, yHotstop );
+    super( imageFile, xHotspot, yHotspot );
 
     // initialise line
     m_line = new Line();
@@ -81,7 +81,7 @@ abstract public class AbstractReorderCursor extends AbstractCursor
     m_line.setStartX( 0.0 );
     m_line.setEndX( Math.min( m_view.getCanvas().getWidth(), m_view.getTableWidth() ) );
 
-    // reselect just the specified columns
+    // reselect just the specified rows
     m_selected = m_view.getSelection().getSelectedRows();
     m_view.getSelection().clear();
     m_view.getSelection().selectRows( m_selected );

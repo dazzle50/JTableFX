@@ -143,6 +143,12 @@ public class CalendarWidget extends Canvas implements ISignal, IOverflowField
       case TAB: // don't consume tab to enable focus traversal
         return;
 
+      case ESCAPE: // don't consume escape to enable cancel
+        return;
+
+      case ENTER: // don't consume enter to enable commit
+        return;
+
       default:
     }
 
@@ -204,7 +210,7 @@ public class CalendarWidget extends Canvas implements ISignal, IOverflowField
   /**************************************** getFirstDate *****************************************/
   public LocalDate getFirstDate()
   {
-    // get widget first date in top-right corner
+    // get widget first date in top-left corner
     LocalDate first = m_date.withDayOfMonth( 1 );
     int offset = 1 - first.getDayOfWeek().getValue();
     return first.plusDays( offset == 0 ? -7 : offset );

@@ -30,9 +30,9 @@ public class RowResizeCursor extends AbstractResizeCursor
 {
 
   /**************************************** constructor ******************************************/
-  public RowResizeCursor( String imageFile, int xHotspot, int yHotstop )
+  public RowResizeCursor( String imageFile, int xHotspot, int yHotspot )
   {
-    super( imageFile, xHotspot, yHotstop );
+    super( imageFile, xHotspot, yHotspot );
   }
 
   /**************************************** handlePressed ****************************************/

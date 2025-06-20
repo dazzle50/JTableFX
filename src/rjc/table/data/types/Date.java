@@ -285,8 +285,8 @@ public class Date implements Serializable
   public boolean equals( Object other )
   {
     // return true if other object represents same date
-    if ( other != null && other instanceof Date )
-      return m_epochday == ( (Date) other ).m_epochday;
+    if ( other != null && other instanceof Date date )
+      return m_epochday == date.m_epochday;
 
     return false;
   }

@@ -53,10 +53,10 @@ public class MonthSpinField extends ButtonField implements ISignal
   public void setValue( Object value )
   {
     // set value to month display name
-    if ( value instanceof Month )
-      super.setValue( getDisplayName( ( (Month) value ).getValue() ) );
-    else if ( value instanceof Number )
-      super.setValue( getDisplayName( ( (Number) value ).intValue() ) );
+    if ( value instanceof Month month )
+      super.setValue( getDisplayName( month.getValue() ) );
+    else if ( value instanceof Number num )
+      super.setValue( getDisplayName( num.intValue() ) );
     else
       super.setValue( value );
   }

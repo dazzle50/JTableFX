@@ -40,9 +40,9 @@ abstract public class AbstractResizeCursor extends AbstractCursor
   private static ICommandResize m_command;   // command for undo-stack
 
   /**************************************** constructor ******************************************/
-  public AbstractResizeCursor( String imageFile, int xHotspot, int yHotstop )
+  public AbstractResizeCursor( String imageFile, int xHotspot, int yHotspot )
   {
-    super( imageFile, xHotspot, yHotstop );
+    super( imageFile, xHotspot, yHotspot );
   }
 
   /******************************************** start ********************************************/

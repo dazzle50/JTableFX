@@ -21,6 +21,7 @@ package rjc.table.data.types;
 import java.io.Serializable;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 
 import rjc.table.Utils;
 
@@ -36,10 +37,10 @@ public class Time implements Serializable
   private int                        m_milliseconds;
 
   // anything between MIN_VALUE and MAX_VALUE inclusive is valid, anything else invalid
-  public static final int            MILLISECONDS_IN_DAY = 24 * 3600 * 1000;
   public static final int            ONE_SECOND          = 1000;
-  public static final int            ONE_MINUTE          = 60 * 1000;
-  public static final int            ONE_HOUR            = 3600 * 1000;
+  public static final int            ONE_MINUTE          = 60 * ONE_SECOND;
+  public static final int            ONE_HOUR            = 60 * ONE_MINUTE;
+  public static final int            MILLISECONDS_IN_DAY = 24 * ONE_HOUR;
   public static final Time           MIN_VALUE           = Time.fromMilliseconds( 0 );
   public static final Time           MAX_VALUE           = Time.fromMilliseconds( MILLISECONDS_IN_DAY );
   public static final int            TZ_MS_OFFSET        = OffsetDateTime.now().getOffset().getTotalSeconds() * 1000;
@@ -92,40 +93,30 @@ public class Time implements Serializable
   /***************************************** fromString ******************************************/
   public static Time fromString( String str )
   {
-    // if simple integer, treats as hours or hours+minutes depending on length
+    // check input is not null or blank
+    if ( str == null )
+      throw new NullPointerException();
+    str = Utils.clean( str );
+    if ( str.isBlank() )
+      throw new IllegalArgumentException( "Time string must not be null or empty" );
+
+    // if simple integer, treats as hours or hours+minutes etc depending on length
     try
     {
       int num = Integer.valueOf( str );
       if ( num < 100 )
         return new Time( num, 0, 0, 0 );
-      else
+      if ( num < 10000 )
         return new Time( num / 100, num % 100, 0, 0 );
+      return new Time( num / 10000, ( num / 100 ) % 100, num % 100, 0 );
     }
-    catch ( Exception exception )
+    catch ( NumberFormatException exception )
     {
     }
 
-    // split the time hours:mins:secs by colon separator
-    String[] parts = str.split( ":" );
-    if ( parts.length < 2 )
-      throw new IllegalArgumentException( "str=" + str );
-
-    // hours & minutes parts must be integers
-    int hours = Integer.parseInt( parts[0] );
-    int mins = Integer.parseInt( parts[1] );
-    if ( parts.length == 2 )
-      return new Time( hours, mins, 0, 0 );
-
-    // split seconds into integer and milliseconds sections
-    String[] seconds = parts[2].split( "\\." );
-    int secs = Integer.parseInt( seconds[0] );
-    if ( seconds.length == 1 )
-      return new Time( hours, mins, secs, 0 );
-
-    // ensure we look at first three digits only for milliseconds
-    String milli = ( seconds[1] + "00" ).substring( 0, 3 );
-    int ms = Integer.parseInt( milli );
-    return new Time( hours, mins, secs, ms );
+    // otherwise try
+    return new Time( LocalTime.parse( str,
+        DateTimeFormatter.ofPattern( "H[:][.][ ][-][m][:][.][ ][-][s][:][.][ ][-][SSS][SS][S]" ) ) );
   }
 
   /****************************************** fromHours ******************************************/
@@ -180,7 +171,7 @@ public class Time implements Serializable
     return BUFFER.toString();
   }
 
-  /****************************************** toString *******************************************/
+  /**************************************** toStringShort ****************************************/
   public String toStringShort()
   {
     // convert to string to "hh:mm" format
@@ -239,8 +230,8 @@ public class Time implements Serializable
   public boolean equals( Object other )
   {
     // return true if other object represents same time
-    if ( other != null && other instanceof Time )
-      return m_milliseconds == ( (Time) other ).m_milliseconds;
+    if ( other != null && other instanceof Time time )
+      return m_milliseconds == time.m_milliseconds;
 
     return false;
   }

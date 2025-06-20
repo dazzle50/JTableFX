@@ -110,7 +110,7 @@ public class Utils
       {
         if ( obj.getClass().getComponentType().isPrimitive() )
         {
-          // convert array of primitives into object list (limited to 20 items)
+          // convert array of primitives into object list (max 20 items)
           int len = Array.getLength( obj );
           int box = clamp( len, 0, 20 );
           List<Object> list = new ArrayList<>( box );
