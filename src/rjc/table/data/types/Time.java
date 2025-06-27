@@ -31,21 +31,19 @@ import rjc.table.Utils;
 
 public class Time implements Serializable
 {
-  private static final long          serialVersionUID    = Utils.VERSION.hashCode();
+  private static final long serialVersionUID    = Utils.VERSION.hashCode();
 
   // milliseconds from 00:00:00.000 start of day
-  private int                        m_milliseconds;
+  private int               m_milliseconds;
 
   // anything between MIN_VALUE and MAX_VALUE inclusive is valid, anything else invalid
-  public static final int            ONE_SECOND          = 1000;
-  public static final int            ONE_MINUTE          = 60 * ONE_SECOND;
-  public static final int            ONE_HOUR            = 60 * ONE_MINUTE;
-  public static final int            MILLISECONDS_IN_DAY = 24 * ONE_HOUR;
-  public static final Time           MIN_VALUE           = Time.fromMilliseconds( 0 );
-  public static final Time           MAX_VALUE           = Time.fromMilliseconds( MILLISECONDS_IN_DAY );
-  public static final int            TZ_MS_OFFSET        = OffsetDateTime.now().getOffset().getTotalSeconds() * 1000;
-
-  private static final StringBuilder BUFFER              = new StringBuilder();
+  public static final int   ONE_SECOND          = 1000;
+  public static final int   ONE_MINUTE          = 60 * ONE_SECOND;
+  public static final int   ONE_HOUR            = 60 * ONE_MINUTE;
+  public static final int   MILLISECONDS_IN_DAY = 24 * ONE_HOUR;
+  public static final Time  MIN_VALUE           = Time.fromMilliseconds( 0 );
+  public static final Time  MAX_VALUE           = Time.fromMilliseconds( MILLISECONDS_IN_DAY );
+  public static final int   TZ_MS_OFFSET        = OffsetDateTime.now().getOffset().getTotalSeconds() * 1000;
 
   /* ======================================= constructor ======================================= */
   private Time( int milliseconds )
@@ -144,50 +142,62 @@ public class Time implements Serializable
   public String toString()
   {
     // convert to string to "hh:mm:ss.mmm" format
-    BUFFER.setLength( 0 );
-    int hour = getHours();
-    int minute = getMinutes();
-    int second = getSeconds();
-    int milli = m_milliseconds % ONE_SECOND;
-
-    if ( hour < 10 )
-      BUFFER.append( '0' );
-    BUFFER.append( hour );
-    BUFFER.append( ':' );
-    if ( minute < 10 )
-      BUFFER.append( '0' );
-    BUFFER.append( minute );
-    BUFFER.append( ':' );
-    if ( second < 10 )
-      BUFFER.append( '0' );
-    BUFFER.append( second );
-    BUFFER.append( '.' );
-    if ( milli < 100 )
-      BUFFER.append( '0' );
-    if ( milli < 10 )
-      BUFFER.append( '0' );
-    BUFFER.append( milli );
-
-    return BUFFER.toString();
+    return toString( 4 );
   }
 
   /**************************************** toStringShort ****************************************/
   public String toStringShort()
   {
     // convert to string to "hh:mm" format
-    BUFFER.setLength( 0 );
-    int hour = getHours();
-    int minute = getMinutes();
+    return toString( 2 );
+  }
 
+  /****************************************** toString *******************************************/
+  public String toString( int fieldCount )
+  {
+    // return time as string in "hh:mm:ss.mmm" or shorter format depending on field-count value
+    if ( fieldCount < 1 )
+      throw new IllegalArgumentException( "Field count must be greater than 1 (" + fieldCount + ")" );
+    StringBuilder sb = new StringBuilder( 12 );
+
+    // hours component
+    int hour = m_milliseconds / ONE_HOUR;
     if ( hour < 10 )
-      BUFFER.append( '0' );
-    BUFFER.append( hour );
-    BUFFER.append( ':' );
-    if ( minute < 10 )
-      BUFFER.append( '0' );
-    BUFFER.append( minute );
+      sb.append( '0' );
+    sb.append( hour );
+    if ( fieldCount == 1 )
+      return sb.toString();
 
-    return BUFFER.toString();
+    // minutes component
+    int minute = m_milliseconds / ONE_MINUTE % 60;
+    sb.append( ':' );
+    if ( minute < 10 )
+      sb.append( '0' );
+    sb.append( minute );
+    if ( fieldCount == 2 )
+      return sb.toString();
+
+    // seconds component
+    int second = m_milliseconds / ONE_SECOND % 60;
+    sb.append( ':' );
+    if ( second < 10 )
+      sb.append( '0' );
+    sb.append( second );
+    if ( fieldCount == 3 )
+      return sb.toString();
+
+    // milliseconds component
+    int milli = m_milliseconds % ONE_SECOND;
+    sb.append( '.' );
+    if ( milli < 100 )
+      sb.append( '0' );
+    if ( milli < 10 )
+      sb.append( '0' );
+    sb.append( milli );
+
+    // return full "hh:mm:ss.mmm" format when field-count 4 or greater
+    return sb.toString();
+
   }
 
   /********************************************* now *********************************************/

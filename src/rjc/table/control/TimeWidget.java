@@ -190,6 +190,19 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
     }
   }
 
+  /**************************************** getFieldCount ****************************************/
+  public int getFieldCount()
+  {
+    // return the number of fields the string format of time should show
+    if ( getChildren().contains( m_millisecs ) )
+      return 4;
+    if ( getChildren().contains( m_secs ) )
+      return 3;
+    if ( getChildren().contains( m_mins ) )
+      return 2;
+    return 1;
+  }
+
   /***************************************** keyPressed ******************************************/
   public void keyPressed( KeyEvent event )
   {
@@ -202,18 +215,18 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
   public Time getTime()
   {
     // check if spin-fields represent a valid time, and update status
-    boolean msValid = isValid( m_millisecs, 0, 999 );
-    boolean sValid = isValid( m_secs, 0, 59 );
-    boolean mValid = isValid( m_mins, 0, 59 );
-    boolean hValid = isValid( m_hours, 0, 24 );
+    boolean msValid = isFieldValid( m_millisecs, 0, 999 );
+    boolean sValid = isFieldValid( m_secs, 0, 59 );
+    boolean mValid = isFieldValid( m_mins, 0, 59 );
+    boolean hValid = isFieldValid( m_hours, 0, 24 );
 
     if ( hValid && mValid && sValid && msValid )
     {
       // check time does not exceed max 24h
-      int hrs = m_hours.getInteger();
-      int mins = m_mins.getInteger();
-      int secs = m_secs.getInteger();
-      int ms = m_millisecs.getInteger();
+      int hrs = getFieldValue( m_hours );
+      int mins = getFieldValue( m_mins );
+      int secs = getFieldValue( m_secs );
+      int ms = getFieldValue( m_millisecs );
       if ( hrs == 24 && ( mins > 0 || secs > 0 || ms > 0 ) )
       {
         getStatus().update( Level.ERROR, "Max time is 24:00:00.000" );
@@ -231,8 +244,18 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
     return m_time;
   }
 
-  /******************************************* isValid *******************************************/
-  private boolean isValid( NumberSpinField field, int min, int max )
+  /**************************************** getFieldValue ****************************************/
+  private int getFieldValue( NumberSpinField field )
+  {
+    // if field is shown return field integer value, otherwise return zero
+    if ( getChildren().contains( field ) )
+      return field.getInteger();
+    else
+      return 0;
+  }
+
+  /**************************************** isFieldValid *****************************************/
+  private boolean isFieldValid( NumberSpinField field, int min, int max )
   {
     // validate field value is between min & max inclusive + set status
     String msg;

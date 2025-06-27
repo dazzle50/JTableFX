@@ -63,6 +63,7 @@ public class TimeField extends AbstractDropDownField
     // create time-field with specified time components in drop-down
     this();
     m_timeWidget.showFields( showHours, showMins, showSecs, showMilli );
+    setText( format( getTime() ) );
   }
 
   /************************************ updateDropDownWidgets ************************************/
@@ -109,15 +110,15 @@ public class TimeField extends AbstractDropDownField
   /******************************************* format ********************************************/
   public String format( Time time )
   {
-    // return time in display format
-    return time.toString();
+    // return time in display field text format
+    return time.toString( m_timeWidget.getFieldCount() );
   }
 
   /**************************************** formatStatus *****************************************/
   public String formatStatus( Time time )
   {
-    // return time in status format
-    return time.toString();
+    // return time in status message text format (same as field unless overridden)
+    return format( time );
   }
 
   /***************************************** parseText *******************************************/

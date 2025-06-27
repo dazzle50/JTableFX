@@ -20,6 +20,7 @@ package rjc.table.control;
 
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
+import java.util.List;
 
 import javafx.scene.input.KeyEvent;
 import rjc.table.Utils;
@@ -43,22 +44,42 @@ public class ChooseField extends ButtonField
     setEditable( false );
     setButtonType( ButtonType.DOWN );
     m_dropdown = new ChooseDropDown( this );
-    m_choices = choices;
-
-    // generate string equivalent of choice objects
-    m_text = new ArrayList<>( choices.length );
-    for ( int index = 0; index < m_choices.length; index++ )
-    {
-      Object choice = choices[index];
-      m_text.add( choice == null ? "null" : choice.toString() );
-    }
-
-    // default to first choice
-    setText( getText( 0 ) );
+    setChoices( choices );
 
     // react to key presses and button mouse clicks
     setOnKeyPressed( event -> keyPressed( event ) );
     setOnKeyTyped( event -> findNext( event.getCharacter() ) );
+  }
+
+  /**************************************** constructor ******************************************/
+  public ChooseField( List<Object> choices )
+  {
+    // convert list to array for choices
+    this( choices.toArray() );
+  }
+
+  /***************************************** setChoices ******************************************/
+  public void setChoices( Object[] choices )
+  {
+    // get current choice before updating choices
+    String currentChoice = m_text == null ? "" : getText( getSelectedIndex() );
+
+    // generate string equivalent of choice objects
+    m_choices = choices;
+    m_text = new ArrayList<>( choices.length );
+    for ( int index = 0; index < choices.length; index++ )
+      m_text.add( choices[index] == null ? "null" : choices[index].toString() );
+
+    // try to find current-choice
+    int index = m_text.indexOf( currentChoice );
+    setSelectedIndex( index < 0 ? 0 : index );
+  }
+
+  /***************************************** setChoices ******************************************/
+  public void setChoices( List<Object> choices )
+  {
+    // convert list to array for updated choices
+    setChoices( choices.toArray() );
   }
 
   /***************************************** changeValue *****************************************/
