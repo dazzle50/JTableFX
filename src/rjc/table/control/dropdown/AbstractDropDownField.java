@@ -129,7 +129,7 @@ abstract public class AbstractDropDownField extends ButtonField implements ISign
   /***************************************** checkText *******************************************/
   private void checkText( String text )
   {
-    // check if string can be parsed as a time, and update status
+    // check if string can be parsed, and update status depending if parsing successful
     try
     {
       parseText( Utils.clean( text ) );

@@ -333,7 +333,7 @@ public class ButtonField extends ExpandingField implements IOverflowField
     else
     {
       // if overflow field step its value as necessary
-      double range = m_maxValue - m_minValue;
+      double range = 1 + m_maxValue - m_minValue;
       while ( num < m_minValue )
       {
         m_overflowField.changeValue( -1 );

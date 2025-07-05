@@ -85,7 +85,6 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
     // create layout with the four number spin fields
     m_width = calendar.getWidth() - 3 * BORDER;
 
-    m_hours.setMaxWidth( m_width * HOURS_RATIO );
     m_hours.setFormat( "00", 4, 0 );
     m_hours.setRange( 0, 24 );
     m_hours.setStepPage( 1, 6 );
@@ -93,21 +92,18 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
     m_hours.setId( "Hours" );
     m_hours.addListener( SIGNAL_TIME );
 
-    m_mins.setMaxWidth( m_width * MINS_RATIO );
     m_mins.setFormat( "00", 4, 0 );
     m_mins.setRange( 0, 59 );
     m_mins.setOverflowField( m_hours );
     m_mins.setId( "Minutes" );
     m_mins.addListener( SIGNAL_TIME );
 
-    m_secs.setMaxWidth( m_width * SECS_RATIO );
     m_secs.setFormat( "00", 4, 0 );
     m_secs.setRange( 0, 59 );
     m_secs.setOverflowField( m_mins );
     m_secs.setId( "Seconds" );
     m_secs.addListener( SIGNAL_TIME );
 
-    m_millisecs.setMaxWidth( 1 + m_width - m_hours.getMaxWidth() - m_mins.getMaxWidth() - m_secs.getMaxWidth() );
     m_millisecs.setFormat( "000", 6, 0 );
     m_millisecs.setRange( 0, 999 );
     m_millisecs.setStepPage( 1, 100 );
@@ -116,7 +112,7 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
     m_millisecs.addListener( SIGNAL_TIME );
 
     setSpacing( BORDER - 1 );
-    getChildren().addAll( m_hours, m_mins, m_secs, m_millisecs );
+    showFields( true, true, true, true );
     setTime( Time.fromHours( Time.now().getHours() ) );
 
     // filter for key events (e.g., ESCAPE resets the time).
@@ -242,6 +238,17 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
     }
 
     return m_time;
+  }
+
+  /*************************************** getMilliseconds ***************************************/
+  private int getMilliseconds()
+  {
+    // return time-widget time in milliseconds (might be invalid greater than 24:00:00.000)
+    int hrs = getFieldValue( m_hours );
+    int mins = getFieldValue( m_mins );
+    int secs = getFieldValue( m_secs );
+    int ms = getFieldValue( m_millisecs );
+    return hrs * Time.ONE_HOUR + mins * Time.ONE_MINUTE + secs * Time.ONE_SECOND + ms;
   }
 
   /**************************************** getFieldValue ****************************************/

@@ -32,6 +32,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.scene.text.FontSmoothingType;
 import javafx.scene.text.Text;
+import rjc.table.Utils;
 import rjc.table.data.types.Date;
 import rjc.table.signal.ISignal;
 import rjc.table.view.Colours;
@@ -283,5 +284,13 @@ public class CalendarWidget extends Canvas implements ISignal, IOverflowField
       return Color.GREY;
 
     return Colours.TEXT_DEFAULT;
+  }
+
+  /****************************************** toString *******************************************/
+  @Override
+  public String toString()
+  {
+    // return as string
+    return Utils.name( this ) + "[" + getDate() + "]";
   }
 }
