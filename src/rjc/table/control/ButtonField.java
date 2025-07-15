@@ -55,6 +55,7 @@ public class ButtonField extends ExpandingField implements IOverflowField
 
   public static final int                   BUTTONS_WIDTH_MAX = 16;
   public static final int                   BUTTONS_PADDING   = 2;
+  public static double                      LAST_CHANGE_DELTA = 0; // zero if change due to user typing
 
   public enum ButtonType
   {
@@ -289,6 +290,7 @@ public class ButtonField extends ExpandingField implements IOverflowField
   protected void keyPressed( KeyEvent event )
   {
     // action key press to change value up or down
+    LAST_CHANGE_DELTA = 0.0;
     switch ( event.getCode() )
     {
       case DOWN:
@@ -326,7 +328,7 @@ public class ButtonField extends ExpandingField implements IOverflowField
   {
     // change spin value by delta overflowing to wrap-field if available
     double num = getDouble() + delta;
-
+    LAST_CHANGE_DELTA = delta;
     // if no overflow field, clamp the value to between min & max
     if ( m_overflowField == null )
       num = Utils.clamp( num, m_minValue, m_maxValue );

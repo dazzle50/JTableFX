@@ -226,9 +226,12 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
       if ( hrs == 24 && ( mins > 0 || secs > 0 || ms > 0 ) )
       {
         getStatus().update( Level.ERROR, "Max time is 24:00:00.000" );
-        m_mins.setStyle( getStatus().getStyle() );
-        m_secs.setStyle( getStatus().getStyle() );
-        m_millisecs.setStyle( getStatus().getStyle() );
+        if ( m_mins.getInteger() > 0 )
+          m_mins.setStyle( getStatus().getStyle() );
+        if ( m_secs.getInteger() > 0 )
+          m_secs.setStyle( getStatus().getStyle() );
+        if ( m_millisecs.getInteger() > 0 )
+          m_millisecs.setStyle( getStatus().getStyle() );
         return m_time;
       }
 
@@ -325,6 +328,10 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
     // signal new time - but run later to allow any field wrapping to complete first
     Platform.runLater( () ->
     {
+      // if above 24:00 not by user typing then roll over to next/previous day
+      if ( getMilliseconds() > Time.MILLISECONDS_IN_DAY && ButtonField.LAST_CHANGE_DELTA != 0.0 )
+        m_hours.changeValue( ButtonField.LAST_CHANGE_DELTA < 0 ? -1 : 1 );
+
       Time time = getTime();
       if ( !time.equals( m_lastSignal ) )
       {

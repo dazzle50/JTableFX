@@ -112,6 +112,16 @@ public class Time implements Serializable
     {
     }
 
+    // check if 24:00:00.000 time
+    try
+    {
+      if ( str.matches( "^24[\\:\\s\\.]?(?:0{1,2})?[\\:\\s\\.]?(?:0{1,2})?.*$" ) )
+        return new Time( MILLISECONDS_IN_DAY );
+    }
+    catch ( Exception exception )
+    {
+    }
+
     // otherwise try
     return new Time( LocalTime.parse( str,
         DateTimeFormatter.ofPattern( "H[:][.][ ][-][m][:][.][ ][-][s][:][.][ ][-][SSS][SS][S]" ) ) );

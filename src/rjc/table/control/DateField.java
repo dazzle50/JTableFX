@@ -86,6 +86,13 @@ public class DateField extends AbstractDropDownField
     m_yearField.setValue( m_date.getYear() );
   }
 
+  /**************************************** getCalendar ******************************************/
+  protected CalendarWidget getCalendar()
+  {
+    // return calendar widget in drop-down
+    return m_calendar;
+  }
+
   /****************************************** getDate ********************************************/
   public Date getDate()
   {

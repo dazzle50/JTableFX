@@ -39,7 +39,7 @@ public class DateTimeField extends DateField
   public DateTimeField()
   {
     // prepare time-widget and add to the date drop-down
-    m_timeWidget = new TimeWidget();
+    m_timeWidget = new TimeWidget( getCalendar() );
     getDropDownGrid().add( m_timeWidget, 0, 3, 2, 1 );
 
     // listen to changes to keep field & drop-down aligned
@@ -69,6 +69,8 @@ public class DateTimeField extends DateField
   private void setTime( Time time )
   {
     // set time component of date-time
+    if ( time.getHours() == 24 && ButtonField.LAST_CHANGE_DELTA < 0.0 )
+      time.addMilliseconds( -Time.ONE_HOUR );
     setDateTime( new DateTime( m_datetime.getDate(), time ) );
   }
 
