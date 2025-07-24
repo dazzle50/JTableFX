@@ -30,7 +30,7 @@ import java.util.List;
 
 public class Utils
 {
-  public static final String      VERSION            = "v0.1.1";
+  public static final String      VERSION            = "v0.1.2 WIP";
 
   public static DateTimeFormatter timestampFormatter = DateTimeFormatter.ofPattern( "uuuu-MM-dd HH:mm:ss.SSS " );
 

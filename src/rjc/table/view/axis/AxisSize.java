@@ -57,6 +57,9 @@ public class AxisSize extends AxisBase implements IListener
   {
     // pass count property to super class
     super( countProperty );
+
+    // listen to count property to update axis pixel size
+    countProperty.addListener( this );
   }
 
   /******************************************** reset ********************************************/

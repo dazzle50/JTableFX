@@ -188,6 +188,9 @@ public class CellSelection implements ISignal
   {
     // return true if all visible cells in specified column are selected
     TableAxis axis = m_view.getRowsAxis();
+    if ( axis.getCount() == 0 )
+      return false;
+
     int top = axis.getFirstVisible();
     int bottom = axis.getLastVisible();
 
@@ -211,6 +214,9 @@ public class CellSelection implements ISignal
   {
     // return true if all visible cells in specified row are selected
     TableAxis axis = m_view.getColumnsAxis();
+    if ( axis.getCount() == 0 )
+      return false;
+
     int left = axis.getFirstVisible();
     int right = axis.getLastVisible();
 

@@ -117,8 +117,7 @@ public class TableOverlay extends Canvas
       m_gc.clearRect( x, y, w, h );
 
       m_gc.strokeRect( x - 0.5, y - 0.5, w, h );
-      if ( m_view.isFocused() )
-        m_gc.strokeRect( x + 0.5, y + 0.5, w - 2, h - 2 );
+      m_gc.strokeRect( x + 0.5, y + 0.5, w - 2, h - 2 );
     }
   }
 

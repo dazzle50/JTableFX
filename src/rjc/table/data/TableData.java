@@ -34,6 +34,9 @@ public class TableData implements ISignal
   private ObservableInteger m_columnCount = new ObservableInteger( 3 );
   private ObservableInteger m_rowCount    = new ObservableInteger( 10 );
 
+  // convenience user data that can be set and retrieved
+  private Object            m_userData;
+
   private CellVisual        m_cellVisual  = new CellVisual();
 
   public enum Signal
@@ -55,6 +58,8 @@ public class TableData implements ISignal
   public void setColumnCount( int columnCount )
   {
     // set number of columns in table body
+    if ( columnCount < 0 )
+      throw new IllegalArgumentException( "Column count must not be negative " + columnCount );
     m_columnCount.set( columnCount );
   }
 
@@ -69,6 +74,8 @@ public class TableData implements ISignal
   public void setRowCount( int rowCount )
   {
     // set number of rows in table body
+    if ( rowCount < 0 )
+      throw new IllegalArgumentException( "Row count must not be negative " + rowCount );
     m_rowCount.set( rowCount );
   }
 
@@ -186,6 +193,20 @@ public class TableData implements ISignal
   {
     // signal that table values have changed (usually to trigger table redraw)
     signal( Signal.TABLE_VALUES_CHANGED );
+  }
+
+  /***************************************** setUserData *****************************************/
+  public void setUserData( Object object )
+  {
+    // set single object user-data that can retrieved later
+    m_userData = object;
+  }
+
+  /***************************************** getUserData *****************************************/
+  public Object getUserData()
+  {
+    // returns previously set user-data, or null
+    return m_userData;
   }
 
   /****************************************** toString *******************************************/

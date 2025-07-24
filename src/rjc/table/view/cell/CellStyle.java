@@ -150,22 +150,20 @@ public class CellStyle extends CellLocation
     // return header cell background
     if ( viewRow == TableAxis.HEADER )
     {
-      if ( viewColumn == view.getFocusCell().getColumn() )
-        return view.isFocused() ? Colours.HEADER_FOCUS_FILL
-            : Colours.HEADER_FOCUS_FILL.interpolate( Colours.HEADER_SELECTED_FILL, 0.3 );
-      else
-        return view.getSelection().hasColumnSelection( viewColumn ) ? Colours.HEADER_SELECTED_FILL
-            : Colours.HEADER_DEFAULT_FILL;
+      if ( viewColumn == view.getFocusCell().getColumn() && view.isFocused() )
+        return Colours.HEADER_FOCUS_FILL;
+
+      return view.getSelection().hasColumnSelection( viewColumn ) ? Colours.HEADER_SELECTED_FILL
+          : Colours.HEADER_DEFAULT_FILL;
     }
 
     if ( viewColumn == TableAxis.HEADER )
     {
-      if ( viewRow == view.getFocusCell().getRow() )
-        return view.isFocused() ? Colours.HEADER_FOCUS_FILL
-            : Colours.HEADER_FOCUS_FILL.interpolate( Colours.HEADER_SELECTED_FILL, 0.3 );
-      else
-        return view.getSelection().hasRowSelection( viewRow ) ? Colours.HEADER_SELECTED_FILL
-            : Colours.HEADER_DEFAULT_FILL;
+      if ( viewRow == view.getFocusCell().getRow() && view.isFocused() )
+        return Colours.HEADER_FOCUS_FILL;
+
+      return view.getSelection().hasRowSelection( viewRow ) ? Colours.HEADER_SELECTED_FILL
+          : Colours.HEADER_DEFAULT_FILL;
     }
 
     throw new IllegalArgumentException( "Not header " + viewColumn + " " + viewRow );

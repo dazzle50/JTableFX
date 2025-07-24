@@ -80,6 +80,20 @@ public class TableView extends TableViewComponents
         getCanvas().redrawCell( viewColumn, viewRow );
       }
     } );
+
+    // react to column count change
+    getData().columnCountProperty().addListener( ( sender, msg ) ->
+    {
+      updateLayout();
+      tableScrolled();
+    } );
+
+    // react to row count change
+    getData().rowCountProperty().addListener( ( sender, msg ) ->
+    {
+      updateLayout();
+      tableScrolled();
+    } );
   }
 
   /************************************** addMouseHandlers ***************************************/
@@ -217,7 +231,7 @@ public class TableView extends TableViewComponents
   /******************************************* redraw ********************************************/
   public void redraw()
   {
-    // request redraw of full visible table (headers and body)
+    // request redraw of full visible table (headers and body) including overlay
     getCanvas().redraw();
   }
 
