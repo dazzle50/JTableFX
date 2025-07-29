@@ -109,6 +109,9 @@ abstract public class AbstractCellEditor
     m_editorInProgress = this;
     view.add( m_control );
     m_control.requestFocus();
+
+    // set editor value to cell value before opening value to ensure any value changes are checked
+    setValue( m_cell.getValue() );
     setValue( value );
 
     // if editor opening value is not same as cell value, removed default text selection

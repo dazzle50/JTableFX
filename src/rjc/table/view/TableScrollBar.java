@@ -96,7 +96,7 @@ public class TableScrollBar extends ScrollBar
     }
 
     // check if need to scroll towards end to show cell end, without hiding start
-    int size = getOrientation() == Orientation.VERTICAL ? (int) getHeight() : (int) getWidth();
+    int size = getOrientation() == Orientation.VERTICAL ? (int) getPrefHeight() : (int) getPrefWidth();
     int end = size - m_axis.getStartPixel( index + 1, (int) getValue() );
     if ( -end > start )
       end = -start;

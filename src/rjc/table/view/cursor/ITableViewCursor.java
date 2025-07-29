@@ -38,8 +38,8 @@ public interface ITableViewCursor
   /**************************************** handleDragged ****************************************/
   public void handleDragged( MouseEvent event ); // cursor specific mouse drag handling
 
-  /**************************************** tableScrolled ****************************************/
-  public void tableScrolled(); // cursor specific view scrolled handling
+  /**************************************** tableModified ****************************************/
+  public void tableModified(); // cursor specific view scrolled/zoom/etc handling
 
   /************************************* checkSelectPosition *************************************/
   public void checkSelectPosition(); // cursor specific select position setting

@@ -45,7 +45,7 @@ public class DateTime implements Comparable<DateTime>, Serializable
 
   public enum Interval
   {
-    YEAR, HALFYEAR, QUARTERYEAR, MONTH, WEEK, DAY
+    YEAR, HALFYEAR, QUARTERYEAR, MONTH, WEEK, DAY, HALFDAY, QUARTERDAY, HOUR, MINUTE, SECOND
   }
 
   private static final char   QUOTE = '\'';

@@ -111,8 +111,8 @@ public class EditableData
         // check new value is integer and in range
         if ( newValue instanceof Integer newInt )
         {
-          if ( newInt < 0 || newInt > 999 )
-            return "Value not between 0 and 999";
+          if ( newInt < 1 || newInt > 999 )
+            return "Value not between 1 and 999";
           if ( commit )
             m_integer = newInt;
           return null;

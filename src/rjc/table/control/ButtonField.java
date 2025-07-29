@@ -75,7 +75,7 @@ public class ButtonField extends ExpandingField implements IOverflowField
   {
     // set default spin editor characteristics
     setPrefixSuffix( null, null );
-    setRange( 0.0, 999.0 );
+    setRange( 1.0, 999.0 );
     setStepPage( 1.0, 10.0 );
     setOnKeyPressed( event -> keyPressed( event ) );
 
@@ -124,7 +124,7 @@ public class ButtonField extends ExpandingField implements IOverflowField
     }
     catch ( Exception exception )
     {
-      return m_minValue;
+      return m_minValue - 1.0;
     }
   }
 

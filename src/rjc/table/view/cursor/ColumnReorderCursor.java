@@ -70,9 +70,9 @@ public class ColumnReorderCursor extends AbstractReorderCursor
     end();
   }
 
-  /**************************************** tableScrolled ****************************************/
+  /**************************************** tableModified ****************************************/
   @Override
-  public void tableScrolled()
+  public void tableModified()
   {
     // table-view scrolled whilst dragging mouse
     checkSelectPosition();

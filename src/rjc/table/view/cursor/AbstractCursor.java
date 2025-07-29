@@ -113,9 +113,9 @@ abstract public class AbstractCursor extends ImageCursor implements ITableViewCu
     // default do nothing
   }
 
-  /**************************************** tableScrolled ****************************************/
+  /**************************************** tableModified ****************************************/
   @Override
-  public void tableScrolled()
+  public void tableModified()
   {
     // update select cell position only if cursor is selecting
     checkSelectPosition();

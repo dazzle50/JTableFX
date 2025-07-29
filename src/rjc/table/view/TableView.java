@@ -85,14 +85,14 @@ public class TableView extends TableViewComponents
     getData().columnCountProperty().addListener( ( sender, msg ) ->
     {
       updateLayout();
-      tableScrolled();
+      tableModified();
     } );
 
     // react to row count change
     getData().rowCountProperty().addListener( ( sender, msg ) ->
     {
       updateLayout();
-      tableScrolled();
+      tableModified();
     } );
   }
 
@@ -179,8 +179,8 @@ public class TableView extends TableViewComponents
     heightProperty().addListener( ( sender, msg ) -> updateLayout() );
 
     // react to scroll bar position value changes
-    getHorizontalScrollBar().valueProperty().addListener( ( property, oldValue, newValue ) -> tableScrolled() );
-    getVerticalScrollBar().valueProperty().addListener( ( property, oldValue, newValue ) -> tableScrolled() );
+    getHorizontalScrollBar().valueProperty().addListener( ( property, oldValue, newValue ) -> tableModified() );
+    getVerticalScrollBar().valueProperty().addListener( ( property, oldValue, newValue ) -> tableModified() );
 
     // react to select-cell position and changes to cell selections
     getSelectCell().addLaterListener( ( sender, msg ) ->
@@ -209,7 +209,7 @@ public class TableView extends TableViewComponents
     getZoom().addListener( ( sender, msg ) ->
     {
       updateLayout();
-      tableScrolled();
+      tableModified();
     } );
 
     // react to keyboard events
@@ -217,15 +217,15 @@ public class TableView extends TableViewComponents
     setOnKeyTyped( new KeyTyped() );
   }
 
-  /**************************************** tableScrolled ****************************************/
-  private void tableScrolled()
+  /**************************************** tableModified ****************************************/
+  private void tableModified()
   {
-    // handle any actions needed due to view being modified usually scrolled
+    // handle any actions needed due to view being modified usually scrolled or zoomed
     redraw();
     getMouseCell().checkXY();
     AbstractCellEditor.endEditing();
     if ( getCursor() instanceof ITableViewCursor cursor )
-      cursor.tableScrolled();
+      cursor.tableModified();
   }
 
   /******************************************* redraw ********************************************/
