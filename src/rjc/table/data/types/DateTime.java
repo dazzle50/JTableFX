@@ -37,7 +37,7 @@ public class DateTime implements Comparable<DateTime>, Serializable
   private long                 m_milliseconds;
 
   // milliseconds in day
-  public static final long     MILLISECONDS_IN_DAY = Time.MILLISECONDS_IN_DAY;
+  public static final long     MILLISECONDS_IN_DAY = Time.MILLIS_PER_DAY;
 
   // range constrained by valid Date (approx 5,800,000 BC to 5,800,000 AD)
   public static final DateTime MIN_VALUE           = new DateTime( Date.MIN_VALUE, Time.MAX_VALUE );
@@ -72,15 +72,15 @@ public class DateTime implements Comparable<DateTime>, Serializable
     // constructor, date must be split from time by a space
     int split = str.indexOf( 'T' );
     Date date = Date.fromString( str.substring( 0, split ) );
-    Time time = Time.fromString( str.substring( split + 1, str.length() ) );
-    m_milliseconds = date.getEpochday() * MILLISECONDS_IN_DAY + time.getDayMilliseconds();
+    Time time = Time.parse( str.substring( split + 1, str.length() ) );
+    m_milliseconds = date.getEpochday() * MILLISECONDS_IN_DAY + time.toMillisecondsOfDay();
   }
 
   /***************************************** constructor *****************************************/
   public DateTime( Date date, Time time )
   {
     // constructor
-    m_milliseconds = date.getEpochday() * MILLISECONDS_IN_DAY + time.getDayMilliseconds();
+    m_milliseconds = date.getEpochday() * MILLISECONDS_IN_DAY + time.toMillisecondsOfDay();
   }
 
   /***************************************** constructor *****************************************/
@@ -88,8 +88,8 @@ public class DateTime implements Comparable<DateTime>, Serializable
   {
     // constructor
     Date date = new Date( dt.toLocalDate() );
-    Time time = new Time( dt.toLocalTime() );
-    m_milliseconds = date.getEpochday() * MILLISECONDS_IN_DAY + time.getDayMilliseconds();
+    Time time = Time.of( dt.toLocalTime() );
+    m_milliseconds = date.getEpochday() * MILLISECONDS_IN_DAY + time.toMillisecondsOfDay();
   }
 
   /****************************************** toString *******************************************/
@@ -217,14 +217,14 @@ public class DateTime implements Comparable<DateTime>, Serializable
     if ( ms < 0 )
       ms += MILLISECONDS_IN_DAY;
 
-    return Time.fromMilliseconds( ms );
+    return Time.ofMilliseconds( ms );
   }
 
   /********************************************* now *********************************************/
   public static DateTime now()
   {
     // return a new DateTime from current system clock
-    return new DateTime( System.currentTimeMillis() + Time.TZ_MS_OFFSET );
+    return new DateTime( Date.now(), Time.now() );
   }
 
   /************************************** plusMilliseconds ***************************************/

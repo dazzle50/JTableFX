@@ -113,7 +113,7 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
 
     setSpacing( BORDER - 1 );
     showFields( true, true, true, true );
-    setTime( Time.fromHours( Time.now().getHours() ) );
+    setTime( Time.ofHours( Time.now().getHours() ) );
 
     // filter for key events (e.g., ESCAPE resets the time).
     addEventFilter( KeyEvent.KEY_PRESSED, event -> keyPressed( event ) );
@@ -236,7 +236,7 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
       }
 
       // collect the new valid time from widgets
-      m_time = new Time( hrs, mins, secs, ms );
+      m_time = Time.of( hrs, mins, secs, ms );
       updateStatus( Level.NORMAL );
     }
 
@@ -251,7 +251,7 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
     int mins = getFieldValue( m_mins );
     int secs = getFieldValue( m_secs );
     int ms = getFieldValue( m_millisecs );
-    return hrs * Time.ONE_HOUR + mins * Time.ONE_MINUTE + secs * Time.ONE_SECOND + ms;
+    return hrs * Time.MILLIS_PER_HOUR + mins * Time.MILLIS_PER_MINUTE + secs * Time.MILLIS_PER_SECOND + ms;
   }
 
   /**************************************** getFieldValue ****************************************/
@@ -329,7 +329,7 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
     Platform.runLater( () ->
     {
       // if above 24:00 not by user typing then roll over to next/previous day
-      if ( getMilliseconds() > Time.MILLISECONDS_IN_DAY && ButtonField.LAST_CHANGE_DELTA != 0.0 )
+      if ( getMilliseconds() > Time.MILLIS_PER_DAY && ButtonField.LAST_CHANGE_DELTA != 0.0 )
         m_hours.changeValue( ButtonField.LAST_CHANGE_DELTA < 0 ? -1 : 1 );
 
       Time time = getTime();

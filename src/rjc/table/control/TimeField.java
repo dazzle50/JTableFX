@@ -54,7 +54,7 @@ public class TimeField extends AbstractDropDownField
     Platform.runLater( () -> m_timeWidget.setStatus( getStatus() ) );
 
     // set initial time truncated to hour
-    setTime( Time.fromHours( Time.now().getHours() ) );
+    setTime( Time.ofHours( Time.now().getHours() ) );
   }
 
   /**************************************** constructor ******************************************/
@@ -111,7 +111,7 @@ public class TimeField extends AbstractDropDownField
   public String format( Time time )
   {
     // return time in display field text format
-    return time.toString( m_timeWidget.getFieldCount() );
+    return time.format( m_timeWidget.getFieldCount() );
   }
 
   /**************************************** formatStatus *****************************************/
@@ -126,7 +126,7 @@ public class TimeField extends AbstractDropDownField
   protected void parseText( String text )
   {
     // convert text to time, and if different signal (any exception handled in abstract)
-    Time time = Time.fromString( text );
+    Time time = Time.parse( text );
     if ( !time.equals( m_time ) )
     {
       m_time = time;
@@ -156,12 +156,14 @@ public class TimeField extends AbstractDropDownField
   public void changeValue( double delta, boolean shift, boolean ctrl, boolean alt )
   {
     // modify field value
-    if ( !shift && !ctrl )
-      m_time.addMilliseconds( (int) ( delta * Time.ONE_HOUR ) );
+    if ( !shift && !ctrl & !alt )
+      m_time = m_time.plusHours( (int) delta );
     if ( shift && !ctrl )
-      m_time.addMilliseconds( (int) ( delta * Time.ONE_MINUTE ) );
+      m_time = m_time.plusMinutes( (int) delta );
     if ( !shift && ctrl )
-      m_time.addMilliseconds( (int) ( delta * Time.ONE_SECOND ) );
+      m_time = m_time.plusSeconds( (int) delta );
+    if ( !shift && !ctrl && alt )
+      m_time = m_time.plusMilliseconds( (int) delta );
 
     // display in text and signal change
     setText( format( m_time ) );

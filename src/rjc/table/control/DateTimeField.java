@@ -50,8 +50,8 @@ public class DateTimeField extends DateField
     Platform.runLater( () -> m_timeWidget.setStatus( getStatus() ) );
 
     // set default date-time to now truncated to hour
-    long now = DateTime.now().getMilliseconds() / Time.ONE_HOUR;
-    setDateTime( new DateTime( now * Time.ONE_HOUR ) );
+    long now = DateTime.now().getMilliseconds() / Time.MILLIS_PER_HOUR;
+    setDateTime( new DateTime( now * Time.MILLIS_PER_HOUR ) );
   }
 
   /************************************ updateDropDownWidgets ************************************/
@@ -70,7 +70,7 @@ public class DateTimeField extends DateField
   {
     // set time component of date-time
     if ( time.getHours() == 24 && ButtonField.LAST_CHANGE_DELTA < 0.0 )
-      time.addMilliseconds( -Time.ONE_HOUR );
+      time = time.plusHours( -1 ); // adjust 24:00 to 23:59
     setDateTime( new DateTime( m_datetime.getDate(), time ) );
   }
 
@@ -170,11 +170,11 @@ public class DateTimeField extends DateField
     {
       // modify field time-part
       if ( !shift && !ctrl )
-        setDateTime( getDateTime().plusMilliseconds( (int) delta * Time.ONE_HOUR ) );
+        setDateTime( getDateTime().plusMilliseconds( (int) delta * Time.MILLIS_PER_HOUR ) );
       if ( shift && !ctrl )
-        setDateTime( getDateTime().plusMilliseconds( (int) delta * Time.ONE_MINUTE ) );
+        setDateTime( getDateTime().plusMilliseconds( (int) delta * Time.MILLIS_PER_MINUTE ) );
       if ( !shift && ctrl )
-        setDateTime( getDateTime().plusMilliseconds( (int) delta * Time.ONE_SECOND ) );
+        setDateTime( getDateTime().plusMilliseconds( (int) delta * Time.MILLIS_PER_SECOND ) );
     }
     else
     {

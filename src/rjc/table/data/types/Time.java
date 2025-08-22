@@ -20,258 +20,448 @@ package rjc.table.data.types;
 
 import java.io.Serializable;
 import java.time.LocalTime;
-import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
-
-import rjc.table.Utils;
+import java.time.format.DateTimeParseException;
+import java.util.Objects;
+import java.util.regex.Pattern;
 
 /*************************************************************************************************/
 /******************** Time of day from 00:00:00.000 to 24:00:00.000 inclusive ********************/
 /*************************************************************************************************/
 
-public class Time implements Serializable
+/**
+ * Immutable representation of time-of-day from 00:00:00.000 to 24:00:00.000 inclusive.
+ * 
+ * <p>This class represents a time within a single day, stored internally as milliseconds since
+ * midnight start of day. Unlike {@link LocalTime}, this class supports the boundary case of
+ * 24:00:00.000 to represent the end of day (equivalent to 00:00:00.000 of next day).
+ * 
+ * <p>All instances are immutable and thread-safe. Arithmetic operations return new instances.
+ */
+public final class Time implements Serializable, Comparable<Time>
 {
-  private static final long serialVersionUID    = Utils.VERSION.hashCode();
 
-  // milliseconds from 00:00:00.000 start of day
-  private int               m_milliseconds;
+  private static final long              serialVersionUID   = 1L;
 
-  // anything between MIN_VALUE and MAX_VALUE inclusive is valid, anything else invalid
-  public static final int   ONE_SECOND          = 1000;
-  public static final int   ONE_MINUTE          = 60 * ONE_SECOND;
-  public static final int   ONE_HOUR            = 60 * ONE_MINUTE;
-  public static final int   MILLISECONDS_IN_DAY = 24 * ONE_HOUR;
-  public static final Time  MIN_VALUE           = Time.fromMilliseconds( 0 );
-  public static final Time  MAX_VALUE           = Time.fromMilliseconds( MILLISECONDS_IN_DAY );
-  public static final int   TZ_MS_OFFSET        = OffsetDateTime.now().getOffset().getTotalSeconds() * 1000;
+  // time constants
+  public static final int                MILLIS_PER_SECOND  = 1000;
+  public static final int                MILLIS_PER_MINUTE  = 60 * MILLIS_PER_SECOND;
+  public static final int                MILLIS_PER_HOUR    = 60 * MILLIS_PER_MINUTE;
+  public static final int                MILLIS_PER_DAY     = 24 * MILLIS_PER_HOUR;
 
-  /* ======================================= constructor ======================================= */
+  // boundary values
+  public static final Time               MIN_VALUE          = new Time( 0 );                                          // 00:00:00.000
+  public static final Time               NOON               = new Time( 12 * MILLIS_PER_HOUR );                       // 12:00:00.000 (noon)
+  public static final Time               MAX_VALUE          = new Time( MILLIS_PER_DAY );                             // 24:00:00.000 (end of day)
+
+  // parsing patterns (compiled once for performance)
+  private static final Pattern           NUMERIC_PATTERN    = Pattern.compile( "^\\d+$" );
+  private static final Pattern           END_OF_DAY_PATTERN = Pattern.compile( "^24[:\\s.]?0*[:\\s.]?0*[:\\s.]?0*$" );
+
+  // standard formatters
+  private static final DateTimeFormatter FLEXIBLE_FORMATTER = DateTimeFormatter
+      .ofPattern( "H[:][.][ ][-][m][:][.][ ][-][s][:][.][ ][-][SSS][SS][S]" );
+
+  // internal state - milliseconds since midnight 00:00:00.000 (0 to MILLIS_PER_DAY inclusive)
+  private final int                      m_milliseconds;
+
+  // ================================ Constructors ================================
+
+  /**
+   * Private constructor - use factory methods instead.
+   */
   private Time( int milliseconds )
   {
-    // constructor (from pre-validated milliseconds) hence *PRIVATE*
-    m_milliseconds = milliseconds;
+    this.m_milliseconds = milliseconds;
   }
 
-  /**************************************** constructor ******************************************/
-  public Time( LocalTime localTime )
+  // ================================ Factory Methods ================================
+
+  /**
+   * Creates a Time from hours, minutes, seconds and milliseconds.
+   * 
+   * @param hours the hour component (0-24)
+   * @param minutes the minute component (0-59)  
+   * @param seconds the second component (0-59)
+   * @param millis the millisecond component (0-999)
+   * @return a new Time instance
+   * @throws IllegalArgumentException if any component is out of range
+   */
+  public static Time of( int hours, int minutes, int seconds, int millis )
   {
-    // return a new Time from a java.time.LocalTime
-    m_milliseconds = (int) ( localTime.toNanoOfDay() / 1_000_000L );
+    validateTimeComponents( hours, minutes, seconds, millis );
+    int totalMillis = hours * MILLIS_PER_HOUR + minutes * MILLIS_PER_MINUTE + seconds * MILLIS_PER_SECOND + millis;
+    return new Time( totalMillis );
   }
 
-  /**************************************** constructor ******************************************/
-  public Time( int hours, int mins, int secs, int ms )
+  /**
+   * Creates a Time from hours, minutes and seconds.
+   */
+  public static Time of( int hours, int minutes, int seconds )
   {
-    // valid inputs
-    if ( hours < 0 || hours > 24 )
-      throw new IllegalArgumentException( "hours=" + hours );
-
-    if ( mins < 0 || mins > 59 )
-      throw new IllegalArgumentException( "minutes=" + mins );
-
-    if ( secs < 0 || secs > 59 )
-      throw new IllegalArgumentException( "seconds=" + secs );
-
-    if ( ms < 0 || ms > 999 )
-      throw new IllegalArgumentException( "milliseconds=" + ms );
-
-    if ( hours == 24 && ( mins > 0 || secs > 0 || ms > 0 ) )
-      throw new IllegalArgumentException( "time beyond 24H" );
-
-    m_milliseconds = hours * ONE_HOUR + mins * ONE_MINUTE + secs * ONE_SECOND + ms;
+    return of( hours, minutes, seconds, 0 );
   }
 
-  /************************************* getDayMilliseconds **************************************/
-  public int getDayMilliseconds()
+  /**
+   * Creates a Time from hours and minutes.
+   */
+  public static Time of( int hours, int minutes )
   {
-    // return number of milliseconds from start of day
-    return m_milliseconds;
+    return of( hours, minutes, 0, 0 );
   }
 
-  /***************************************** fromString ******************************************/
-  public static Time fromString( String str )
+  /**
+   * Creates a Time from milliseconds since midnight start of day.
+   * 
+   * @param milliseconds milliseconds since midnight (0 to MILLIS_PER_DAY inclusive)
+   * @return a new Time instance
+   * @throws IllegalArgumentException if milliseconds is out of valid range
+   */
+  public static Time ofMilliseconds( int milliseconds )
   {
-    // check input is not null or blank
-    if ( str == null )
-      throw new NullPointerException();
-    str = Utils.clean( str );
-    if ( str.isBlank() )
-      throw new IllegalArgumentException( "Time string must not be null or empty" );
-
-    // if simple integer, treats as hours or hours+minutes etc depending on length
-    try
-    {
-      int num = Integer.valueOf( str );
-      if ( num < 100 )
-        return new Time( num, 0, 0, 0 );
-      if ( num < 10000 )
-        return new Time( num / 100, num % 100, 0, 0 );
-      return new Time( num / 10000, ( num / 100 ) % 100, num % 100, 0 );
-    }
-    catch ( NumberFormatException exception )
-    {
-    }
-
-    // check if 24:00:00.000 time
-    try
-    {
-      if ( str.matches( "^24[\\:\\s\\.]?(?:0{1,2})?[\\:\\s\\.]?(?:0{1,2})?.*$" ) )
-        return new Time( MILLISECONDS_IN_DAY );
-    }
-    catch ( Exception exception )
-    {
-    }
-
-    // otherwise try
-    return new Time( LocalTime.parse( str,
-        DateTimeFormatter.ofPattern( "H[:][.][ ][-][m][:][.][ ][-][s][:][.][ ][-][SSS][SS][S]" ) ) );
-  }
-
-  /****************************************** fromHours ******************************************/
-  public static Time fromHours( double hours )
-  {
-    // return a Time from double hours
-    if ( hours < 0.0 || hours > 24.0 )
-      throw new IllegalArgumentException( "hours=" + hours );
-
-    return new Time( (int) Math.round( hours * ONE_HOUR ) );
-  }
-
-  /************************************** fromMilliseconds ***************************************/
-  public static Time fromMilliseconds( int milliseconds )
-  {
-    // return a Time from int milliseconds
-    if ( milliseconds < 0 || milliseconds > MILLISECONDS_IN_DAY )
-      throw new IllegalArgumentException( "milliseconds=" + milliseconds );
-
+    if ( milliseconds < 0 || milliseconds > MILLIS_PER_DAY )
+      throw new IllegalArgumentException(
+          "Milliseconds must be between 0 and " + MILLIS_PER_DAY + ", got: " + milliseconds );
     return new Time( milliseconds );
   }
 
-  /****************************************** toString *******************************************/
-  @Override
-  public String toString()
+  /**
+   * Creates a Time from fractional hours.
+   * 
+   * @param hours fractional hours (0.0 to 24.0 inclusive)
+   * @return a new Time instance
+   * @throws IllegalArgumentException if hours is out of valid range
+   */
+  public static Time ofHours( double hours )
   {
-    // convert to string to "hh:mm:ss.mmm" format
-    return toString( 4 );
+    if ( hours < 0.0 || hours > 24.0 )
+      throw new IllegalArgumentException( "Hours must be between 0.0 and 24.0, got: " + hours );
+    return new Time( (int) Math.round( hours * MILLIS_PER_HOUR ) );
   }
 
-  /**************************************** toStringShort ****************************************/
-  public String toStringShort()
+  /**
+   * Creates a Time from a LocalTime.
+   * 
+   * @param localTime the LocalTime to convert
+   * @return a new Time instance
+   * @throws NullPointerException if localTime is null
+   */
+  public static Time of( LocalTime localTime )
   {
-    // convert to string to "hh:mm" format
-    return toString( 2 );
+    Objects.requireNonNull( localTime, "LocalTime cannot be null" );
+    return new Time( (int) ( localTime.toNanoOfDay() / 1_000_000L ) );
   }
 
-  /****************************************** toString *******************************************/
-  public String toString( int fieldCount )
-  {
-    // return time as string in "hh:mm:ss.mmm" or shorter format depending on field-count value
-    if ( fieldCount < 1 )
-      throw new IllegalArgumentException( "Field count must be greater than 1 (" + fieldCount + ")" );
-    StringBuilder sb = new StringBuilder( 12 );
-
-    // hours component
-    int hour = m_milliseconds / ONE_HOUR;
-    if ( hour < 10 )
-      sb.append( '0' );
-    sb.append( hour );
-    if ( fieldCount == 1 )
-      return sb.toString();
-
-    // minutes component
-    int minute = m_milliseconds / ONE_MINUTE % 60;
-    sb.append( ':' );
-    if ( minute < 10 )
-      sb.append( '0' );
-    sb.append( minute );
-    if ( fieldCount == 2 )
-      return sb.toString();
-
-    // seconds component
-    int second = m_milliseconds / ONE_SECOND % 60;
-    sb.append( ':' );
-    if ( second < 10 )
-      sb.append( '0' );
-    sb.append( second );
-    if ( fieldCount == 3 )
-      return sb.toString();
-
-    // milliseconds component
-    int milli = m_milliseconds % ONE_SECOND;
-    sb.append( '.' );
-    if ( milli < 100 )
-      sb.append( '0' );
-    if ( milli < 10 )
-      sb.append( '0' );
-    sb.append( milli );
-
-    // return full "hh:mm:ss.mmm" format when field-count 4 or greater
-    return sb.toString();
-
-  }
-
-  /********************************************* now *********************************************/
+  /**
+   * Creates a Time from the current system time.
+   * 
+   * @return a new Time representing the current time of day
+   */
   public static Time now()
   {
-    // return a new Time from current system clock
-    return new Time( (int) ( ( System.currentTimeMillis() + TZ_MS_OFFSET ) % MILLISECONDS_IN_DAY ) );
+    return of( LocalTime.now() );
   }
 
-  /****************************************** getHours *******************************************/
+  /**
+   * Parses a time string into a Time instance.
+   * 
+   * <p>Supports various formats including:
+   * <ul>
+   * <li>Numeric: "8" (8:00), "830" (8:30), "83045" (8:30:45)</li>
+   * <li>Standard: "8:30:45.123", "08:30", "24:00:00"</li>
+   * <li>Flexible separators: "8.30", "8 30 45"</li>
+   * </ul>
+   * 
+   * @param timeString the string to parse
+   * @return a new Time instance
+   * @throws IllegalArgumentException if the string cannot be parsed
+   * @throws NullPointerException if timeString is null
+   */
+  public static Time parse( String timeString )
+  {
+    Objects.requireNonNull( timeString, "Time string cannot be null" );
+
+    String cleaned = timeString.trim();
+    if ( cleaned.isEmpty() )
+      throw new IllegalArgumentException( "Time string cannot be empty" );
+
+    try
+    {
+      // try parsing as pure number first (fastest path)
+      if ( NUMERIC_PATTERN.matcher( cleaned ).matches() )
+        return parseNumericString( cleaned );
+
+      // check for end-of-day pattern (24:00:00)
+      if ( END_OF_DAY_PATTERN.matcher( cleaned ).matches() )
+        return MAX_VALUE;
+
+      // use LocalTime parser with flexible format
+      LocalTime localTime = LocalTime.parse( cleaned, FLEXIBLE_FORMATTER );
+      return of( localTime );
+
+    }
+    catch ( DateTimeParseException | NumberFormatException e )
+    {
+      throw new IllegalArgumentException( "Cannot parse time string: '" + timeString + "'", e );
+    }
+  }
+
+  // ================================ Accessor Methods ================================
+
+  /**
+   * Gets the hours component (0-24).
+   */
   public int getHours()
   {
-    // return hours (0 to 24 inclusive)
-    return m_milliseconds / ONE_HOUR;
+    return m_milliseconds / MILLIS_PER_HOUR;
   }
 
-  /***************************************** getMinutes ******************************************/
+  /**
+   * Gets the minutes component (0-59).
+   */
   public int getMinutes()
   {
-    // return minutes (0 to 59 inclusive)
-    return m_milliseconds / ONE_MINUTE % 60;
+    return ( m_milliseconds / MILLIS_PER_MINUTE ) % 60;
   }
 
-  /***************************************** getSeconds ******************************************/
+  /**
+   * Gets the seconds component (0-59).
+   */
   public int getSeconds()
   {
-    // return seconds (0 to 59 inclusive)
-    return m_milliseconds / ONE_SECOND % 60;
+    return ( m_milliseconds / MILLIS_PER_SECOND ) % 60;
   }
 
-  /*************************************** getMilliseconds ***************************************/
+  /**
+   * Gets the milliseconds component (0-999).
+   */
   public int getMilliseconds()
   {
-    // return milliseconds fraction of seconds (0 to 999 inclusive)
-    return m_milliseconds % ONE_SECOND;
+    return m_milliseconds % MILLIS_PER_SECOND;
   }
 
-  /******************************************* equals ********************************************/
-  @Override
-  public boolean equals( Object other )
+  /**
+   * Gets the total milliseconds since midnight.
+   */
+  public int toMillisecondsOfDay()
   {
-    // return true if other object represents same time
-    if ( other != null && other instanceof Time time )
-      return m_milliseconds == time.m_milliseconds;
-
-    return false;
-  }
-
-  /****************************************** hashCode ******************************************/
-  @Override
-  public int hashCode()
-  {
-    // time hash code is simply the day milliseconds
     return m_milliseconds;
   }
 
-  /*************************************** addMilliseconds ***************************************/
-  public void addMilliseconds( int ms )
+  /**
+   * Converts to fractional hours.
+   */
+  public double toHours()
   {
-    // add milliseconds to this time
-    m_milliseconds += ms;
-    if ( m_milliseconds < 0 )
-      m_milliseconds = m_milliseconds % MILLISECONDS_IN_DAY + MILLISECONDS_IN_DAY;
-    if ( m_milliseconds > MILLISECONDS_IN_DAY )
-      m_milliseconds = m_milliseconds % MILLISECONDS_IN_DAY;
+    return (double) m_milliseconds / MILLIS_PER_HOUR;
+  }
+
+  /**
+   * Converts to a LocalTime (24:00:00 becomes 00:00:00).
+   */
+  public LocalTime toLocalTime()
+  {
+    return m_milliseconds == MILLIS_PER_DAY ? LocalTime.MIDNIGHT : LocalTime.ofNanoOfDay( m_milliseconds * 1_000_000L );
+  }
+
+  // ================================ Arithmetic Methods ================================
+
+  /**
+   * Returns a copy with the specified milliseconds added.
+   * Values wrap around day boundaries.
+   */
+  public Time plusMilliseconds( int millisToAdd )
+  {
+    int newMillis = ( m_milliseconds + millisToAdd ) % MILLIS_PER_DAY;
+    if ( newMillis < 0 )
+      newMillis += MILLIS_PER_DAY;
+    return new Time( newMillis );
+  }
+
+  /**
+   * Returns a copy with the specified seconds added.
+   */
+  public Time plusSeconds( int secondsToAdd )
+  {
+    return plusMilliseconds( secondsToAdd * MILLIS_PER_SECOND );
+  }
+
+  /**
+   * Returns a copy with the specified minutes added.
+   */
+  public Time plusMinutes( int minutesToAdd )
+  {
+    return plusMilliseconds( minutesToAdd * MILLIS_PER_MINUTE );
+  }
+
+  /**
+   * Returns a copy with the specified hours added.
+   */
+  public Time plusHours( int hoursToAdd )
+  {
+    return plusMilliseconds( hoursToAdd * MILLIS_PER_HOUR );
+  }
+
+  // ================================ Comparison Methods ================================
+
+  /**
+   * Checks if this time is before the specified time.
+   */
+  public boolean isBefore( Time other )
+  {
+    Objects.requireNonNull( other );
+    return m_milliseconds < other.m_milliseconds;
+  }
+
+  /**
+   * Checks if this time is after the specified time.
+   */
+  public boolean isAfter( Time other )
+  {
+    Objects.requireNonNull( other );
+    return m_milliseconds > other.m_milliseconds;
+  }
+
+  /**
+   * Returns the difference in milliseconds between this time and another.
+   * Positive if this time is later, negative if earlier.
+   */
+  @Override
+  public int compareTo( Time other )
+  {
+    return Integer.compare( m_milliseconds, other.m_milliseconds );
+  }
+
+  /**
+   * Returns the absolute difference in milliseconds between two times.
+   */
+  public int differenceInMillis( Time other )
+  {
+    Objects.requireNonNull( other );
+    return Math.abs( m_milliseconds - other.m_milliseconds );
+  }
+
+  // ================================ Formatting Methods ================================
+
+  /**
+   * Returns time formatted as "HH:MM:SS.mmm".
+   */
+  @Override
+  public String toString()
+  {
+    return formatTime( 4 );
+  }
+
+  /**
+   * Returns time formatted as "HH:MM".
+   */
+  public String toShortString()
+  {
+    return formatTime( 2 );
+  }
+
+  /**
+   * Returns time with specified number of components.
+   * 
+   * @param components 1=HH, 2=HH:MM, 3=HH:MM:SS, 4+=HH:MM:SS.mmm
+   */
+  public String format( int components )
+  {
+    if ( components < 1 )
+      throw new IllegalArgumentException( "Components must be >= 1" );
+    return formatTime( components );
+  }
+
+  // ================================ Object Methods ================================
+
+  @Override
+  public boolean equals( Object obj )
+  {
+    if ( this == obj )
+      return true;
+    if ( obj instanceof Time other )
+      return m_milliseconds == other.m_milliseconds;
+    return false;
+  }
+
+  @Override
+  public int hashCode()
+  {
+    return Integer.hashCode( m_milliseconds );
+  }
+
+  // ================================ Private Helper Methods ================================
+
+  private static void validateTimeComponents( int hours, int minutes, int seconds, int millis )
+  {
+    if ( hours < 0 || hours > 24 )
+      throw new IllegalArgumentException( "Hours must be 0-24, got: " + hours );
+    if ( minutes < 0 || minutes > 59 )
+      throw new IllegalArgumentException( "Minutes must be 0-59, got: " + minutes );
+    if ( seconds < 0 || seconds > 59 )
+      throw new IllegalArgumentException( "Seconds must be 0-59, got: " + seconds );
+    if ( millis < 0 || millis > 999 )
+      throw new IllegalArgumentException( "Milliseconds must be 0-999, got: " + millis );
+    if ( hours == 24 && ( minutes > 0 || seconds > 0 || millis > 0 ) )
+      throw new IllegalArgumentException( "Time components beyond 24:00:00.000 not allowed" );
+  }
+
+  private static Time parseNumericString( String numStr )
+  {
+    int num = Integer.parseInt( numStr );
+    int len = numStr.length();
+
+    return switch ( len )
+    {
+      case 1, 2 -> of( num, 0, 0, 0 ); // "8" -> 08:00:00
+      case 3, 4 -> of( num / 100, num % 100, 0, 0 ); // "830" -> 08:30:00
+      case 5, 6 -> of( num / 10000, ( num / 100 ) % 100, num % 100, 0 ); // "83045" -> 08:30:45
+      default -> throw new IllegalArgumentException( "Numeric string too long: " + numStr );
+    };
+  }
+
+  private String formatTime( int components )
+  {
+    StringBuilder sb = new StringBuilder( 12 );
+
+    // hours (always included)
+    int h = getHours();
+    if ( h < 10 )
+      sb.append( '0' );
+    sb.append( h );
+
+    if ( components >= 2 )
+    {
+      // minutes
+      int m = getMinutes();
+      sb.append( ':' );
+      if ( m < 10 )
+        sb.append( '0' );
+      sb.append( m );
+
+      if ( components >= 3 )
+      {
+        // seconds
+        int s = getSeconds();
+        sb.append( ':' );
+        if ( s < 10 )
+          sb.append( '0' );
+        sb.append( s );
+
+        if ( components >= 4 )
+        {
+          // milliseconds
+          int ms = getMilliseconds();
+          sb.append( '.' );
+          if ( ms < 100 )
+            sb.append( '0' );
+          if ( ms < 10 )
+            sb.append( '0' );
+          sb.append( ms );
+        }
+      }
+    }
+
+    return sb.toString();
   }
 }
