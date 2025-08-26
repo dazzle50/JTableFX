@@ -54,7 +54,7 @@ public class TimeField extends AbstractDropDownField
     Platform.runLater( () -> m_timeWidget.setStatus( getStatus() ) );
 
     // set initial time truncated to hour
-    setTime( Time.ofHours( Time.now().getHours() ) );
+    setTime( Time.ofHours( Time.now().getHour() ) );
   }
 
   /**************************************** constructor ******************************************/

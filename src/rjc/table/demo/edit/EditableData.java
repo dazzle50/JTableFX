@@ -59,7 +59,7 @@ public class EditableData
     m_double = id + 10.0;
     m_date = Date.now().plusDays( id * 5 - 20 );
     m_time = Time.now().plusMilliseconds( id * 12345678 );
-    m_datetime = new DateTime( m_date, m_time );
+    m_datetime = DateTime.of( m_date, m_time );
     m_fruit = Fruit.values()[id % Fruit.values().length];
   }
 

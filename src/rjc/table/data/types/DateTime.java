@@ -20,451 +20,543 @@ package rjc.table.data.types;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
-
-import rjc.table.Utils;
+import java.time.format.DateTimeParseException;
+import java.util.Objects;
 
 /*************************************************************************************************/
-/******************************** Date-time (with no time-zone) **********************************/
+/*********************************** DateTime (with no time-zone) ********************************/
 /*************************************************************************************************/
 
-public class DateTime implements Comparable<DateTime>, Serializable
+/**
+ * Immutable date-time class representing a specific instant in time.
+ * <p>
+ * This class combines the {@link Date} and {@link Time} classes to provide a comprehensive
+ * representation of a date and time distinguishing 24:00 (of current date) and 00:00 (of next date). 
+ * It is immutable and thread-safe, with 24:00 considered earlier in comparisons.
+ */
+public final class DateTime implements Serializable, Comparable<DateTime>
 {
-  private static final long    serialVersionUID    = Utils.VERSION.hashCode();
+  private static final long serialVersionUID = 1L;
 
-  // milliseconds from 00:00:00.000 start of epoch-day
-  private long                 m_milliseconds;
+  // private variables holding the date and time components
+  private final Date        m_date;
+  private final Time        m_time;
 
-  // milliseconds in day
-  public static final long     MILLISECONDS_IN_DAY = Time.MILLIS_PER_DAY;
-
-  // range constrained by valid Date (approx 5,800,000 BC to 5,800,000 AD)
-  public static final DateTime MIN_VALUE           = new DateTime( Date.MIN_VALUE, Time.MAX_VALUE );
-  public static final DateTime MAX_VALUE           = new DateTime( Date.MAX_VALUE, Time.MIN_VALUE );
-
-  public enum Interval
+  // different time interval units for truncation, stepping & rounding operations
+  public enum IntervalUnit
   {
-    YEAR, HALFYEAR, QUARTERYEAR, MONTH, WEEK, DAY, HALFDAY, QUARTERDAY, HOUR, MINUTE, SECOND
+    YEARS, HALF_YEARS, QUARTER_YEARS, MONTHS, WEEKS, DAYS, HALF_DAYS, QUARTER_DAYS, HOURS, MINUTES, SECONDS, MILLISECONDS
   }
 
-  private static final char   QUOTE = '\'';
-  private static final char   CHARB = 'B';
-  private static final String CODE  = "#@B!";
+  // ================================= Constructors =================================
 
-  /***************************************** constructor *****************************************/
-  public DateTime( long ms )
+  /**
+   * Private constructor - use factory methods instead.
+   *
+   * @param date The date part.
+   * @param time The time part.
+   */
+  private DateTime( Date date, Time time )
   {
-    // constructor
-    m_milliseconds = ms;
+    m_date = Objects.requireNonNull( date, "Date cannot be null" );
+    m_time = Objects.requireNonNull( time, "Time cannot be null" );
   }
 
-  /***************************************** constructor *****************************************/
-  public DateTime( DateTime dt )
+  // ================================= Factory Methods =================================
+
+  /**
+   * Creates a DateTime from a Date and a Time.
+   *
+   * @param date The date.
+   * @param time The time.
+   * @return A new DateTime instance.
+   */
+  public static DateTime of( Date date, Time time )
   {
-    // constructor
-    m_milliseconds = dt.m_milliseconds;
+    return new DateTime( date, time );
   }
 
-  /***************************************** constructor *****************************************/
-  public DateTime( String str )
+  /**
+   * Creates a DateTime from year, month, day, hour, minute, and second.
+   *
+   * @param year   The year.
+   * @param month  The month (1-12).
+   * @param day    The day of the month (1-31).
+   * @param hour   The hour (0-23).
+   * @param minute The minute (0-59).
+   * @param second The second (0-59).
+   * @return A new DateTime instance.
+   */
+  public static DateTime of( int year, int month, int day, int hour, int minute, int second )
   {
-    // constructor, date must be split from time by a space
-    int split = str.indexOf( 'T' );
-    Date date = Date.fromString( str.substring( 0, split ) );
-    Time time = Time.parse( str.substring( split + 1, str.length() ) );
-    m_milliseconds = date.getEpochday() * MILLISECONDS_IN_DAY + time.toMillisecondsOfDay();
+    return new DateTime( Date.of( year, month, day ), Time.of( hour, minute, second ) );
   }
 
-  /***************************************** constructor *****************************************/
-  public DateTime( Date date, Time time )
+  /**
+   * Creates a DateTime from a LocalDateTime.
+   *
+   * @param localDateTime The LocalDateTime to convert.
+   * @return A new DateTime instance.
+   */
+  public static DateTime of( LocalDateTime localDateTime )
   {
-    // constructor
-    m_milliseconds = date.getEpochday() * MILLISECONDS_IN_DAY + time.toMillisecondsOfDay();
+    Objects.requireNonNull( localDateTime, "LocalDateTime cannot be null" );
+    return new DateTime( Date.of( localDateTime.toLocalDate() ), Time.of( localDateTime.toLocalTime() ) );
   }
 
-  /***************************************** constructor *****************************************/
-  public DateTime( LocalDateTime dt )
-  {
-    // constructor
-    Date date = new Date( dt.toLocalDate() );
-    Time time = Time.of( dt.toLocalTime() );
-    m_milliseconds = date.getEpochday() * MILLISECONDS_IN_DAY + time.toMillisecondsOfDay();
-  }
-
-  /****************************************** toString *******************************************/
-  @Override
-  public String toString()
-  {
-    // convert to string to "YYYY-MM-DDThh:mm:ss.mmm" format
-    return getDate().toString() + "T" + getTime().toString();
-  }
-
-  /****************************************** toString *******************************************/
-  public String toString( String format )
-  {
-    // convert to string in specified format
-    long secs = m_milliseconds / 1000L;
-    int nanos = (int) ( m_milliseconds % 1000L * 1000000L );
-    if ( nanos < 0 )
-    {
-      nanos += 1000000000;
-      secs--;
-    }
-    LocalDateTime ldt = LocalDateTime.ofEpochSecond( secs, nanos, ZoneOffset.UTC );
-
-    // to support half-of-year using Bs, quote any unquoted Bs in format
-    StringBuilder newFormat = new StringBuilder();
-    boolean inQuote = false;
-    boolean inB = false;
-    char here;
-    for ( int i = 0; i < format.length(); i++ )
-    {
-      here = format.charAt( i );
-
-      // are we in quoted text?
-      if ( here == QUOTE )
-        inQuote = !inQuote;
-
-      // replace unquoted Bs with special code
-      if ( inB && here == CHARB )
-      {
-        newFormat.append( CODE );
-        continue;
-      }
-
-      // come to end of unquoted Bs
-      if ( inB && here != CHARB )
-      {
-        newFormat.append( QUOTE );
-        inB = false;
-        inQuote = false;
-      }
-
-      // start of unquoted Bs, start quote with special code
-      if ( !inQuote && here == CHARB )
-      {
-        // avoid creating double quotes
-        if ( newFormat.length() > 0 && newFormat.charAt( newFormat.length() - 1 ) == QUOTE )
-        {
-          newFormat.deleteCharAt( newFormat.length() - 1 );
-          newFormat.append( CODE );
-        }
-        else
-          newFormat.append( "'" + CODE );
-        inQuote = true;
-        inB = true;
-      }
-      else
-      {
-        newFormat.append( here );
-      }
-    }
-
-    // close quote if quote still open
-    if ( inQuote )
-      newFormat.append( QUOTE );
-
-    String str = ldt.format( DateTimeFormatter.ofPattern( newFormat.toString() ) );
-
-    // no special code so can return string immediately
-    if ( !str.contains( CODE ) )
-      return str;
-
-    // determine half-of-year
-    String yearHalf;
-    if ( getDate().getMonth() < 7 )
-      yearHalf = "1";
-    else
-      yearHalf = "2";
-
-    // four or more Bs is not allowed
-    String Bs = CODE + CODE + CODE + CODE;
-    if ( str.contains( Bs ) )
-      throw new IllegalArgumentException( "Too many pattern letters: B" );
-
-    // replace three Bs
-    Bs = CODE + CODE + CODE;
-    if ( yearHalf.equals( "1" ) )
-      str = str.replace( Bs, yearHalf + "st half" );
-    else
-      str = str.replace( Bs, yearHalf + "nd half" );
-
-    // replace two Bs
-    Bs = CODE + CODE;
-    str = str.replace( Bs, "H" + yearHalf );
-
-    // replace one Bs
-    Bs = CODE;
-    str = str.replace( Bs, yearHalf );
-
-    return str;
-  }
-
-  /******************************************* getDate *******************************************/
-  public Date getDate()
-  {
-    if ( m_milliseconds < 0 )
-      return new Date( (int) ( m_milliseconds / MILLISECONDS_IN_DAY ) - 1 );
-
-    return new Date( (int) ( m_milliseconds / MILLISECONDS_IN_DAY ) );
-  }
-
-  /******************************************* getTime *******************************************/
-  public Time getTime()
-  {
-    int ms = (int) ( m_milliseconds % MILLISECONDS_IN_DAY );
-    if ( ms < 0 )
-      ms += MILLISECONDS_IN_DAY;
-
-    return Time.ofMilliseconds( ms );
-  }
-
-  /********************************************* now *********************************************/
+  /**
+   * Creates a DateTime representing the current moment.
+   *
+   * @return A DateTime for the current date and time.
+   */
   public static DateTime now()
   {
-    // return a new DateTime from current system clock
-    return new DateTime( Date.now(), Time.now() );
+    return of( LocalDateTime.now() );
   }
 
-  /************************************** plusMilliseconds ***************************************/
-  public DateTime plusMilliseconds( long ms )
+  /**
+   * Parses a string to create a DateTime.
+   * <p>
+   * The string is expected to be in a format like "yyyy-MM-dd HH:mm:ss" or "yyyy-MM-dd'T'HH:mm:ss".
+   * It intelligently splits the string into date and time parts for parsing.
+   *
+   * @param text The text to parse.
+   * @return The parsed DateTime.
+   * @throws DateTimeParseException if the text cannot be parsed.
+   */
+  public static DateTime parse( String text )
   {
-    return new DateTime( m_milliseconds + ms );
+    Objects.requireNonNull( text, "Text cannot be null" );
+    String trimmedText = text.trim();
+
+    // Common separators between date and time
+    String[] separators = { " ", "T" };
+
+    for ( String separator : separators )
+    {
+      int sepIndex = trimmedText.lastIndexOf( separator );
+      if ( sepIndex > 0 )
+      {
+        String dateStr = trimmedText.substring( 0, sepIndex );
+        String timeStr = trimmedText.substring( sepIndex + 1 );
+        try
+        {
+          Date date = Date.parseIntelligent( dateStr );
+          Time time = Time.parse( timeStr );
+          return new DateTime( date, time );
+        }
+        catch ( IllegalArgumentException | DateTimeParseException e )
+        {
+          // Continue to next separator or fail
+        }
+      }
+    }
+
+    throw new DateTimeParseException( "Unable to parse DateTime: " + text, trimmedText, 0 );
   }
 
-  /************************************** addMilliseconds ***************************************/
-  public void addMilliseconds( long ms )
+  // ================================ Accessor Methods ================================
+
+  /**
+   * Gets the date part of this date-time.
+   *
+   * @return The date part.
+   */
+  public Date getDate()
   {
-    m_milliseconds += ms;
+    return m_date;
   }
 
-  /*************************************** getMilliseconds ***************************************/
-  public long getMilliseconds()
+  /**
+   * Gets the time part of this date-time.
+   *
+   * @return The time part.
+   */
+  public Time getTime()
   {
-    return m_milliseconds;
+    return m_time;
   }
 
-  /**************************************** getTruncated *****************************************/
-  public DateTime getTruncated( Interval interval )
+  /**
+   * Returns a copy of this DateTime with the time portion replaced.
+   */
+  public DateTime withTime( Time newTime )
   {
-    // return new date-time truncated down to specified interval
-    if ( interval == Interval.YEAR )
-    {
-      Date date = new Date( getDate().getYear(), 1, 1 );
-      return new DateTime( date.getEpochday() * MILLISECONDS_IN_DAY );
-    }
-
-    if ( interval == Interval.HALFYEAR )
-    {
-      Date date = getDate();
-      int month = ( ( date.getMonth() - 1 ) / 6 ) * 6 + 1;
-
-      Date hy = new Date( date.getYear(), month, 1 );
-      return new DateTime( hy.getEpochday() * MILLISECONDS_IN_DAY );
-    }
-
-    if ( interval == Interval.QUARTERYEAR )
-    {
-      Date date = getDate();
-      int month = ( ( date.getMonth() - 1 ) / 3 ) * 3 + 1;
-
-      Date qy = new Date( date.getYear(), month, 1 );
-      return new DateTime( qy.getEpochday() * MILLISECONDS_IN_DAY );
-    }
-
-    if ( interval == Interval.MONTH )
-    {
-      Date date = getDate();
-      Date md = new Date( date.getYear(), date.getMonth(), 1 );
-      return new DateTime( md.getEpochday() * MILLISECONDS_IN_DAY );
-    }
-
-    if ( interval == Interval.WEEK )
-    {
-      int day = (int) ( m_milliseconds / MILLISECONDS_IN_DAY );
-      int dayOfWeek = ( day + 3 ) % 7;
-      return new DateTime( ( day - dayOfWeek ) * MILLISECONDS_IN_DAY );
-    }
-
-    if ( interval == Interval.DAY )
-    {
-      long ms = ( m_milliseconds / MILLISECONDS_IN_DAY ) * MILLISECONDS_IN_DAY;
-      return new DateTime( ms );
-    }
-
-    throw new IllegalArgumentException( "interval=" + interval );
+    return new DateTime( m_date, newTime );
   }
 
-  /****************************************** plusDays *******************************************/
+  /**
+   * Returns a copy of this DateTime with the date portion replaced.
+   */
+  public DateTime withDate( Date newDate )
+  {
+    return new DateTime( newDate, m_time );
+  }
+
+  // ================================= Date Arithmetic =================================
+
+  /**
+   * Returns a copy of this DateTime with the specified number of days added.
+   *
+   * @param days The days to add (can be negative).
+   * @return A new DateTime instance.
+   */
   public DateTime plusDays( int days )
   {
-    // return new date-time specified days added or subtracted
-    return new DateTime( m_milliseconds + days * MILLISECONDS_IN_DAY );
+    return new DateTime( m_date.plusDays( days ), m_time );
   }
 
-  /***************************************** plusMonths ******************************************/
-  public DateTime plusMonths( int months )
+  /**
+   * Returns a copy of this DateTime with the specified number of milliseconds added.
+   *
+   * @param millis The milliseconds to add (can be negative).
+   * @return A new DateTime instance.
+   */
+  public DateTime plusMilliseconds( long millis )
   {
-    // return new date-time specified months added or subtracted
-    return new DateTime( getDate().plusMonths( months ), getTime() );
+    if ( millis == 0 )
+      return this;
+
+    long totalMillis = m_time.toMillisecondsOfDay() + millis;
+    long dayChange = totalMillis / Time.MILLIS_PER_DAY;
+    long newMillis = totalMillis % Time.MILLIS_PER_DAY;
+
+    // adjust for negative remainder
+    if ( newMillis < 0 )
+    {
+      newMillis += Time.MILLIS_PER_DAY;
+      dayChange--;
+    }
+
+    Date newDate = m_date.plusDays( (int) dayChange );
+    Time newTime = Time.ofMilliseconds( (int) newMillis );
+
+    return new DateTime( newDate, newTime );
   }
 
-  /***************************************** plusYears *******************************************/
-  public DateTime plusYears( int years )
+  /**
+   * Returns a copy of this DateTime with the specified number of seconds added.
+   *
+   * @param seconds The seconds to add (can be negative).
+   * @return A new DateTime instance.
+   */
+  public DateTime plusSeconds( int seconds )
   {
-    // return new date-time specified years added or subtracted
-    return new DateTime( getDate().plusYears( years ), getTime() );
+    return plusMilliseconds( (long) seconds * Time.MILLIS_PER_SECOND );
   }
 
-  /**************************************** plusInterval *****************************************/
-  public DateTime plusInterval( Interval interval )
+  /**
+   * Returns a copy of this DateTime with the specified number of minutes added.
+   *
+   * @param minutes The minutes to add (can be negative).
+   * @return A new DateTime instance.
+   */
+  public DateTime plusMinutes( int minutes )
   {
-    // add one specified interval to date-time
-    if ( interval == Interval.YEAR )
-      return plusYears( 1 );
-
-    if ( interval == Interval.HALFYEAR )
-      return plusMonths( 6 );
-
-    if ( interval == Interval.QUARTERYEAR )
-      return plusMonths( 3 );
-
-    if ( interval == Interval.MONTH )
-      return plusMonths( 1 );
-
-    if ( interval == Interval.WEEK )
-      return plusDays( 7 );
-
-    if ( interval == Interval.DAY )
-      return plusDays( 1 );
-
-    throw new IllegalArgumentException( "interval=" + interval );
+    return plusMilliseconds( (long) minutes * Time.MILLIS_PER_MINUTE );
   }
 
-  /****************************************** isLessThan *****************************************/
-  public boolean isLessThan( DateTime other )
+  /**
+   * Returns a copy of this DateTime with the specified number of hours added.
+   * This may change the date.
+   *
+   * @param hours The hours to add (can be negative).
+   * @return A new DateTime instance.
+   */
+  public DateTime plusHours( int hours )
   {
-    return m_milliseconds < other.m_milliseconds;
+    return plusMilliseconds( (long) hours * Time.MILLIS_PER_HOUR );
   }
 
-  /******************************************* equals ********************************************/
-  @Override
-  public boolean equals( Object other )
+  /**
+   * Returns a copy of this DateTime with the date-time rounded down to the specified unit.
+   * <p>
+   * This method truncates both date and time portions as appropriate. For example:
+   * <ul>
+   * <li>Truncating to YEARS sets date to January 1st and time to 00:00:00.000</li>
+   * <li>Truncating to HALF_YEARS sets date to January 1st or July 1st and time to 00:00:00.000</li>
+   * <li>Truncating to QUARTER_YEARS sets date to Jan 1st, Apr 1st, Jul 1st, or Oct 1st and time to 00:00:00.000</li>
+   * <li>Truncating to MONTHS sets date to 1st of current month and time to 00:00:00.000</li>
+   * <li>Truncating to WEEKS sets date to Monday of current week and time to 00:00:00.000</li>
+   * <li>Truncating to DAYS sets time to 00:00:00.000</li>
+   * <li>Truncating to HALF_DAYS sets time to 00:00:00.000 or 12:00:00.000</li>
+   * <li>Truncating to QUARTER_DAYS sets time to 00:00, 06:00, 12:00, or 18:00</li>
+   * <li>Truncating to HOURS sets minutes, seconds, and milliseconds to 0</li>
+   * <li>Truncating to MINUTES sets seconds and milliseconds to 0</li>
+   * <li>Truncating to SECONDS sets milliseconds to 0</li>
+   * <li>Truncating to MILLISECONDS returns the same DateTime (no change)</li>
+   * </ul>
+   *
+   * @param unit The unit to round down to.
+   * @return A new DateTime instance with the date/time truncated.
+   * @throws IllegalArgumentException if unit is null.
+   */
+  public DateTime roundDown( IntervalUnit unit )
   {
-    // return true if other object represents same date-time
-    if ( other != null && other instanceof DateTime dt )
-      return m_milliseconds == dt.m_milliseconds;
+    Objects.requireNonNull( unit, "TimeUnit cannot be null" );
 
-    return false;
+    switch ( unit )
+    {
+      case YEARS:
+        return new DateTime( Date.of( m_date.getYear(), 1, 1 ), Time.of( 0, 0, 0 ) );
+
+      case HALF_YEARS:
+        int halfYear = ( m_date.getMonth() <= 6 ) ? 1 : 7;
+        return new DateTime( Date.of( m_date.getYear(), halfYear, 1 ), Time.of( 0, 0, 0 ) );
+
+      case QUARTER_YEARS:
+        int quarterMonth = ( ( m_date.getMonth() - 1 ) / 3 ) * 3 + 1; // 1, 4, 7, or 10
+        return new DateTime( Date.of( m_date.getYear(), quarterMonth, 1 ), Time.of( 0, 0, 0 ) );
+
+      case MONTHS:
+        return new DateTime( Date.of( m_date.getYear(), m_date.getMonth(), 1 ), Time.of( 0, 0, 0 ) );
+
+      case WEEKS:
+        // truncate to Monday of current week (ISO 8601 standard)
+        int dayOfWeek = m_date.getDayOfWeek().getValue(); // assuming 1=Monday, 7=Sunday
+        int daysToSubtract = ( dayOfWeek == 7 ) ? 6 : dayOfWeek - 1; // handle Sunday as 7
+        Date mondayDate = m_date.plusDays( -daysToSubtract );
+        return new DateTime( mondayDate, Time.of( 0, 0, 0 ) );
+
+      case DAYS:
+        return new DateTime( m_date, Time.of( 0, 0, 0 ) );
+
+      case HALF_DAYS:
+        int halfDayHour = ( m_time.getHour() < 12 ) ? 0 : 12;
+        return new DateTime( m_date, Time.of( halfDayHour, 0, 0 ) );
+
+      case QUARTER_DAYS:
+        int quarterHour = ( m_time.getHour() / 6 ) * 6; // 0, 6, 12, or 18
+        return new DateTime( m_date, Time.of( quarterHour, 0, 0 ) );
+
+      case HOURS:
+        return new DateTime( m_date, Time.of( m_time.getHour(), 0, 0 ) );
+
+      case MINUTES:
+        return new DateTime( m_date, Time.of( m_time.getHour(), m_time.getMinute(), 0 ) );
+
+      case SECONDS:
+        return new DateTime( m_date, Time.of( m_time.getHour(), m_time.getMinute(), m_time.getSecond() ) );
+
+      case MILLISECONDS:
+        return this; // no truncation needed
+
+      default:
+        throw new IllegalArgumentException( "Unsupported TimeUnit: " + unit );
+    }
   }
 
-  /****************************************** hashCode ******************************************/
-  @Override
-  public int hashCode()
+  /**
+   * Returns a copy of this DateTime with the specified amount of time added.
+   * <p>
+   * This method adds the specified amount of the given time unit to this DateTime.
+   * The amount can be negative to subtract time. For example:
+   * <ul>
+   * <li>Adding YEARS adds the specified number of years</li>
+   * <li>Adding HALF_YEARS adds 6-month periods</li>
+   * <li>Adding QUARTER_YEARS adds 3-month periods</li>
+   * <li>Adding MONTHS adds the specified number of months</li>
+   * <li>Adding WEEKS adds 7-day periods</li>
+   * <li>Adding DAYS adds the specified number of days</li>
+   * <li>Adding HALF_DAYS adds 12-hour periods</li>
+   * <li>Adding QUARTER_DAYS adds 6-hour periods</li>
+   * <li>Adding HOURS adds the specified number of hours</li>
+   * <li>Adding MINUTES adds the specified number of minutes</li>
+   * <li>Adding SECONDS adds the specified number of seconds</li>
+   * <li>Adding MILLISECONDS adds the specified number of milliseconds</li>
+   * </ul>
+   *
+   * @param amount The amount to add (can be negative to subtract).
+   * @param unit The unit of time to add.
+   * @return A new DateTime instance with the time added.
+   * @throws IllegalArgumentException if unit is null.
+   */
+  public DateTime plusInterval( int amount, IntervalUnit unit )
   {
-    // date-time hash code is based on the millisecond value
-    return (int) ( m_milliseconds ^ ( m_milliseconds >>> 32 ) );
+    Objects.requireNonNull( unit, "TimeUnit cannot be null" );
+
+    if ( amount == 0 )
+      return this;
+
+    switch ( unit )
+    {
+      case YEARS:
+        return new DateTime( m_date.plusYears( amount ), m_time );
+
+      case HALF_YEARS:
+        return new DateTime( m_date.plusMonths( amount * 6 ), m_time );
+
+      case QUARTER_YEARS:
+        return new DateTime( m_date.plusMonths( amount * 3 ), m_time );
+
+      case MONTHS:
+        return new DateTime( m_date.plusMonths( amount ), m_time );
+
+      case WEEKS:
+        return plusDays( amount * 7 );
+
+      case DAYS:
+        return plusDays( amount );
+
+      case HALF_DAYS:
+        return plusHours( amount * 12 );
+
+      case QUARTER_DAYS:
+        return plusHours( amount * 6 );
+
+      case HOURS:
+        return plusHours( amount );
+
+      case MINUTES:
+        return plusMinutes( amount );
+
+      case SECONDS:
+        return plusSeconds( amount );
+
+      case MILLISECONDS:
+        return plusMilliseconds( amount );
+
+      default:
+        throw new IllegalArgumentException( "Unsupported TimeUnit: " + unit );
+    }
   }
 
-  /****************************************** compareTo ******************************************/
+  /**
+   * Returns a copy of this DateTime rounded up (ceiling) to the specified unit.
+   * <p>
+   * This method rounds the DateTime up to the next boundary of the specified unit.
+   * If the DateTime is already at an exact boundary, it returns the same DateTime.
+   * For example:
+   * <ul>
+   * <li>Rounding up to YEARS rounds up to January 1st of the next year (if not already Jan 1st at 00:00)</li>
+   * <li>Rounding up to MONTHS rounds up to the 1st of the next month (if not already 1st at 00:00)</li>
+   * <li>Rounding up to DAYS rounds up to 00:00:00.000 of the next day (if not already at 00:00)</li>
+   * <li>Rounding up to HOURS rounds up to the next hour boundary (if not already at :00)</li>
+   * </ul>
+   *
+   * @param unit The unit to round up to.
+   * @return A new DateTime instance rounded up to the unit boundary.
+   * @throws IllegalArgumentException if unit is null.
+   */
+  public DateTime roundUp( IntervalUnit unit )
+  {
+    Objects.requireNonNull( unit, "TimeUnit cannot be null" );
+    DateTime truncated = roundDown( unit );
+
+    // if already at boundary, return as-is
+    if ( this.equals( truncated ) )
+      return this;
+
+    // otherwise, add one unit to the truncated value
+    return truncated.plusInterval( 1, unit );
+  }
+
+  /**
+   * Converts this DateTime to milliseconds since epoch (January 1, 1970, 00:00:00 UTC).
+   * <p>
+   * This method directly calculates epoch milliseconds using the date's epoch day
+   * and the time's milliseconds of day.
+   *
+   * @return The number of milliseconds since the date-time epoch.
+   */
+  public long toMilliseconds()
+  {
+    long epochDay = m_date.getEpochDay();
+    long millisOfDay = m_time.toMillisecondsOfDay();
+    return epochDay * Time.MILLIS_PER_DAY + millisOfDay;
+  }
+
+  /**
+   * Creates a DateTime from milliseconds since epoch (January 1, 1970, 00:00:00 UTC).
+   *
+   * @param epochMillis The milliseconds since the date-time epoch.
+   * @return A new DateTime instance.
+   */
+  public static DateTime ofMilliseconds( long epochMillis )
+  {
+    int epochDay = (int) ( epochMillis / Time.MILLIS_PER_DAY );
+    int millisOfDay = (int) ( epochMillis % Time.MILLIS_PER_DAY );
+
+    Date date = Date.ofEpochDay( epochDay );
+    Time time = Time.ofMilliseconds( millisOfDay );
+    return new DateTime( date, time );
+  }
+
+  // ================================= Comparison Methods =================================
+
+  /**
+   * Checks if this DateTime is before the specified DateTime.
+   *
+   * @param other The other DateTime to compare to.
+   * @return true if this is before other.
+   */
+  public boolean isBefore( DateTime other )
+  {
+    return compareTo( other ) < 0;
+  }
+
+  /**
+   * Checks if this DateTime is after the specified DateTime.
+   *
+   * @param other The other DateTime to compare to.
+   * @return true if this is after other.
+   */
+  public boolean isAfter( DateTime other )
+  {
+    return compareTo( other ) > 0;
+  }
+
   @Override
   public int compareTo( DateTime other )
   {
-    long sign = m_milliseconds - other.m_milliseconds;
-    if ( sign > 0 )
-      return 1;
-    if ( sign < 0 )
-      return -1;
-    return 0;
+    Objects.requireNonNull( other, "Other DateTime cannot be null" );
+    int dateCmp = m_date.compareTo( other.m_date );
+    if ( dateCmp != 0 )
+      return dateCmp;
+    return m_time.compareTo( other.m_time );
   }
 
-  /******************************************** parse ********************************************/
-  public static DateTime parse( String text, String format )
+  // ================================= Object Methods =================================
+
+  @Override
+  public boolean equals( Object obj )
   {
-    // return date-time if text can be parsed, otherwise return null
-    DateTime datetime = tryFormat( text, format );
-    if ( datetime != null )
-      return datetime;
-
-    // try date format
-    Date date = Date.parse( text, format );
-    if ( date != null )
-      return new DateTime( date, Time.MIN_VALUE );
-
-    // try "d/M/yy H:m:s.S" and "d/M/y H:m:s.S"
-    datetime = tryDefaultFormat( text );
-    if ( datetime != null )
-      return datetime;
-
-    // add milliseconds
-    datetime = tryDefaultFormat( text + "0" );
-    if ( datetime != null )
-      return datetime;
-    datetime = tryDefaultFormat( text + ".0" );
-    if ( datetime != null )
-      return datetime;
-
-    // add seconds + milliseconds
-    datetime = tryDefaultFormat( text + "0.0" );
-    if ( datetime != null )
-      return datetime;
-    datetime = tryDefaultFormat( text + ":0.0" );
-    if ( datetime != null )
-      return datetime;
-
-    // add minutes + seconds + milliseconds
-    datetime = tryDefaultFormat( text + "0:0.0" );
-    if ( datetime != null )
-      return datetime;
-    datetime = tryDefaultFormat( text + ":0:0.0" );
-    if ( datetime != null )
-      return datetime;
-
-    // add hours + minutes + seconds + milliseconds
-    datetime = tryDefaultFormat( text + "0:0:0.0" );
-    if ( datetime != null )
-      return datetime;
-    return tryDefaultFormat( text + " 0:0:0.0" );
+    if ( this == obj )
+      return true;
+    if ( obj == null || getClass() != obj.getClass() )
+      return false;
+    DateTime other = (DateTime) obj;
+    return m_date.equals( other.m_date ) && m_time.equals( other.m_time );
   }
 
-  /************************************** tryDefaultFormat ***************************************/
-  private static DateTime tryDefaultFormat( String text )
+  @Override
+  public int hashCode()
   {
-    // try "d/M/yy H:m:s.S" and "d/M/y H:m:s.S"
-    DateTime dt = tryFormat( text, "d/M/yy H:m:s.S" );
-    if ( dt != null )
-      return dt;
-    return tryFormat( text, "d/M/y H:m:s.S" );
+    return Objects.hash( m_date, m_time );
   }
 
-  /****************************************** tryFormat ******************************************/
-  private static DateTime tryFormat( String text, String format )
+  /**
+   * Returns the string representation of the DateTime, following the
+   * defaults for Date and Time separated by a space.
+   *
+   * @return The formatted string.
+   */
+  @Override
+  public String toString()
   {
-    // return date-time if text can be parsed, otherwise return null
-    try
-    {
-      LocalDateTime ldt = LocalDateTime.parse( text, DateTimeFormatter.ofPattern( format ) );
-      return new DateTime( ldt );
-    }
-    catch ( Exception exception )
-    {
-      return null;
-    }
+    return m_date.toString() + " " + m_time.toString();
   }
 
-  /************************************** endOfDayMidnight ***************************************/
-  public DateTime endOfDayMidnight()
+  /**
+   * Returns the string representation of the DateTime using the specified date format
+   * and specified number of time components.
+   *
+   * @param datePattern,  The pattern to use for data formatting.
+   * @param timeComponents The time components 1=HH, 2=HH:MM, 3=HH:MM:SS, 4+=HH:MM:SS.mmm.
+   * @return The formatted string.
+   */
+  public String format( String datePattern, int timeComponents )
   {
-    // return new date-time with new time advanced to next midnight
-    long day;
-
-    if ( m_milliseconds < 0 )
-      day = m_milliseconds / MILLISECONDS_IN_DAY;
-    else
-      day = m_milliseconds / MILLISECONDS_IN_DAY + 1;
-
-    return new DateTime( day * MILLISECONDS_IN_DAY );
+    return m_date.format( datePattern ) + " " + m_time.format( timeComponents );
   }
-
 }

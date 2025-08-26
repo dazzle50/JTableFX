@@ -43,7 +43,7 @@ import rjc.table.view.Colours;
 
 public class CalendarWidget extends Canvas implements ISignal, IOverflowField
 {
-  private LocalDate        m_date;            // currently selected date
+  private LocalDate        m_localdate;       // currently selected date
   private GraphicsContext  m_gc;              // graphics context
 
   private static String    days[];            // day names for first row
@@ -126,19 +126,19 @@ public class CalendarWidget extends Canvas implements ISignal, IOverflowField
         break;
 
       case PAGE_DOWN: // page down key
-        setDate( m_date.plusMonths( 1 ) );
+        setDate( m_localdate.plusMonths( 1 ) );
         break;
 
       case PAGE_UP: // page up key
-        setDate( m_date.plusMonths( -1 ) );
+        setDate( m_localdate.plusMonths( -1 ) );
         break;
 
       case HOME: // home key - first day of month
-        changeValue( 1 - m_date.getDayOfMonth() );
+        changeValue( 1 - m_localdate.getDayOfMonth() );
         break;
 
       case END: // end key - last day of month
-        changeValue( m_date.lengthOfMonth() - m_date.getDayOfMonth() );
+        changeValue( m_localdate.lengthOfMonth() - m_localdate.getDayOfMonth() );
         break;
 
       case TAB: // don't consume tab to enable focus traversal
@@ -183,14 +183,14 @@ public class CalendarWidget extends Canvas implements ISignal, IOverflowField
   }
 
   /******************************************* setDate *******************************************/
-  private void setDate( LocalDate date )
+  private void setDate( LocalDate localdate )
   {
     // if new date, re-paint widget and emit signal
-    if ( m_date == null || !m_date.isEqual( date ) )
+    if ( m_localdate == null || !m_localdate.isEqual( localdate ) )
     {
-      m_date = date;
+      m_localdate = localdate;
       paint();
-      signal( new Date( date ) );
+      signal( Date.of( localdate ) );
     }
   }
 
@@ -198,21 +198,21 @@ public class CalendarWidget extends Canvas implements ISignal, IOverflowField
   public void setDate( Date date )
   {
     // set widget date (and emit signal if different)
-    setDate( date.localDate() );
+    setDate( date.toLocalDate() );
   }
 
   /******************************************* getDate *******************************************/
   public Date getDate()
   {
     // get widget date
-    return new Date( m_date );
+    return Date.of( m_localdate );
   }
 
   /**************************************** getFirstDate *****************************************/
   public LocalDate getFirstDate()
   {
     // get widget first date in top-left corner
-    LocalDate first = m_date.withDayOfMonth( 1 );
+    LocalDate first = m_localdate.withDayOfMonth( 1 );
     int offset = 1 - first.getDayOfWeek().getValue();
     return first.plusDays( offset == 0 ? -7 : offset );
   }
@@ -261,10 +261,10 @@ public class CalendarWidget extends Canvas implements ISignal, IOverflowField
   }
 
   /**************************************** getCellPaint *****************************************/
-  protected Paint getCellPaint( int col, int row, LocalDate date )
+  protected Paint getCellPaint( int col, int row, LocalDate localdate )
   {
     // highlight currently selected date
-    if ( date.isEqual( m_date ) )
+    if ( localdate.isEqual( m_localdate ) )
       return Color.DEEPSKYBLUE;
 
     // shade weekend days
@@ -274,13 +274,13 @@ public class CalendarWidget extends Canvas implements ISignal, IOverflowField
   }
 
   /***************************************** getTextPaint ****************************************/
-  protected Paint getTextPaint( int col, int row, LocalDate date )
+  protected Paint getTextPaint( int col, int row, LocalDate localdate )
   {
     // highlight today
-    if ( date.isEqual( LocalDate.now() ) )
+    if ( localdate.isEqual( LocalDate.now() ) )
       return Color.RED;
 
-    if ( date.getMonth() != m_date.getMonth() )
+    if ( localdate.getMonth() != m_localdate.getMonth() )
       return Color.GREY;
 
     return Colours.TEXT_DEFAULT;

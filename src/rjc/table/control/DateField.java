@@ -137,7 +137,7 @@ public class DateField extends AbstractDropDownField
     if ( day > ym.lengthOfMonth() )
       day = ym.lengthOfMonth();
 
-    m_calendar.setDate( new Date( year, month.getValue(), day ) );
+    m_calendar.setDate( Date.of( year, month.getValue(), day ) );
   }
 
   /******************************************* setYear *******************************************/
@@ -151,7 +151,7 @@ public class DateField extends AbstractDropDownField
     if ( day > ym.lengthOfMonth() )
       day = ym.lengthOfMonth();
 
-    m_calendar.setDate( new Date( year, month, day ) );
+    m_calendar.setDate( Date.of( year, month, day ) );
   }
 
   /******************************************* format ********************************************/
@@ -165,7 +165,7 @@ public class DateField extends AbstractDropDownField
   private String formatStatus( Date date )
   {
     // return date in status format
-    return date.toString( "eeee d MMMM yyyy" );
+    return date.format( "eeee d MMMM yyyy" );
   }
 
   /***************************************** parseText *******************************************/

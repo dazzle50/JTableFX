@@ -23,6 +23,7 @@ import java.lang.ref.WeakReference;
 import javafx.application.Platform;
 import rjc.table.data.types.Date;
 import rjc.table.data.types.DateTime;
+import rjc.table.data.types.DateTime.IntervalUnit;
 import rjc.table.data.types.Time;
 import rjc.table.signal.ObservableStatus.Level;
 
@@ -50,8 +51,7 @@ public class DateTimeField extends DateField
     Platform.runLater( () -> m_timeWidget.setStatus( getStatus() ) );
 
     // set default date-time to now truncated to hour
-    long now = DateTime.now().getMilliseconds() / Time.MILLIS_PER_HOUR;
-    setDateTime( new DateTime( now * Time.MILLIS_PER_HOUR ) );
+    setDateTime( DateTime.now().roundDown( IntervalUnit.HOURS ) );
   }
 
   /************************************ updateDropDownWidgets ************************************/
@@ -69,9 +69,9 @@ public class DateTimeField extends DateField
   private void setTime( Time time )
   {
     // set time component of date-time
-    if ( time.getHours() == 24 && ButtonField.LAST_CHANGE_DELTA < 0.0 )
+    if ( time.getHour() == 24 && ButtonField.LAST_CHANGE_DELTA < 0.0 )
       time = time.plusHours( -1 ); // adjust 24:00 to 23:59
-    setDateTime( new DateTime( m_datetime.getDate(), time ) );
+    setDateTime( m_datetime.withTime( time ) );
   }
 
   /**************************************** getDateTime ******************************************/
@@ -113,22 +113,21 @@ public class DateTimeField extends DateField
   {
     // overloaded to add time component
     Time time = m_datetime == null ? Time.MIN_VALUE : m_datetime.getTime();
-    DateTime dt = new DateTime( date, time );
-    setDateTime( dt );
+    setDateTime( DateTime.of( date, time ) );
   }
 
   /******************************************* format ********************************************/
   public String format( DateTime datetime )
   {
     // return date-time in display format
-    return datetime.toString( "yyyy-MM-dd HH:mm:ss.SSS" );
+    return datetime.format( "yyyy-MM-dd", 4 );
   }
 
   /**************************************** formatStatus *****************************************/
   public String formatStatus( DateTime datetime )
   {
     // return date in status format
-    return datetime.toString( "eeee d MMMM yyyy HH:mm:ss.SSS" );
+    return datetime.format( "eeee d MMMM yyyy", 4 );
   }
 
   /***************************************** parseText *******************************************/
@@ -136,8 +135,7 @@ public class DateTimeField extends DateField
   protected void parseText( String text )
   {
     // convert text to date-time, and if different signal (any exception handled in abstract)
-    DateTime dt = DateTime.parse( text,
-        "[uuuuMMdd][uu-M-d][uuuu-M-d][uuuu-DDD][['T'][' '][HHmmss][HHmm][H:m:s][H:m][.SSS][.SS][.S]]" );
+    DateTime dt = DateTime.parse( text );
     if ( !dt.equals( m_datetime ) )
     {
       m_datetime = dt;
@@ -182,9 +180,9 @@ public class DateTimeField extends DateField
       if ( !shift && !ctrl )
         setDateTime( getDateTime().plusDays( (int) delta ) );
       if ( shift && !ctrl )
-        setDateTime( getDateTime().plusMonths( (int) delta ) );
+        setDateTime( getDateTime().plusInterval( (int) delta, IntervalUnit.MONTHS ) );
       if ( !shift && ctrl )
-        setDateTime( getDateTime().plusYears( (int) delta ) );
+        setDateTime( getDateTime().plusInterval( (int) delta, IntervalUnit.YEARS ) );
     }
   }
 

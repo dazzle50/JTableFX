@@ -40,7 +40,6 @@ import java.util.regex.Pattern;
  */
 public final class Time implements Serializable, Comparable<Time>
 {
-
   private static final long              serialVersionUID   = 1L;
 
   // time constants
@@ -72,7 +71,7 @@ public final class Time implements Serializable, Comparable<Time>
    */
   private Time( int milliseconds )
   {
-    this.m_milliseconds = milliseconds;
+    m_milliseconds = milliseconds;
   }
 
   // ================================ Factory Methods ================================
@@ -211,7 +210,7 @@ public final class Time implements Serializable, Comparable<Time>
   /**
    * Gets the hours component (0-24).
    */
-  public int getHours()
+  public int getHour()
   {
     return m_milliseconds / MILLIS_PER_HOUR;
   }
@@ -219,7 +218,7 @@ public final class Time implements Serializable, Comparable<Time>
   /**
    * Gets the minutes component (0-59).
    */
-  public int getMinutes()
+  public int getMinute()
   {
     return ( m_milliseconds / MILLIS_PER_MINUTE ) % 60;
   }
@@ -227,7 +226,7 @@ public final class Time implements Serializable, Comparable<Time>
   /**
    * Gets the seconds component (0-59).
    */
-  public int getSeconds()
+  public int getSecond()
   {
     return ( m_milliseconds / MILLIS_PER_SECOND ) % 60;
   }
@@ -235,7 +234,7 @@ public final class Time implements Serializable, Comparable<Time>
   /**
    * Gets the milliseconds component (0-999).
    */
-  public int getMilliseconds()
+  public int getMillisecond()
   {
     return m_milliseconds % MILLIS_PER_SECOND;
   }
@@ -425,7 +424,7 @@ public final class Time implements Serializable, Comparable<Time>
     StringBuilder sb = new StringBuilder( 12 );
 
     // hours (always included)
-    int h = getHours();
+    int h = getHour();
     if ( h < 10 )
       sb.append( '0' );
     sb.append( h );
@@ -433,7 +432,7 @@ public final class Time implements Serializable, Comparable<Time>
     if ( components >= 2 )
     {
       // minutes
-      int m = getMinutes();
+      int m = getMinute();
       sb.append( ':' );
       if ( m < 10 )
         sb.append( '0' );
@@ -442,7 +441,7 @@ public final class Time implements Serializable, Comparable<Time>
       if ( components >= 3 )
       {
         // seconds
-        int s = getSeconds();
+        int s = getSecond();
         sb.append( ':' );
         if ( s < 10 )
           sb.append( '0' );
@@ -451,7 +450,7 @@ public final class Time implements Serializable, Comparable<Time>
         if ( components >= 4 )
         {
           // milliseconds
-          int ms = getMilliseconds();
+          int ms = getMillisecond();
           sb.append( '.' );
           if ( ms < 100 )
             sb.append( '0' );

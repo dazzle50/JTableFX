@@ -113,7 +113,7 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
 
     setSpacing( BORDER - 1 );
     showFields( true, true, true, true );
-    setTime( Time.ofHours( Time.now().getHours() ) );
+    setTime( Time.ofHours( Time.now().getHour() ) );
 
     // filter for key events (e.g., ESCAPE resets the time).
     addEventFilter( KeyEvent.KEY_PRESSED, event -> keyPressed( event ) );
@@ -316,10 +316,10 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
   public void setTime( Time time )
   {
     // set spin fields to represent specified time
-    m_hours.setValue( time.getHours() );
-    m_mins.setValue( time.getMinutes() );
-    m_secs.setValue( time.getSeconds() );
-    m_millisecs.setValue( time.getMilliseconds() );
+    m_hours.setValue( time.getHour() );
+    m_mins.setValue( time.getMinute() );
+    m_secs.setValue( time.getSecond() );
+    m_millisecs.setValue( time.getMillisecond() );
   }
 
   /***************************************** signalTime ******************************************/

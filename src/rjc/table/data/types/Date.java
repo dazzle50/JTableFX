@@ -19,347 +19,604 @@
 package rjc.table.data.types;
 
 import java.io.Serializable;
+import java.time.DateTimeException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.format.DateTimeFormatter;
-
-import rjc.table.Utils;
+import java.time.format.DateTimeParseException;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 /*************************************************************************************************/
 /*********************************** Date (with no time-zone) ************************************/
 /*************************************************************************************************/
 
-public class Date implements Serializable
+/**
+ * Immutable date class representing a single calendar date.
+ * <p>
+ * This class stores dates internally as epoch days (days since 1970-01-01) for efficient storage and computation.
+ * <p>
+ * Key features:
+ * <ul>
+ * <li>Immutable and thread-safe</li>
+ * <li>Memory efficient (4 bytes per instance)</li>
+ * <li>Wide date range support (±5.8 million years)</li>
+ * <li>Custom half-year formatting support</li>
+ * <li>Flexible parsing with intelligent fallbacks</li>
+ * </ul>
+ */
+public final class Date implements Serializable, Comparable<Date>
 {
-  private static final long   serialVersionUID = Utils.VERSION.hashCode();
+  private static final long             serialVersionUID = 1L;
 
   // simple count of days where day 0 is 01-Jan-1970
-  private int                 m_epochday;
+  private final int                     m_epochDay;
 
-  // min int=-2^31 gives minimum date of approx 5,800,000 BCE
-  public static final Date    MIN_VALUE        = new Date( Integer.MIN_VALUE );
+  // date constants (approximate ±5.8 million years)
+  public static final Date              MIN_VALUE        = new Date( Integer.MIN_VALUE );
+  public static final Date              MAX_VALUE        = new Date( Integer.MAX_VALUE );
+  public static final Date              EPOCH            = new Date( 0 );                   // 1970-01-01
 
-  // max int=2^31-1 gives maximum date of approx 5,800,000 AD
-  public static final Date    MAX_VALUE        = new Date( Integer.MAX_VALUE );
+  // parsing patterns
+  public static final DateTimeFormatter ISO_FORMAT       = DateTimeFormatter.ISO_LOCAL_DATE;
 
-  private static final char   QUOTE            = '\'';
-  private static final char   CHARB            = 'B';
-  private static final String CODE             = "#@B!";
+  // half-year formatting constants
+  private static final String           HALF_YEAR_MARKER = "#HY#";
+  private static final char             HALF_YEAR_CHAR   = 'B';
 
-  /**************************************** constructor ******************************************/
-  public Date( int epochday )
+  // ================================= Constructors =================================
+
+  /**
+   * Private constructor - use factory methods instead.
+   */
+  private Date( int epochDay )
   {
-    // constructor from epoch-day
-    m_epochday = epochday;
+    m_epochDay = epochDay;
   }
 
-  /**************************************** constructor ******************************************/
-  public Date( int year, int month, int day )
+  // ================================= Factory Methods =================================
+
+  /**
+   * Creates a Date from epoch-day.
+   *
+   * @param epochDay days since 1970-01-01
+   * @return new Date instance
+   */
+  public static Date ofEpochDay( int epochDay )
   {
-    // constructor from specified year, month (1 to 12), day
-    m_epochday = (int) LocalDate.of( year, month, day ).toEpochDay();
+    return new Date( epochDay );
   }
 
-  /**************************************** constructor ******************************************/
-  public Date( LocalDate localDate )
+  /**
+   * Creates a Date from year, month, and day.
+   *
+   * @param year  the year (e.g., 2023)
+   * @param month the month (1-12)
+   * @param day   the day of month (1-31)
+   * @return new Date
+   * @throws DateTimeException if the date is invalid
+   */
+  public static Date of( int year, int month, int day )
   {
-    // return a new Date from LocalDate
-    m_epochday = (int) localDate.toEpochDay();
+    try
+    {
+      int epochDay = (int) LocalDate.of( year, month, day ).toEpochDay();
+      return ofEpochDay( epochDay );
+    }
+    catch ( DateTimeException exception )
+    {
+      throw new DateTimeException( String.format( "Invalid date: %04d-%02d-%02d", year, month, day ), exception );
+    }
   }
 
-  /**************************************** getEpochday ******************************************/
-  public int getEpochday()
+  /**
+   * Creates a Date from LocalDate.
+   *
+   * @param localDate the LocalDate to convert
+   * @return new Date
+   * @throws NullPointerException if localDate is null
+   */
+  public static Date of( LocalDate localDate )
   {
-    // return int count of days from day 0 is 01-Jan-1970
-    return m_epochday;
+    Objects.requireNonNull( localDate, "LocalDate cannot be null" );
+    return ofEpochDay( (int) localDate.toEpochDay() );
   }
 
-  /****************************************** toString *******************************************/
+  /**
+   * Creates a Date representing today.
+   *
+   * @return Date for current date
+   */
+  public static Date now()
+  {
+    return of( LocalDate.now() );
+  }
+
+  // ================================ Accessor Methods ================================
+
+  /**
+   * Gets the epoch day (days since 1970-01-01).
+   *
+   * @return the epoch day
+   */
+  public int getEpochDay()
+  {
+    return m_epochDay;
+  }
+
+  /**
+   * Gets the year.
+   *
+   * @return the year
+   */
+  public int getYear()
+  {
+    return toLocalDate().getYear();
+  }
+
+  /**
+   * Gets the month as a number (1-12).
+   *
+   * @return the month (1=January, 12=December)
+   */
+  public int getMonth()
+  {
+    return toLocalDate().getMonthValue();
+  }
+
+  /**
+   * Gets the month as an enum.
+   *
+   * @return the Month enum
+   */
+  public Month getMonthEnum()
+  {
+    return toLocalDate().getMonth();
+  }
+
+  /**
+   * Gets the day of the month (1-31).
+   *
+   * @return the day of the month
+   */
+  public int getDayOfMonth()
+  {
+    return toLocalDate().getDayOfMonth();
+  }
+
+  /**
+   * Gets the day of the week.
+   *
+   * @return the DayOfWeek enum
+   */
+  public DayOfWeek getDayOfWeek()
+  {
+    return toLocalDate().getDayOfWeek();
+  }
+
+  /**
+   * Gets the day of the year (1-366).
+   *
+   * @return the day of the year
+   */
+  public int getDayOfYear()
+  {
+    return toLocalDate().getDayOfYear();
+  }
+
+  /**
+   * Checks if this is a leap year.
+   *
+   * @return true if leap year
+   */
+  public boolean isLeapYear()
+  {
+    return toLocalDate().isLeapYear();
+  }
+
+  // ================================= Date Arithmetic =================================
+
+  /**
+   * Returns a new Date with the specified number of days added.
+   *
+   * @param days the days to add (can be negative)
+   * @return new Date
+   * @throws ArithmeticException if the result overflows
+   */
+  public Date plusDays( int days )
+  {
+    if ( days == 0 )
+      return this;
+    return ofEpochDay( m_epochDay + days );
+  }
+
+  /**
+   * Returns a new Date with the specified number of weeks added.
+   *
+   * @param weeks the weeks to add (can be negative)
+   * @return new Date
+   */
+  public Date plusWeeks( int weeks )
+  {
+    return plusDays( weeks * 7 );
+  }
+
+  /**
+   * Returns a new Date with the specified number of months added.
+   *
+   * @param months the months to add (can be negative)
+   * @return new Date
+   */
+  public Date plusMonths( int months )
+  {
+    if ( months == 0 )
+      return this;
+    return of( toLocalDate().plusMonths( months ) );
+  }
+
+  /**
+   * Returns a new Date with the specified number of years added.
+   *
+   * @param years the years to add (can be negative)
+   * @return new Date
+   */
+  public Date plusYears( int years )
+  {
+    if ( years == 0 )
+      return this;
+    return of( toLocalDate().plusYears( years ) );
+  }
+
+  // ================================= Comparison Methods =================================
+
+  /**
+   * Checks if this date is before the specified date.
+   *
+   * @param other the other date
+   * @return true if this date is before the other
+   */
+  public boolean isBefore( Date other )
+  {
+    Objects.requireNonNull( other, "Other date cannot be null" );
+    return m_epochDay < other.m_epochDay;
+  }
+
+  /**
+   * Checks if this date is after the specified date.
+   *
+   * @param other the other date
+   * @return true if this date is after the other
+   */
+  public boolean isAfter( Date other )
+  {
+    Objects.requireNonNull( other, "Other date cannot be null" );
+    return m_epochDay > other.m_epochDay;
+  }
+
+  /**
+   * Checks if this date is equal to the specified date.
+   *
+   * @param other the other date
+   * @return true if the dates are equal
+   */
+  public boolean isEqual( Date other )
+  {
+    return other != null && m_epochDay == other.m_epochDay;
+  }
+
+  /**
+   * Calculates the number of days between this date and another date.
+   *
+   * @param other the other date
+   * @return the number of days between the dates (can be negative)
+   */
+  public int daysUntil( Date other )
+  {
+    Objects.requireNonNull( other, "Other date cannot be null" );
+    return other.m_epochDay - m_epochDay;
+  }
+
+  @Override
+  public int compareTo( Date other )
+  {
+    Objects.requireNonNull( other, "Other date cannot be null" );
+    return Integer.compare( m_epochDay, other.m_epochDay );
+  }
+
+  // ================================= String Conversion =================================
+
   @Override
   public String toString()
   {
-    // convert to string in ISO-8601 format "uuuu-MM-dd"
-    LocalDate ld = LocalDate.ofEpochDay( m_epochday );
-    return ld.toString();
+    return toLocalDate().toString(); // ISO format (yyyy-MM-dd)
   }
 
-  /****************************************** toString *******************************************/
-  public String toString( String format )
+  /**
+   * Formats this date using the specified pattern.
+   * Supports special half-year formatting using 'B' characters:
+   * <ul>
+   * <li>B = half-year number (1 or 2)</li>
+   * <li>BB = H1 or H2</li>
+   * <li>BBB = "1st half" or "2nd half"</li>
+   * </ul>
+   *
+   * @param pattern the formatting pattern
+   * @return formatted date string
+   * @throws IllegalArgumentException if pattern is invalid
+   */
+  public String format( String pattern )
   {
-    // convert to string in specified format
-    LocalDate ld = LocalDate.ofEpochDay( m_epochday );
+    Objects.requireNonNull( pattern, "Pattern cannot be null" );
+    if ( !pattern.contains( String.valueOf( HALF_YEAR_CHAR ) ) )
+      return toLocalDate().format( DateTimeFormatter.ofPattern( pattern ) );
 
-    // to support half-of-year using Bs, quote any unquoted Bs in format
-    StringBuilder newFormat = new StringBuilder();
-    boolean inQuote = false;
-    boolean inB = false;
-    char here;
-    for ( int i = 0; i < format.length(); i++ )
+    return formatWithHalfYear( pattern );
+  }
+
+  /**
+   * Formats date with half-year support.
+   */
+  private String formatWithHalfYear( String pattern )
+  {
+    // replace B patterns with placeholder to avoid DateTimeFormatter issues
+    String processedPattern = replaceHalfYearPatterns( pattern );
+
+    // format with standard patterns
+    String result = toLocalDate().format( DateTimeFormatter.ofPattern( processedPattern ) );
+
+    // replace placeholders with half-year values
+    return substituteHalfYearValues( result );
+  }
+
+  /**
+   * Replaces half-year patterns with safe placeholders.
+   */
+  private String replaceHalfYearPatterns( String pattern )
+  {
+    StringBuilder result = new StringBuilder();
+    boolean inQuotes = false;
+    int i = 0;
+
+    while ( i < pattern.length() )
     {
-      here = format.charAt( i );
+      char ch = pattern.charAt( i );
 
-      // are we in quoted text?
-      if ( here == QUOTE )
-        inQuote = !inQuote;
-
-      // replace unquoted Bs with special code
-      if ( inB && here == CHARB )
+      if ( ch == '\'' )
       {
-        newFormat.append( CODE );
-        continue;
+        inQuotes = !inQuotes;
+        result.append( ch );
+        i++;
       }
-
-      // come to end of unquoted Bs
-      if ( inB && here != CHARB )
+      else if ( !inQuotes && ch == HALF_YEAR_CHAR )
       {
-        newFormat.append( QUOTE );
-        inB = false;
-        inQuote = false;
-      }
-
-      // start of unquoted Bs, start quote with special code
-      if ( !inQuote && here == CHARB )
-      {
-        // avoid creating double quotes
-        if ( newFormat.length() > 0 && newFormat.charAt( newFormat.length() - 1 ) == QUOTE )
+        // count consecutive B's
+        int count = 0;
+        while ( i < pattern.length() && pattern.charAt( i ) == HALF_YEAR_CHAR )
         {
-          newFormat.deleteCharAt( newFormat.length() - 1 );
-          newFormat.append( CODE );
+          count++;
+          i++;
         }
-        else
-          newFormat.append( "'" + CODE );
-        inQuote = true;
-        inB = true;
+
+        if ( count > 3 )
+          throw new IllegalArgumentException( "Too many 'B' pattern letters: " + count );
+
+        // replace with quoted placeholder
+        result.append( '\'' ).append( HALF_YEAR_MARKER ).append( count ).append( '\'' );
       }
       else
       {
-        newFormat.append( here );
+        result.append( ch );
+        i++;
       }
     }
 
-    // close quote if quote still open
-    if ( inQuote )
-      newFormat.append( QUOTE );
-
-    String str = ld.format( DateTimeFormatter.ofPattern( newFormat.toString() ) );
-
-    // no special code so can return string immediately
-    if ( !str.contains( CODE ) )
-      return str;
-
-    // determine half-of-year
-    String yearHalf;
-    if ( getMonth() < 7 )
-      yearHalf = "1";
-    else
-      yearHalf = "2";
-
-    // four or more Bs is not allowed
-    String Bs = CODE + CODE + CODE + CODE;
-    if ( str.contains( Bs ) )
-      throw new IllegalArgumentException( "Too many pattern letters: B" );
-
-    // replace three Bs
-    Bs = CODE + CODE + CODE;
-    if ( yearHalf.equals( "1" ) )
-      str = str.replace( Bs, yearHalf + "st half" );
-    else
-      str = str.replace( Bs, yearHalf + "nd half" );
-
-    // replace two Bs
-    Bs = CODE + CODE;
-    str = str.replace( Bs, "H" + yearHalf );
-
-    // replace one Bs
-    Bs = CODE;
-    str = str.replace( Bs, yearHalf );
-
-    return str;
+    return result.toString();
   }
 
-  /********************************************* now *********************************************/
-  public static Date now()
+  /**
+   * Substitutes half-year placeholders with actual values.
+   */
+  private String substituteHalfYearValues( String formatted )
   {
-    // return a new Date from current system clock
-    return new Date( (int) LocalDate.now().toEpochDay() );
+    String result = formatted;
+    int halfYear = getMonth() <= 6 ? 1 : 2;
+
+    // replace placeholders
+    result = result.replace( HALF_YEAR_MARKER + "3", halfYear == 1 ? "1st half" : "2nd half" );
+    result = result.replace( HALF_YEAR_MARKER + "2", "H" + halfYear );
+    result = result.replace( HALF_YEAR_MARKER + "1", String.valueOf( halfYear ) );
+
+    return result;
   }
 
-  /***************************************** fromString ******************************************/
-  public static Date fromString( String str )
+  // ================================= Parsing Methods =================================
+
+  /**
+   * Parses a date string using the specified pattern.
+   *
+   * @param text    the text to parse
+   * @param pattern the pattern to use
+   * @return parsed Date
+   * @throws DateTimeParseException if parsing fails
+   */
+  public static Date parse( String text, String pattern )
   {
-    // if string of type YYYY-MM-DD or YYYY/MM/DD
-    try
-    {
-      String[] parts = str.split( "/" );
-      if ( parts.length != 3 )
-        parts = str.split( "-" );
+    Objects.requireNonNull( text, "Text cannot be null" );
+    Objects.requireNonNull( pattern, "Pattern cannot be null" );
 
-      int year = Integer.parseInt( parts[0] );
-      int mon = Integer.parseInt( parts[1] );
-      int day = Integer.parseInt( parts[2] );
-      return new Date( year, mon, day );
-    }
-    catch ( Exception exception )
-    {
-      // some sort of exception thrown
-      exception.printStackTrace();
-      throw new IllegalArgumentException( "String=" + str );
-    }
+    Optional<Date> result = tryParse( text, pattern );
+    if ( result.isPresent() )
+      return result.get();
+
+    throw new DateTimeParseException( "Unable to parse date", text, 0 );
   }
 
-  /****************************************** getYear ********************************************/
-  public int getYear()
+  /**
+   * Attempts to parse a date string, returning empty Optional if parsing fails.
+   *
+   * @param text    the text to parse
+   * @param pattern the pattern to use
+   * @return Optional containing parsed date, or empty if parsing failed
+   */
+  public static Optional<Date> tryParse( String text, String pattern )
   {
-    LocalDate ld = LocalDate.ofEpochDay( m_epochday );
-    return ld.getYear();
+    if ( text == null || pattern == null )
+      return Optional.empty();
+
+    return IntelligentParser.parse( text.trim(), pattern );
   }
 
-  /****************************************** getMonth *******************************************/
-  public int getMonth()
+  /**
+   * Parses a date string using intelligent pattern matching.
+   * Tries multiple common formats automatically.
+   *
+   * @param text the text to parse
+   * @return parsed Date
+   * @throws DateTimeParseException if parsing fails with all attempted patterns
+   */
+  public static Date parseIntelligent( String text )
   {
-    // return month of year as number 1 to 12
-    LocalDate ld = LocalDate.ofEpochDay( m_epochday );
-    return ld.getMonthValue();
+    Objects.requireNonNull( text, "Text cannot be null" );
+
+    Optional<Date> result = IntelligentParser.parseWithFallbacks( text.trim() );
+    if ( result.isPresent() )
+      return result.get();
+
+    throw new DateTimeParseException( "Unable to parse date with any known format", text, 0 );
   }
 
-  /*************************************** getDayOfMonth *****************************************/
-  public int getDayOfMonth()
+  // ================================= Conversion Methods =================================
+
+  /**
+   * Converts to LocalDate.
+   *
+   * @return equivalent LocalDate
+   */
+  public LocalDate toLocalDate()
   {
-    // return day of month number
-    LocalDate ld = LocalDate.ofEpochDay( m_epochday );
-    return ld.getDayOfMonth();
+    return LocalDate.ofEpochDay( m_epochDay );
   }
 
-  /**************************************** getDayOfWeek *****************************************/
-  public DayOfWeek getDayOfWeek()
-  {
-    // return day of week
-    LocalDate ld = LocalDate.ofEpochDay( m_epochday );
-    return ld.getDayOfWeek();
-  }
+  // ================================= Object Methods =================================
 
-  /***************************************** increment *******************************************/
-  public void increment()
-  {
-    m_epochday++;
-  }
-
-  /***************************************** decrement *******************************************/
-  public void decrement()
-  {
-    m_epochday--;
-  }
-
-  /****************************************** plusDays *******************************************/
-  public Date plusDays( int days )
-  {
-    return new Date( m_epochday + days );
-  }
-
-  /***************************************** plusWeeks *******************************************/
-  public Date plusWeeks( int weeks )
-  {
-    return new Date( m_epochday + 7 * weeks );
-  }
-
-  /***************************************** plusMonths ******************************************/
-  public Date plusMonths( int months )
-  {
-    return new Date( LocalDate.ofEpochDay( m_epochday ).plusMonths( months ) );
-  }
-
-  /***************************************** plusYears *******************************************/
-  public Date plusYears( int years )
-  {
-    return new Date( LocalDate.ofEpochDay( m_epochday ).plusYears( years ) );
-  }
-
-  /****************************************** isLessThan *****************************************/
-  public boolean isLessThan( Date other )
-  {
-    return m_epochday < other.m_epochday;
-  }
-
-  /******************************************* equals ********************************************/
   @Override
-  public boolean equals( Object other )
+  public boolean equals( Object obj )
   {
-    // return true if other object represents same date
-    if ( other != null && other instanceof Date date )
-      return m_epochday == date.m_epochday;
-
-    return false;
+    if ( this == obj )
+      return true;
+    if ( !( obj instanceof Date other ) )
+      return false;
+    return m_epochDay == other.m_epochDay;
   }
 
-  /****************************************** hashCode ******************************************/
   @Override
   public int hashCode()
   {
-    // date hash code is simply the epoch day number
-    return m_epochday;
+    return m_epochDay;
   }
 
-  /****************************************** localDate ******************************************/
-  public LocalDate localDate()
+  // ================================= Inner Classes =================================
+
+  /**
+   * Intelligent parser that handles various date formats with fallbacks.
+   */
+  private static class IntelligentParser
   {
-    // return LocalData equivalent of date
-    return LocalDate.ofEpochDay( m_epochday );
-  }
 
-  /******************************************** parse ********************************************/
-  public static Date parse( String text, String format )
-  {
-    // return date if text can be parsed, otherwise return null
-    Date date = tryFormat( text, format );
-    if ( date != null )
-      return date;
+    private static final List<String> COMMON_PATTERNS = List.of( "yyyy-MM-dd", // ISO format
+        "yyyy/MM/dd", // alternative ISO
+        "dd/MM/yyyy", // European
+        "MM/dd/yyyy", // American
+        "dd-MM-yyyy", // European with dashes
+        "MM-dd-yyyy", // American with dashes
+        "d/M/yyyy", // single digit variants
+        "d/M/yy", // two digit year
+        "dd/MM/yy", // European short
+        "MM/dd/yy", // American short
+        "yyyy-M-d", // ISO with single digits
+        "yyyy/M/d" // alternative ISO with single digits
+    );
 
-    // simplify format removing repeated and non-standard symbols
-    StringBuilder simple = new StringBuilder(
-        format.replace( "G", "" ).replace( "B", "" ).replace( "Q", "" ).replace( "p", "" ) );
-    for ( int ch = 1; ch < simple.length(); ch++ )
-      while ( ch < simple.length() && simple.charAt( ch - 1 ) == simple.charAt( ch ) )
-        simple.deleteCharAt( ch );
-    date = tryFormat( text, simple.toString().replace( "y", "yy" ).replace( "u", "uu" ).replace( "Y", "YY" ) );
-    if ( date != null )
-      return date;
-
-    // try simplifying more
-    String simpler = simple.toString().replace( "E", "" ).replace( "e", "" ).replace( "c", "" );
-    simpler = simpler.replaceAll( "'.*'", "" );
-    date = tryFormat( text, simpler );
-    if ( date != null )
-      return date;
-
-    // try some other standard formats
-    date = tryFormat( text, "d/M/yy" );
-    if ( date != null )
-      return date;
-
-    date = tryFormat( text, "d/M/y" );
-    if ( date != null )
-      return date;
-
-    date = tryFormat( text + "/" + Date.now().getYear(), "d/M/y" );
-    if ( date != null )
-      return date;
-
-    return tryFormat( text + Date.now().getYear(), "d/M/y" );
-  }
-
-  /****************************************** tryFormat ******************************************/
-  private static Date tryFormat( String text, String format )
-  {
-    // return date if text can be parsed, otherwise return null
-    try
+    static Optional<Date> parse( String text, String pattern )
     {
-      LocalDate ldate = LocalDate.parse( text, DateTimeFormatter.ofPattern( format ) );
-      return new Date( ldate );
+      try
+      {
+        LocalDate localDate = LocalDate.parse( text, DateTimeFormatter.ofPattern( pattern ) );
+        return Optional.of( of( localDate ) );
+      }
+      catch ( Exception e )
+      {
+        // try simplified pattern
+        return trySimplifiedPattern( text, pattern );
+      }
     }
-    catch ( Exception exception )
+
+    static Optional<Date> parseWithFallbacks( String text )
     {
-      return null;
+      // try common patterns first
+      for ( String pattern : COMMON_PATTERNS )
+      {
+        Optional<Date> result = parse( text, pattern );
+        if ( result.isPresent() )
+          return result;
+      }
+
+      // Try with current year if only day/month provided
+      return tryWithCurrentYear( text );
+    }
+
+    private static Optional<Date> trySimplifiedPattern( String text, String pattern )
+    {
+      try
+      {
+        // Simplify pattern by removing repeated characters and unsupported symbols
+        String simplified = simplifyPattern( pattern );
+        LocalDate localDate = LocalDate.parse( text, DateTimeFormatter.ofPattern( simplified ) );
+        return Optional.of( of( localDate ) );
+      }
+      catch ( Exception e )
+      {
+        return Optional.empty();
+      }
+    }
+
+    private static Optional<Date> tryWithCurrentYear( String text )
+    {
+      String[] parts = text.split( "[/-]" );
+      if ( parts.length == 2 )
+      {
+        try
+        {
+          String withYear = text + "/" + LocalDate.now().getYear();
+          return parseWithFallbacks( withYear );
+        }
+        catch ( Exception e )
+        {
+          // Try different order
+          try
+          {
+            String withYear = LocalDate.now().getYear() + "/" + text;
+            return parseWithFallbacks( withYear );
+          }
+          catch ( Exception e2 )
+          {
+            return Optional.empty();
+          }
+        }
+      }
+      return Optional.empty();
+    }
+
+    private static String simplifyPattern( String pattern )
+    {
+      return pattern.replaceAll( "G+", "" ) // Remove era
+          .replaceAll( "B+", "" ) // Remove half-year
+          .replaceAll( "Q+", "" ) // Remove quarter
+          .replaceAll( "E+", "" ) // Remove day of week
+          .replaceAll( "'[^']*'", "" ) // Remove quoted text
+          .replaceAll( "([yMd])\\1+", "$1$1" ); // Simplify repeated chars to pairs
     }
   }
-
 }
