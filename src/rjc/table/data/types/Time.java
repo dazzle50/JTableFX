@@ -76,6 +76,7 @@ public final class Time implements Serializable, Comparable<Time>
 
   // ================================ Factory Methods ================================
 
+  /********************************************* of **********************************************/
   /**
    * Creates a Time from hours, minutes, seconds and milliseconds.
    * 
@@ -93,6 +94,7 @@ public final class Time implements Serializable, Comparable<Time>
     return new Time( totalMillis );
   }
 
+  /********************************************* of **********************************************/
   /**
    * Creates a Time from hours, minutes and seconds.
    */
@@ -101,6 +103,7 @@ public final class Time implements Serializable, Comparable<Time>
     return of( hours, minutes, seconds, 0 );
   }
 
+  /********************************************* of **********************************************/
   /**
    * Creates a Time from hours and minutes.
    */
@@ -109,6 +112,7 @@ public final class Time implements Serializable, Comparable<Time>
     return of( hours, minutes, 0, 0 );
   }
 
+  /*************************************** ofMilliseconds ****************************************/
   /**
    * Creates a Time from milliseconds since midnight start of day.
    * 
@@ -124,6 +128,7 @@ public final class Time implements Serializable, Comparable<Time>
     return new Time( milliseconds );
   }
 
+  /******************************************* ofHours *******************************************/
   /**
    * Creates a Time from fractional hours.
    * 
@@ -138,6 +143,7 @@ public final class Time implements Serializable, Comparable<Time>
     return new Time( (int) Math.round( hours * MILLIS_PER_HOUR ) );
   }
 
+  /********************************************* of **********************************************/
   /**
    * Creates a Time from a LocalTime.
    * 
@@ -151,6 +157,7 @@ public final class Time implements Serializable, Comparable<Time>
     return new Time( (int) ( localTime.toNanoOfDay() / 1_000_000L ) );
   }
 
+  /********************************************* now *********************************************/
   /**
    * Creates a Time from the current system time.
    * 
@@ -161,6 +168,7 @@ public final class Time implements Serializable, Comparable<Time>
     return of( LocalTime.now() );
   }
 
+  /******************************************** parse ********************************************/
   /**
    * Parses a time string into a Time instance.
    * 
@@ -207,6 +215,7 @@ public final class Time implements Serializable, Comparable<Time>
 
   // ================================ Accessor Methods ================================
 
+  /******************************************* getHour *******************************************/
   /**
    * Gets the hours component (0-24).
    */
@@ -215,6 +224,7 @@ public final class Time implements Serializable, Comparable<Time>
     return m_milliseconds / MILLIS_PER_HOUR;
   }
 
+  /****************************************** getMinute ******************************************/
   /**
    * Gets the minutes component (0-59).
    */
@@ -223,6 +233,7 @@ public final class Time implements Serializable, Comparable<Time>
     return ( m_milliseconds / MILLIS_PER_MINUTE ) % 60;
   }
 
+  /****************************************** getSecond ******************************************/
   /**
    * Gets the seconds component (0-59).
    */
@@ -231,6 +242,7 @@ public final class Time implements Serializable, Comparable<Time>
     return ( m_milliseconds / MILLIS_PER_SECOND ) % 60;
   }
 
+  /*************************************** getMillisecond ****************************************/
   /**
    * Gets the milliseconds component (0-999).
    */
@@ -239,6 +251,7 @@ public final class Time implements Serializable, Comparable<Time>
     return m_milliseconds % MILLIS_PER_SECOND;
   }
 
+  /************************************* toMillisecondsOfDay *************************************/
   /**
    * Gets the total milliseconds since midnight.
    */
@@ -247,6 +260,7 @@ public final class Time implements Serializable, Comparable<Time>
     return m_milliseconds;
   }
 
+  /******************************************* toHours *******************************************/
   /**
    * Converts to fractional hours.
    */
@@ -255,6 +269,7 @@ public final class Time implements Serializable, Comparable<Time>
     return (double) m_milliseconds / MILLIS_PER_HOUR;
   }
 
+  /***************************************** toLocalTime *****************************************/
   /**
    * Converts to a LocalTime (24:00:00 becomes 00:00:00).
    */
@@ -265,6 +280,7 @@ public final class Time implements Serializable, Comparable<Time>
 
   // ================================ Arithmetic Methods ================================
 
+  /************************************** plusMilliseconds ***************************************/
   /**
    * Returns a copy with the specified milliseconds added.
    * Values wrap around day boundaries.
@@ -277,6 +293,7 @@ public final class Time implements Serializable, Comparable<Time>
     return new Time( newMillis );
   }
 
+  /***************************************** plusSeconds *****************************************/
   /**
    * Returns a copy with the specified seconds added.
    */
@@ -285,6 +302,7 @@ public final class Time implements Serializable, Comparable<Time>
     return plusMilliseconds( secondsToAdd * MILLIS_PER_SECOND );
   }
 
+  /***************************************** plusMinutes *****************************************/
   /**
    * Returns a copy with the specified minutes added.
    */
@@ -293,6 +311,7 @@ public final class Time implements Serializable, Comparable<Time>
     return plusMilliseconds( minutesToAdd * MILLIS_PER_MINUTE );
   }
 
+  /****************************************** plusHours ******************************************/
   /**
    * Returns a copy with the specified hours added.
    */
@@ -303,6 +322,7 @@ public final class Time implements Serializable, Comparable<Time>
 
   // ================================ Comparison Methods ================================
 
+  /****************************************** isBefore *******************************************/
   /**
    * Checks if this time is before the specified time.
    */
@@ -312,6 +332,7 @@ public final class Time implements Serializable, Comparable<Time>
     return m_milliseconds < other.m_milliseconds;
   }
 
+  /******************************************* isAfter *******************************************/
   /**
    * Checks if this time is after the specified time.
    */
@@ -321,6 +342,7 @@ public final class Time implements Serializable, Comparable<Time>
     return m_milliseconds > other.m_milliseconds;
   }
 
+  /****************************************** compareTo ******************************************/
   /**
    * Returns the difference in milliseconds between this time and another.
    * Positive if this time is later, negative if earlier.
@@ -331,6 +353,7 @@ public final class Time implements Serializable, Comparable<Time>
     return Integer.compare( m_milliseconds, other.m_milliseconds );
   }
 
+  /************************************* differenceInMillis **************************************/
   /**
    * Returns the absolute difference in milliseconds between two times.
    */
@@ -342,6 +365,7 @@ public final class Time implements Serializable, Comparable<Time>
 
   // ================================ Formatting Methods ================================
 
+  /****************************************** toString *******************************************/
   /**
    * Returns time formatted as "HH:MM:SS.mmm".
    */
@@ -351,6 +375,7 @@ public final class Time implements Serializable, Comparable<Time>
     return formatTime( 4 );
   }
 
+  /**************************************** toShortString ****************************************/
   /**
    * Returns time formatted as "HH:MM".
    */
@@ -359,6 +384,7 @@ public final class Time implements Serializable, Comparable<Time>
     return formatTime( 2 );
   }
 
+  /******************************************* format ********************************************/
   /**
    * Returns time with specified number of components.
    * 
@@ -373,6 +399,7 @@ public final class Time implements Serializable, Comparable<Time>
 
   // ================================ Object Methods ================================
 
+  /******************************************* equals ********************************************/
   @Override
   public boolean equals( Object obj )
   {
@@ -383,6 +410,7 @@ public final class Time implements Serializable, Comparable<Time>
     return false;
   }
 
+  /****************************************** hashCode *******************************************/
   @Override
   public int hashCode()
   {
@@ -391,6 +419,7 @@ public final class Time implements Serializable, Comparable<Time>
 
   // ================================ Private Helper Methods ================================
 
+  /*********************************** validateTimeComponents ************************************/
   private static void validateTimeComponents( int hours, int minutes, int seconds, int millis )
   {
     if ( hours < 0 || hours > 24 )
@@ -405,6 +434,7 @@ public final class Time implements Serializable, Comparable<Time>
       throw new IllegalArgumentException( "Time components beyond 24:00:00.000 not allowed" );
   }
 
+  /************************************* parseNumericString **************************************/
   private static Time parseNumericString( String numStr )
   {
     int num = Integer.parseInt( numStr );
@@ -419,6 +449,7 @@ public final class Time implements Serializable, Comparable<Time>
     };
   }
 
+  /***************************************** formatTime ******************************************/
   private String formatTime( int components )
   {
     StringBuilder sb = new StringBuilder( 12 );

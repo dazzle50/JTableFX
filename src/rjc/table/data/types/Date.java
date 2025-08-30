@@ -42,7 +42,7 @@ import java.util.Optional;
  * <ul>
  * <li>Immutable and thread-safe</li>
  * <li>Memory efficient (4 bytes per instance)</li>
- * <li>Wide date range support (±5.8 million years)</li>
+ * <li>Wide date range support (+/-5.8 million years)</li>
  * <li>Custom half-year formatting support</li>
  * <li>Flexible parsing with intelligent fallbacks</li>
  * </ul>
@@ -54,7 +54,7 @@ public final class Date implements Serializable, Comparable<Date>
   // simple count of days where day 0 is 01-Jan-1970
   private final int                     m_epochDay;
 
-  // date constants (approximate ±5.8 million years)
+  // date constants (approximate +/-5.8 million years)
   public static final Date              MIN_VALUE        = new Date( Integer.MIN_VALUE );
   public static final Date              MAX_VALUE        = new Date( Integer.MAX_VALUE );
   public static final Date              EPOCH            = new Date( 0 );                   // 1970-01-01
@@ -78,6 +78,7 @@ public final class Date implements Serializable, Comparable<Date>
 
   // ================================= Factory Methods =================================
 
+  /***************************************** ofEpochDay ******************************************/
   /**
    * Creates a Date from epoch-day.
    *
@@ -89,6 +90,7 @@ public final class Date implements Serializable, Comparable<Date>
     return new Date( epochDay );
   }
 
+  /********************************************* of **********************************************/
   /**
    * Creates a Date from year, month, and day.
    *
@@ -111,6 +113,7 @@ public final class Date implements Serializable, Comparable<Date>
     }
   }
 
+  /********************************************* of **********************************************/
   /**
    * Creates a Date from LocalDate.
    *
@@ -124,6 +127,7 @@ public final class Date implements Serializable, Comparable<Date>
     return ofEpochDay( (int) localDate.toEpochDay() );
   }
 
+  /********************************************* now *********************************************/
   /**
    * Creates a Date representing today.
    *
@@ -136,6 +140,7 @@ public final class Date implements Serializable, Comparable<Date>
 
   // ================================ Accessor Methods ================================
 
+  /***************************************** getEpochDay *****************************************/
   /**
    * Gets the epoch day (days since 1970-01-01).
    *
@@ -146,6 +151,7 @@ public final class Date implements Serializable, Comparable<Date>
     return m_epochDay;
   }
 
+  /******************************************* getYear *******************************************/
   /**
    * Gets the year.
    *
@@ -156,6 +162,7 @@ public final class Date implements Serializable, Comparable<Date>
     return toLocalDate().getYear();
   }
 
+  /****************************************** getMonth *******************************************/
   /**
    * Gets the month as a number (1-12).
    *
@@ -166,6 +173,7 @@ public final class Date implements Serializable, Comparable<Date>
     return toLocalDate().getMonthValue();
   }
 
+  /**************************************** getMonthEnum *****************************************/
   /**
    * Gets the month as an enum.
    *
@@ -176,6 +184,7 @@ public final class Date implements Serializable, Comparable<Date>
     return toLocalDate().getMonth();
   }
 
+  /**************************************** getDayOfMonth ****************************************/
   /**
    * Gets the day of the month (1-31).
    *
@@ -186,6 +195,7 @@ public final class Date implements Serializable, Comparable<Date>
     return toLocalDate().getDayOfMonth();
   }
 
+  /**************************************** getDayOfWeek *****************************************/
   /**
    * Gets the day of the week.
    *
@@ -196,6 +206,7 @@ public final class Date implements Serializable, Comparable<Date>
     return toLocalDate().getDayOfWeek();
   }
 
+  /**************************************** getDayOfYear *****************************************/
   /**
    * Gets the day of the year (1-366).
    *
@@ -206,6 +217,7 @@ public final class Date implements Serializable, Comparable<Date>
     return toLocalDate().getDayOfYear();
   }
 
+  /***************************************** isLeapYear ******************************************/
   /**
    * Checks if this is a leap year.
    *
@@ -218,6 +230,7 @@ public final class Date implements Serializable, Comparable<Date>
 
   // ================================= Date Arithmetic =================================
 
+  /****************************************** plusDays *******************************************/
   /**
    * Returns a new Date with the specified number of days added.
    *
@@ -232,6 +245,7 @@ public final class Date implements Serializable, Comparable<Date>
     return ofEpochDay( m_epochDay + days );
   }
 
+  /****************************************** plusWeeks ******************************************/
   /**
    * Returns a new Date with the specified number of weeks added.
    *
@@ -243,6 +257,7 @@ public final class Date implements Serializable, Comparable<Date>
     return plusDays( weeks * 7 );
   }
 
+  /***************************************** plusMonths ******************************************/
   /**
    * Returns a new Date with the specified number of months added.
    *
@@ -256,6 +271,7 @@ public final class Date implements Serializable, Comparable<Date>
     return of( toLocalDate().plusMonths( months ) );
   }
 
+  /****************************************** plusYears ******************************************/
   /**
    * Returns a new Date with the specified number of years added.
    *
@@ -271,6 +287,7 @@ public final class Date implements Serializable, Comparable<Date>
 
   // ================================= Comparison Methods =================================
 
+  /****************************************** isBefore *******************************************/
   /**
    * Checks if this date is before the specified date.
    *
@@ -283,6 +300,7 @@ public final class Date implements Serializable, Comparable<Date>
     return m_epochDay < other.m_epochDay;
   }
 
+  /******************************************* isAfter *******************************************/
   /**
    * Checks if this date is after the specified date.
    *
@@ -295,6 +313,7 @@ public final class Date implements Serializable, Comparable<Date>
     return m_epochDay > other.m_epochDay;
   }
 
+  /******************************************* isEqual *******************************************/
   /**
    * Checks if this date is equal to the specified date.
    *
@@ -306,6 +325,7 @@ public final class Date implements Serializable, Comparable<Date>
     return other != null && m_epochDay == other.m_epochDay;
   }
 
+  /****************************************** daysUntil ******************************************/
   /**
    * Calculates the number of days between this date and another date.
    *
@@ -318,6 +338,7 @@ public final class Date implements Serializable, Comparable<Date>
     return other.m_epochDay - m_epochDay;
   }
 
+  /****************************************** compareTo ******************************************/
   @Override
   public int compareTo( Date other )
   {
@@ -327,12 +348,14 @@ public final class Date implements Serializable, Comparable<Date>
 
   // ================================= String Conversion =================================
 
+  /****************************************** toString *******************************************/
   @Override
   public String toString()
   {
     return toLocalDate().toString(); // ISO format (yyyy-MM-dd)
   }
 
+  /******************************************* format ********************************************/
   /**
    * Formats this date using the specified pattern.
    * Supports special half-year formatting using 'B' characters:
@@ -355,6 +378,7 @@ public final class Date implements Serializable, Comparable<Date>
     return formatWithHalfYear( pattern );
   }
 
+  /************************************* formatWithHalfYear **************************************/
   /**
    * Formats date with half-year support.
    */
@@ -370,6 +394,7 @@ public final class Date implements Serializable, Comparable<Date>
     return substituteHalfYearValues( result );
   }
 
+  /*********************************** replaceHalfYearPatterns ***********************************/
   /**
    * Replaces half-year patterns with safe placeholders.
    */
@@ -415,6 +440,7 @@ public final class Date implements Serializable, Comparable<Date>
     return result.toString();
   }
 
+  /********************************** substituteHalfYearValues ***********************************/
   /**
    * Substitutes half-year placeholders with actual values.
    */
@@ -433,6 +459,7 @@ public final class Date implements Serializable, Comparable<Date>
 
   // ================================= Parsing Methods =================================
 
+  /******************************************** parse ********************************************/
   /**
    * Parses a date string using the specified pattern.
    *
@@ -453,6 +480,7 @@ public final class Date implements Serializable, Comparable<Date>
     throw new DateTimeParseException( "Unable to parse date", text, 0 );
   }
 
+  /****************************************** tryParse *******************************************/
   /**
    * Attempts to parse a date string, returning empty Optional if parsing fails.
    *
@@ -468,6 +496,7 @@ public final class Date implements Serializable, Comparable<Date>
     return IntelligentParser.parse( text.trim(), pattern );
   }
 
+  /************************************** parseIntelligent ***************************************/
   /**
    * Parses a date string using intelligent pattern matching.
    * Tries multiple common formats automatically.
@@ -489,6 +518,7 @@ public final class Date implements Serializable, Comparable<Date>
 
   // ================================= Conversion Methods =================================
 
+  /***************************************** toLocalDate *****************************************/
   /**
    * Converts to LocalDate.
    *
@@ -501,6 +531,7 @@ public final class Date implements Serializable, Comparable<Date>
 
   // ================================= Object Methods =================================
 
+  /******************************************* equals ********************************************/
   @Override
   public boolean equals( Object obj )
   {
@@ -511,6 +542,7 @@ public final class Date implements Serializable, Comparable<Date>
     return m_epochDay == other.m_epochDay;
   }
 
+  /****************************************** hashCode *******************************************/
   @Override
   public int hashCode()
   {
@@ -539,6 +571,7 @@ public final class Date implements Serializable, Comparable<Date>
         "yyyy/M/d" // alternative ISO with single digits
     );
 
+    /******************************************* parse *******************************************/
     static Optional<Date> parse( String text, String pattern )
     {
       try
@@ -553,6 +586,7 @@ public final class Date implements Serializable, Comparable<Date>
       }
     }
 
+    /************************************ parseWithFallbacks *************************************/
     static Optional<Date> parseWithFallbacks( String text )
     {
       // try common patterns first
@@ -567,6 +601,7 @@ public final class Date implements Serializable, Comparable<Date>
       return tryWithCurrentYear( text );
     }
 
+    /*********************************** trySimplifiedPattern ************************************/
     private static Optional<Date> trySimplifiedPattern( String text, String pattern )
     {
       try
@@ -582,6 +617,7 @@ public final class Date implements Serializable, Comparable<Date>
       }
     }
 
+    /************************************ tryWithCurrentYear *************************************/
     private static Optional<Date> tryWithCurrentYear( String text )
     {
       String[] parts = text.split( "[/-]" );
@@ -609,6 +645,7 @@ public final class Date implements Serializable, Comparable<Date>
       return Optional.empty();
     }
 
+    /************************************** simplifyPattern **************************************/
     private static String simplifyPattern( String pattern )
     {
       return pattern.replaceAll( "G+", "" ) // Remove era

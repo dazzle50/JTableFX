@@ -64,6 +64,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
 
   // ================================= Factory Methods =================================
 
+  /********************************************* of **********************************************/
   /**
    * Creates a DateTime from a Date and a Time.
    *
@@ -76,6 +77,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
     return new DateTime( date, time );
   }
 
+  /********************************************* of **********************************************/
   /**
    * Creates a DateTime from year, month, day, hour, minute, and second.
    *
@@ -92,6 +94,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
     return new DateTime( Date.of( year, month, day ), Time.of( hour, minute, second ) );
   }
 
+  /********************************************* of **********************************************/
   /**
    * Creates a DateTime from a LocalDateTime.
    *
@@ -104,6 +107,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
     return new DateTime( Date.of( localDateTime.toLocalDate() ), Time.of( localDateTime.toLocalTime() ) );
   }
 
+  /********************************************* now *********************************************/
   /**
    * Creates a DateTime representing the current moment.
    *
@@ -114,6 +118,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
     return of( LocalDateTime.now() );
   }
 
+  /******************************************** parse ********************************************/
   /**
    * Parses a string to create a DateTime.
    * <p>
@@ -157,6 +162,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
 
   // ================================ Accessor Methods ================================
 
+  /******************************************* getDate *******************************************/
   /**
    * Gets the date part of this date-time.
    *
@@ -167,6 +173,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
     return m_date;
   }
 
+  /******************************************* getTime *******************************************/
   /**
    * Gets the time part of this date-time.
    *
@@ -177,6 +184,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
     return m_time;
   }
 
+  /****************************************** withTime *******************************************/
   /**
    * Returns a copy of this DateTime with the time portion replaced.
    */
@@ -185,6 +193,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
     return new DateTime( m_date, newTime );
   }
 
+  /****************************************** withDate *******************************************/
   /**
    * Returns a copy of this DateTime with the date portion replaced.
    */
@@ -195,6 +204,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
 
   // ================================= Date Arithmetic =================================
 
+  /****************************************** plusDays *******************************************/
   /**
    * Returns a copy of this DateTime with the specified number of days added.
    *
@@ -206,6 +216,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
     return new DateTime( m_date.plusDays( days ), m_time );
   }
 
+  /************************************** plusMilliseconds ***************************************/
   /**
    * Returns a copy of this DateTime with the specified number of milliseconds added.
    *
@@ -234,6 +245,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
     return new DateTime( newDate, newTime );
   }
 
+  /***************************************** plusSeconds *****************************************/
   /**
    * Returns a copy of this DateTime with the specified number of seconds added.
    *
@@ -245,6 +257,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
     return plusMilliseconds( (long) seconds * Time.MILLIS_PER_SECOND );
   }
 
+  /***************************************** plusMinutes *****************************************/
   /**
    * Returns a copy of this DateTime with the specified number of minutes added.
    *
@@ -256,6 +269,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
     return plusMilliseconds( (long) minutes * Time.MILLIS_PER_MINUTE );
   }
 
+  /****************************************** plusHours ******************************************/
   /**
    * Returns a copy of this DateTime with the specified number of hours added.
    * This may change the date.
@@ -268,6 +282,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
     return plusMilliseconds( (long) hours * Time.MILLIS_PER_HOUR );
   }
 
+  /****************************************** roundDown ******************************************/
   /**
    * Returns a copy of this DateTime with the date-time rounded down to the specified unit.
    * <p>
@@ -346,6 +361,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
     }
   }
 
+  /**************************************** plusInterval *****************************************/
   /**
    * Returns a copy of this DateTime with the specified amount of time added.
    * <p>
@@ -421,6 +437,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
     }
   }
 
+  /******************************************* roundUp *******************************************/
   /**
    * Returns a copy of this DateTime rounded up (ceiling) to the specified unit.
    * <p>
@@ -451,6 +468,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
     return truncated.plusInterval( 1, unit );
   }
 
+  /*************************************** toMilliseconds ****************************************/
   /**
    * Converts this DateTime to milliseconds since epoch (January 1, 1970, 00:00:00 UTC).
    * <p>
@@ -466,6 +484,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
     return epochDay * Time.MILLIS_PER_DAY + millisOfDay;
   }
 
+  /*************************************** ofMilliseconds ****************************************/
   /**
    * Creates a DateTime from milliseconds since epoch (January 1, 1970, 00:00:00 UTC).
    *
@@ -484,6 +503,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
 
   // ================================= Comparison Methods =================================
 
+  /****************************************** isBefore *******************************************/
   /**
    * Checks if this DateTime is before the specified DateTime.
    *
@@ -495,6 +515,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
     return compareTo( other ) < 0;
   }
 
+  /******************************************* isAfter *******************************************/
   /**
    * Checks if this DateTime is after the specified DateTime.
    *
@@ -506,6 +527,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
     return compareTo( other ) > 0;
   }
 
+  /****************************************** compareTo ******************************************/
   @Override
   public int compareTo( DateTime other )
   {
@@ -518,6 +540,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
 
   // ================================= Object Methods =================================
 
+  /******************************************* equals ********************************************/
   @Override
   public boolean equals( Object obj )
   {
@@ -529,12 +552,14 @@ public final class DateTime implements Serializable, Comparable<DateTime>
     return m_date.equals( other.m_date ) && m_time.equals( other.m_time );
   }
 
+  /****************************************** hashCode *******************************************/
   @Override
   public int hashCode()
   {
     return Objects.hash( m_date, m_time );
   }
 
+  /****************************************** toString *******************************************/
   /**
    * Returns the string representation of the DateTime, following the
    * defaults for Date and Time separated by a space.
@@ -547,6 +572,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
     return m_date.toString() + " " + m_time.toString();
   }
 
+  /******************************************* format ********************************************/
   /**
    * Returns the string representation of the DateTime using the specified date format
    * and specified number of time components.
