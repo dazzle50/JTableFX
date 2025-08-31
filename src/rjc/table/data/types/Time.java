@@ -68,9 +68,12 @@ public final class Time implements Serializable, Comparable<Time>
 
   /**
    * Private constructor - use factory methods instead.
+   * 
+   * @param milliseconds milliseconds since midnight (0 to MILLIS_PER_DAY inclusive)
    */
   private Time( int milliseconds )
   {
+    // store the milliseconds value internally
     m_milliseconds = milliseconds;
   }
 
@@ -89,26 +92,42 @@ public final class Time implements Serializable, Comparable<Time>
    */
   public static Time of( int hours, int minutes, int seconds, int millis )
   {
+    // validate all time components are within acceptable ranges
     validateTimeComponents( hours, minutes, seconds, millis );
+
+    // calculate total milliseconds from components
     int totalMillis = hours * MILLIS_PER_HOUR + minutes * MILLIS_PER_MINUTE + seconds * MILLIS_PER_SECOND + millis;
     return new Time( totalMillis );
   }
 
   /********************************************* of **********************************************/
   /**
-   * Creates a Time from hours, minutes and seconds.
+   * Creates a Time from hours, minutes and seconds (milliseconds default to 0).
+   * 
+   * @param hours the hour component (0-24)
+   * @param minutes the minute component (0-59)
+   * @param seconds the second component (0-59)
+   * @return a new Time instance
+   * @throws IllegalArgumentException if any component is out of range
    */
   public static Time of( int hours, int minutes, int seconds )
   {
+    // delegate to full constructor with zero milliseconds
     return of( hours, minutes, seconds, 0 );
   }
 
   /********************************************* of **********************************************/
   /**
-   * Creates a Time from hours and minutes.
+   * Creates a Time from hours and minutes (seconds and milliseconds default to 0).
+   * 
+   * @param hours the hour component (0-24)
+   * @param minutes the minute component (0-59)
+   * @return a new Time instance
+   * @throws IllegalArgumentException if any component is out of range
    */
   public static Time of( int hours, int minutes )
   {
+    // delegate to full constructor with zero seconds and milliseconds
     return of( hours, minutes, 0, 0 );
   }
 
@@ -122,6 +141,7 @@ public final class Time implements Serializable, Comparable<Time>
    */
   public static Time ofMilliseconds( int milliseconds )
   {
+    // validate milliseconds is within valid range for a day
     if ( milliseconds < 0 || milliseconds > MILLIS_PER_DAY )
       throw new IllegalArgumentException(
           "Milliseconds must be between 0 and " + MILLIS_PER_DAY + ", got: " + milliseconds );
@@ -138,8 +158,11 @@ public final class Time implements Serializable, Comparable<Time>
    */
   public static Time ofHours( double hours )
   {
+    // validate hours is within valid range
     if ( hours < 0.0 || hours > 24.0 )
       throw new IllegalArgumentException( "Hours must be between 0.0 and 24.0, got: " + hours );
+
+    // convert fractional hours to milliseconds with rounding
     return new Time( (int) Math.round( hours * MILLIS_PER_HOUR ) );
   }
 
@@ -153,7 +176,10 @@ public final class Time implements Serializable, Comparable<Time>
    */
   public static Time of( LocalTime localTime )
   {
+    // ensure localTime is not null
     Objects.requireNonNull( localTime, "LocalTime cannot be null" );
+
+    // convert nanoseconds to milliseconds
     return new Time( (int) ( localTime.toNanoOfDay() / 1_000_000L ) );
   }
 
@@ -165,6 +191,7 @@ public final class Time implements Serializable, Comparable<Time>
    */
   public static Time now()
   {
+    // get current system time and convert to our time representation
     return of( LocalTime.now() );
   }
 
@@ -186,8 +213,10 @@ public final class Time implements Serializable, Comparable<Time>
    */
   public static Time parse( String timeString )
   {
+    // ensure input is not null
     Objects.requireNonNull( timeString, "Time string cannot be null" );
 
+    // trim whitespace and check for empty string
     String cleaned = timeString.trim();
     if ( cleaned.isEmpty() )
       throw new IllegalArgumentException( "Time string cannot be empty" );
@@ -217,64 +246,85 @@ public final class Time implements Serializable, Comparable<Time>
 
   /******************************************* getHour *******************************************/
   /**
-   * Gets the hours component (0-24).
+   * Gets the hours component of this time (0-24).
+   * 
+   * @return the hour component
    */
   public int getHour()
   {
+    // calculate hours by dividing total milliseconds by milliseconds per hour
     return m_milliseconds / MILLIS_PER_HOUR;
   }
 
   /****************************************** getMinute ******************************************/
   /**
-   * Gets the minutes component (0-59).
+   * Gets the minutes component of this time (0-59).
+   * 
+   * @return the minute component
    */
   public int getMinute()
   {
+    // calculate minutes within the current hour
     return ( m_milliseconds / MILLIS_PER_MINUTE ) % 60;
   }
 
   /****************************************** getSecond ******************************************/
   /**
-   * Gets the seconds component (0-59).
+   * Gets the seconds component of this time (0-59).
+   * 
+   * @return the second component
    */
   public int getSecond()
   {
+    // calculate seconds within the current minute
     return ( m_milliseconds / MILLIS_PER_SECOND ) % 60;
   }
 
   /*************************************** getMillisecond ****************************************/
   /**
-   * Gets the milliseconds component (0-999).
+   * Gets the milliseconds component of this time (0-999).
+   * 
+   * @return the millisecond component
    */
   public int getMillisecond()
   {
+    // get remainder milliseconds within the current second
     return m_milliseconds % MILLIS_PER_SECOND;
   }
 
   /************************************* toMillisecondsOfDay *************************************/
   /**
-   * Gets the total milliseconds since midnight.
+   * Gets the total milliseconds since midnight for this time.
+   * 
+   * @return milliseconds since midnight (0 to MILLIS_PER_DAY inclusive)
    */
   public int toMillisecondsOfDay()
   {
+    // return the internal milliseconds representation
     return m_milliseconds;
   }
 
   /******************************************* toHours *******************************************/
   /**
-   * Converts to fractional hours.
+   * Converts this time to fractional hours since midnight.
+   * 
+   * @return fractional hours (0.0 to 24.0)
    */
   public double toHours()
   {
+    // convert milliseconds to fractional hours
     return (double) m_milliseconds / MILLIS_PER_HOUR;
   }
 
   /***************************************** toLocalTime *****************************************/
   /**
-   * Converts to a LocalTime (24:00:00 becomes 00:00:00).
+   * Converts this time to a LocalTime instance (24:00:00 becomes 00:00:00).
+   * 
+   * @return equivalent LocalTime
    */
   public LocalTime toLocalTime()
   {
+    // handle special case of end-of-day (24:00:00)
     return m_milliseconds == MILLIS_PER_DAY ? LocalTime.MIDNIGHT : LocalTime.ofNanoOfDay( m_milliseconds * 1_000_000L );
   }
 
@@ -282,12 +332,18 @@ public final class Time implements Serializable, Comparable<Time>
 
   /************************************** plusMilliseconds ***************************************/
   /**
-   * Returns a copy with the specified milliseconds added.
-   * Values wrap around day boundaries.
+   * Returns a copy of this time with the specified milliseconds added.
+   * Values wrap around day boundaries (e.g., adding to 23:59:59.999 wraps to next day).
+   * 
+   * @param millisToAdd the milliseconds to add (can be negative)
+   * @return a new Time instance with milliseconds added
    */
   public Time plusMilliseconds( int millisToAdd )
   {
+    // calculate new milliseconds with wrapping at day boundary
     int newMillis = ( m_milliseconds + millisToAdd ) % MILLIS_PER_DAY;
+
+    // handle negative results by adding a full day
     if ( newMillis < 0 )
       newMillis += MILLIS_PER_DAY;
     return new Time( newMillis );
@@ -295,28 +351,40 @@ public final class Time implements Serializable, Comparable<Time>
 
   /***************************************** plusSeconds *****************************************/
   /**
-   * Returns a copy with the specified seconds added.
+   * Returns a copy of this time with the specified seconds added.
+   * 
+   * @param secondsToAdd the seconds to add (can be negative)
+   * @return a new Time instance with seconds added
    */
   public Time plusSeconds( int secondsToAdd )
   {
+    // convert seconds to milliseconds and delegate
     return plusMilliseconds( secondsToAdd * MILLIS_PER_SECOND );
   }
 
   /***************************************** plusMinutes *****************************************/
   /**
-   * Returns a copy with the specified minutes added.
+   * Returns a copy of this time with the specified minutes added.
+   * 
+   * @param minutesToAdd the minutes to add (can be negative)
+   * @return a new Time instance with minutes added
    */
   public Time plusMinutes( int minutesToAdd )
   {
+    // convert minutes to milliseconds and delegate
     return plusMilliseconds( minutesToAdd * MILLIS_PER_MINUTE );
   }
 
   /****************************************** plusHours ******************************************/
   /**
-   * Returns a copy with the specified hours added.
+   * Returns a copy of this time with the specified hours added.
+   * 
+   * @param hoursToAdd the hours to add (can be negative)
+   * @return a new Time instance with hours added
    */
   public Time plusHours( int hoursToAdd )
   {
+    // convert hours to milliseconds and delegate
     return plusMilliseconds( hoursToAdd * MILLIS_PER_HOUR );
   }
 
@@ -325,9 +393,14 @@ public final class Time implements Serializable, Comparable<Time>
   /****************************************** isBefore *******************************************/
   /**
    * Checks if this time is before the specified time.
+   * 
+   * @param other the time to compare with
+   * @return true if this time is before the other time
+   * @throws NullPointerException if other is null
    */
   public boolean isBefore( Time other )
   {
+    // ensure other is not null and compare milliseconds
     Objects.requireNonNull( other );
     return m_milliseconds < other.m_milliseconds;
   }
@@ -335,30 +408,47 @@ public final class Time implements Serializable, Comparable<Time>
   /******************************************* isAfter *******************************************/
   /**
    * Checks if this time is after the specified time.
+   * 
+   * @param other the time to compare with
+   * @return true if this time is after the other time
+   * @throws NullPointerException if other is null
    */
   public boolean isAfter( Time other )
   {
+    // ensure other is not null and compare milliseconds
     Objects.requireNonNull( other );
     return m_milliseconds > other.m_milliseconds;
   }
 
   /****************************************** compareTo ******************************************/
   /**
-   * Returns the difference in milliseconds between this time and another.
-   * Positive if this time is later, negative if earlier.
+   * Compares this time with another time for ordering.
+   * 
+   * @param other the time to compare with
+   * @return negative if this time is earlier, positive if later, zero if equal
+   * @throws NullPointerException if other is null
    */
   @Override
   public int compareTo( Time other )
   {
-    return Integer.compare( m_milliseconds, other.m_milliseconds );
+    // ensure other is not null
+    Objects.requireNonNull( other, "Other time cannot be null" );
+
+    // compare milliseconds and return appropriate result
+    return m_milliseconds < other.m_milliseconds ? -1 : m_milliseconds > other.m_milliseconds ? 1 : 0;
   }
 
   /************************************* differenceInMillis **************************************/
   /**
-   * Returns the absolute difference in milliseconds between two times.
+   * Returns the absolute difference in milliseconds between this time and another.
+   * 
+   * @param other the time to compare with
+   * @return absolute difference in milliseconds
+   * @throws NullPointerException if other is null
    */
   public int differenceInMillis( Time other )
   {
+    // ensure other is not null and calculate absolute difference
     Objects.requireNonNull( other );
     return Math.abs( m_milliseconds - other.m_milliseconds );
   }
@@ -367,61 +457,97 @@ public final class Time implements Serializable, Comparable<Time>
 
   /****************************************** toString *******************************************/
   /**
-   * Returns time formatted as "HH:MM:SS.mmm".
+   * Returns this time formatted as "HH:MM:SS.mmm".
+   * 
+   * @return string representation of this time
    */
   @Override
   public String toString()
   {
+    // format with all 4 components (hour, minute, second, millisecond)
     return formatTime( 4 );
   }
 
   /**************************************** toShortString ****************************************/
   /**
-   * Returns time formatted as "HH:MM".
+   * Returns this time formatted as "HH:MM".
+   * 
+   * @return short string representation showing only hours and minutes
    */
   public String toShortString()
   {
+    // format with only 2 components (hour, minute)
     return formatTime( 2 );
   }
 
   /******************************************* format ********************************************/
   /**
-   * Returns time with specified number of components.
+   * Returns this time formatted with specified number of components.
    * 
-   * @param components 1=HH, 2=HH:MM, 3=HH:MM:SS, 4+=HH:MM:SS.mmm
+   * @param components number of components to include (1=HH, 2=HH:MM, 3=HH:MM:SS, 4+=HH:MM:SS.mmm)
+   * @return formatted time string
+   * @throws IllegalArgumentException if components is less than 1
    */
   public String format( int components )
   {
+    // validate components parameter
     if ( components < 1 )
       throw new IllegalArgumentException( "Components must be >= 1" );
+
+    // delegate to internal formatting method
     return formatTime( components );
   }
 
   // ================================ Object Methods ================================
 
   /******************************************* equals ********************************************/
+  /**
+   * Checks if this time is equal to another object.
+   * 
+   * @param obj the object to compare with
+   * @return true if the objects represent the same time
+   */
   @Override
   public boolean equals( Object obj )
   {
+    // check for same reference
     if ( this == obj )
       return true;
+
+    // check type and compare milliseconds
     if ( obj instanceof Time other )
       return m_milliseconds == other.m_milliseconds;
     return false;
   }
 
   /****************************************** hashCode *******************************************/
+  /**
+   * Returns a hash code for this time.
+   * 
+   * @return hash code based on the milliseconds value
+   */
   @Override
   public int hashCode()
   {
+    // use milliseconds value for hash code
     return Integer.hashCode( m_milliseconds );
   }
 
   // ================================ Private Helper Methods ================================
 
   /*********************************** validateTimeComponents ************************************/
+  /**
+   * Validates that time components are within acceptable ranges.
+   * 
+   * @param hours hour component (0-24)
+   * @param minutes minute component (0-59)
+   * @param seconds second component (0-59)
+   * @param millis millisecond component (0-999)
+   * @throws IllegalArgumentException if any component is out of range
+   */
   private static void validateTimeComponents( int hours, int minutes, int seconds, int millis )
   {
+    // validate each component is within its acceptable range
     if ( hours < 0 || hours > 24 )
       throw new IllegalArgumentException( "Hours must be 0-24, got: " + hours );
     if ( minutes < 0 || minutes > 59 )
@@ -430,16 +556,28 @@ public final class Time implements Serializable, Comparable<Time>
       throw new IllegalArgumentException( "Seconds must be 0-59, got: " + seconds );
     if ( millis < 0 || millis > 999 )
       throw new IllegalArgumentException( "Milliseconds must be 0-999, got: " + millis );
+
+    // special validation for 24:00:00.000 boundary case
     if ( hours == 24 && ( minutes > 0 || seconds > 0 || millis > 0 ) )
       throw new IllegalArgumentException( "Time components beyond 24:00:00.000 not allowed" );
   }
 
   /************************************* parseNumericString **************************************/
+  /**
+   * Parses a pure numeric string into time components based on string length.
+   * 
+   * @param numStr numeric string to parse
+   * @return Time instance parsed from numeric string
+   * @throws IllegalArgumentException if string is too long
+   * @throws NumberFormatException if string contains non-numeric characters
+   */
   private static Time parseNumericString( String numStr )
   {
+    // convert string to integer
     int num = Integer.parseInt( numStr );
     int len = numStr.length();
 
+    // parse based on string length
     return switch ( len )
     {
       case 1, 2 -> of( num, 0, 0, 0 ); // "8" -> 08:00:00
@@ -450,8 +588,15 @@ public final class Time implements Serializable, Comparable<Time>
   }
 
   /***************************************** formatTime ******************************************/
+  /**
+   * Formats time with specified number of components using efficient string building.
+   * 
+   * @param components number of components to include
+   * @return formatted time string
+   */
   private String formatTime( int components )
   {
+    // create string builder with appropriate initial capacity
     StringBuilder sb = new StringBuilder( 12 );
 
     // hours (always included)
@@ -462,7 +607,7 @@ public final class Time implements Serializable, Comparable<Time>
 
     if ( components >= 2 )
     {
-      // minutes
+      // add minutes with zero padding
       int m = getMinute();
       sb.append( ':' );
       if ( m < 10 )
@@ -471,7 +616,7 @@ public final class Time implements Serializable, Comparable<Time>
 
       if ( components >= 3 )
       {
-        // seconds
+        // add seconds with zero padding
         int s = getSecond();
         sb.append( ':' );
         if ( s < 10 )
@@ -480,7 +625,7 @@ public final class Time implements Serializable, Comparable<Time>
 
         if ( components >= 4 )
         {
-          // milliseconds
+          // add milliseconds with zero padding
           int ms = getMillisecond();
           sb.append( '.' );
           if ( ms < 100 )
