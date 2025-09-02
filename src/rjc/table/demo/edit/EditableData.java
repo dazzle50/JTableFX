@@ -91,7 +91,7 @@ public class EditableData
   }
 
   /****************************************** setValue *******************************************/
-  public String setValue( int dataColumn, Object newValue, Boolean commit )
+  public String setValue( int dataColumn, Object newValue, boolean commit )
   {
     // set/check field value and return null if successful/possible
     switch ( Column.values()[dataColumn] )

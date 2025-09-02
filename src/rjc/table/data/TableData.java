@@ -28,17 +28,25 @@ import rjc.table.view.cell.CellVisual;
 /************** Table data source, column & row counts, signals to announce changes **************/
 /*************************************************************************************************/
 
+/**
+ * This class serves as the foundation for table data implementations, offering observable properties
+ * for table dimensions and a signaling system for coordinating view updates when data changes.
+ * 
+ * Column and row indices start at 0 for table body cells, with -1 representing header cells.
+ */
 public class TableData implements ISignal
 {
-  // observable integers for table body column & row counts
-  private ObservableInteger m_columnCount = new ObservableInteger( 3 );
-  private ObservableInteger m_rowCount    = new ObservableInteger( 10 );
+  // observable integers for tracking table body dimensions with automatic change notification
+  private final ObservableInteger m_columnCount = new ObservableInteger( 3 );
+  private final ObservableInteger m_rowCount    = new ObservableInteger( 10 );
 
-  // convenience user data that can be set and retrieved
-  private Object            m_userData;
+  // optional arbitrary user data storage for application-specific data
+  private Object                  m_userData;
 
-  private CellVisual        m_cellVisual  = new CellVisual();
+  // default cell visual appearance settings applied to all cells
+  private CellVisual              m_cellVisual  = new CellVisual();
 
+  // signal types for notifying observers about different scopes of data changes.
   public enum Signal
   {
     CELL_VALUE_CHANGED, ROW_VALUES_CHANGED, COLUMN_VALUES_CHANGED, TABLE_VALUES_CHANGED
@@ -48,164 +56,276 @@ public class TableData implements ISignal
   final static public int HEADER = -1;
 
   /*************************************** getColumnCount ****************************************/
-  public int getColumnCount()
+  /**
+   * Gets the number of columns in the table body (excluding header column).
+   * 
+   * @return the current column count, always non-negative
+   */
+  final public int getColumnCount()
   {
-    // return number of columns in table body
+    // return current column count from observable property
     return m_columnCount.get();
   }
 
   /*************************************** setColumnCount ****************************************/
-  public void setColumnCount( int columnCount )
+  /**
+   * Sets the number of columns in the table body, in observable property which can be listened to.
+   * 
+   * @param columnCount the new column count, must be non-negative
+   * @throws IllegalArgumentException if columnCount is negative
+   */
+  final public void setColumnCount( int columnCount )
   {
-    // set number of columns in table body
+    // validate column count is not negative before setting
     if ( columnCount < 0 )
       throw new IllegalArgumentException( "Column count must not be negative " + columnCount );
     m_columnCount.set( columnCount );
   }
 
   /**************************************** getRowCount ******************************************/
-  public int getRowCount()
+  /**
+   * Gets the number of rows in the table body (excluding header row).
+   * 
+   * @return the current row count, always non-negative
+   */
+  final public int getRowCount()
   {
-    // return number of rows in table body
+    // return current row count from observable property
     return m_rowCount.get();
   }
 
   /**************************************** setRowCount ******************************************/
-  public void setRowCount( int rowCount )
+  /**
+   * Sets the number of rows in the table body, in observable property which can be listened to.
+   * 
+   * @param rowCount the new row count, must be non-negative
+   * @throws IllegalArgumentException if rowCount is negative
+   */
+  final public void setRowCount( int rowCount )
   {
-    // set number of rows in table body
+    // validate row count is not negative before setting
     if ( rowCount < 0 )
       throw new IllegalArgumentException( "Row count must not be negative " + rowCount );
     m_rowCount.set( rowCount );
   }
 
   /************************************* columnCountProperty *************************************/
-  public ReadOnlyInteger columnCountProperty()
+  /**
+   * Gets a read-only observable property for the column count, that can be listened to.
+   * 
+   * @return read-only integer property tracking column count changes
+   */
+  final public ReadOnlyInteger columnCountProperty()
   {
-    // return read-only property for column count
+    // return read-only wrapper to prevent external modification
     return m_columnCount.getReadOnly();
   }
 
   /************************************** rowCountProperty ***************************************/
-  public ReadOnlyInteger rowCountProperty()
+  /**
+   * Gets a read-only observable property for the row count, that can be listened to.
+   * 
+   * @return read-only integer property tracking row count changes
+   */
+  final public ReadOnlyInteger rowCountProperty()
   {
-    // return read-only property for row count
+    // return read-only wrapper to prevent external modification
     return m_rowCount.getReadOnly();
   }
 
   /***************************************** getVisual *******************************************/
+  /**
+   * Gets the visual appearance settings for a specific cell.
+   * Override this method to provide non-default styling (fonts, colours, alignment, etc.).
+   * 
+   * @param dataColumn the column index (0-based for body, HEADER for header column)
+   * @param dataRow the row index (0-based for body, HEADER for header row)
+   * @return CellVisual object containing appearance settings for the specified cell
+   */
   public CellVisual getVisual( int dataColumn, int dataRow )
   {
-    // cell visual settings for specified cell index
+    // return default visual settings for all cells - override for custom styling
     return m_cellVisual;
   }
 
   /****************************************** getValue *******************************************/
+  /**
+   * Gets the display value for a specific cell.
+   * This base implementation provides default header labels and placeholder body values.
+   * Override this method to return actual data from your data source.
+   * 
+   * @param dataColumn the column index (0-based for body, HEADER for header column)
+   * @param dataRow the row index (0-based for body, HEADER for header row)
+   * @return the cell value to display, may be any Object type
+   */
   public Object getValue( int dataColumn, int dataRow )
   {
-    // return header corner cell value
+    // return appropriate default value based on cell location
+    // header corner cell shows separator
     if ( dataColumn == HEADER && dataRow == HEADER )
       return "-";
 
-    // return row value for specified row index
+    // row header shows row identifier
     if ( dataColumn == HEADER )
       return "R" + dataRow;
 
-    // return column value for specified column index
+    // column header shows column identifier
     if ( dataRow == HEADER )
       return "C" + dataColumn;
 
-    // return cell value for specified cell index
+    // body cells show coordinate placeholder
     return "{" + dataColumn + "," + dataRow + "}";
   }
 
   /****************************************** setValue *******************************************/
+  /**
+   * Attempts to set a new value for the specified cell.
+   * This is the primary method for updating cell data with full validation and signaling.
+   * 
+   * @param dataColumn the column index (must be >= 0 and < columnCount)
+   * @param dataRow the row index (must be >= 0 and < rowCount)
+   * @param newValue the new value to set, type depends on column data type
+   * @return null if successful, otherwise a String describing why the operation failed
+   */
   final public String setValue( int dataColumn, int dataRow, Object newValue )
   {
-    // attempts to set cell value, returns null if successful, otherwise returns String reason (final method)
+    // delegate to tryValue with commit=true to actually set the value
     return tryValue( dataColumn, dataRow, newValue, true );
   }
 
   /****************************************** testValue ******************************************/
+  /**
+   * Tests whether a value could be set for the specified cell without actually setting it.
+   * Use this for validation during user input to provide immediate feedback.
+   * 
+   * @param dataColumn the column index (must be >= 0 and < columnCount)
+   * @param dataRow the row index (must be >= 0 and < rowCount)
+   * @param newValue the value to test for validity
+   * @return null if the value would be accepted, otherwise a String describing why it would be rejected
+   */
   final public String testValue( int dataColumn, int dataRow, Object newValue )
   {
-    // checks if would be possible to set cell value, returns non-null String reason if not possible (final method)
+    // delegate to tryValue with commit=false to only validate without setting
     return tryValue( dataColumn, dataRow, newValue, false );
   }
 
   /******************************************* tryValue ******************************************/
-  protected String tryValue( int dataColumn, int dataRow, Object newValue, Boolean commit )
+  final private String tryValue( int dataColumn, int dataRow, Object newValue, boolean commit )
   {
-    // check specified column & row are in range
+    // validate cell coordinates are within valid range
     if ( dataColumn <= HEADER || dataColumn >= getColumnCount() || dataRow <= HEADER || dataRow >= getRowCount() )
       return "Cell reference out of range " + dataColumn + " " + dataRow;
 
     try
     {
-      // attempt to process value test/set
+      // delegate to override setValue method for actual validation/setting logic
       String decline = setValue( dataColumn, dataRow, newValue, commit );
 
-      // if not declined and setting, signal cell changed (might not have different value)
+      // if successful and committing, notify observers that cell has changed
       if ( decline == null && commit )
         signalCellChanged( dataColumn, dataRow );
       return decline;
     }
     catch ( Exception exception )
     {
-      // processing the value caused exception, so return decline string
+      // catch any exceptions during processing and return descriptive error message
       String msg = "Error " + dataColumn + " " + dataRow + " " + commit + " ";
       return msg + Utils.objectsString( newValue ) + " : " + exception.toString();
     }
   }
 
   /****************************************** setValue *******************************************/
-  protected String setValue( int dataColumn, int dataRow, Object newValue, Boolean commit )
+  /**
+   * Template method for validating and optionally setting cell values.
+   * Override this method to implement actual data validation and storage logic.
+   * This base implementation always returns "Not implemented" to indicate no data storage is available.
+   * 
+   * @param dataColumn the column index (guaranteed to be valid when called)
+   * @param dataRow the row index (guaranteed to be valid when called)
+   * @param newValue the value to validate and potentially set
+   * @param commit true to actually set the value, false to only validate
+   * @return null if the operation is successful/valid, otherwise a String describing the problem
+   */
+  protected String setValue( int dataColumn, int dataRow, Object newValue, boolean commit )
   {
-    // returns null if cell value can be set to new-value for specified data index
-    // returns non-null decline reason String if cannot set cell value
-    // cell value is only set if commit is true, but value is always validated to return correct reason
+    // base implementation has no data storage, so always decline with explanation
     return "Not implemented";
   }
 
   /************************************** signalCellChanged **************************************/
-  public void signalCellChanged( int dataColumn, int dataRow )
+  /**
+   * Notifies observers that a specific cell's value has changed.
+   * This triggers view updates for the affected cell.
+   * 
+   * @param dataColumn the column index of the changed cell
+   * @param dataRow the row index of the changed cell
+   */
+  final public void signalCellChanged( int dataColumn, int dataRow )
   {
-    // signal that a table cell value has changed (usually to trigger cell redraw)
+    // emit cell-level change signal with coordinates for targeted updates
     signal( Signal.CELL_VALUE_CHANGED, dataColumn, dataRow );
   }
 
   /************************************* signalColumnChanged *************************************/
-  public void signalColumnChanged( int dataColumn )
+  /**
+   * Notifies observers that all values in a specific column have changed.
+   * This triggers view updates for the entire column.
+   * 
+   * @param dataColumn the column index that has changed
+   */
+  final public void signalColumnChanged( int dataColumn )
   {
-    // signal that table column values have changed (usually to trigger column redraw)
+    // emit column-level change signal for bulk column updates
     signal( Signal.COLUMN_VALUES_CHANGED, dataColumn );
   }
 
   /*************************************** signalRowChanged **************************************/
-  public void signalRowChanged( int dataRow )
+  /**
+   * Notifies observers that all values in a specific row have changed.
+   * This triggers view updates for the entire row.
+   * 
+   * @param dataRow the row index that has changed
+   */
+  final public void signalRowChanged( int dataRow )
   {
-    // signal that table row values have changed (usually to trigger row redraw)
+    // emit row-level change signal for bulk row updates
     signal( Signal.ROW_VALUES_CHANGED, dataRow );
   }
 
   /************************************** signalTableChanged *************************************/
-  public void signalTableChanged()
+  /**
+   * Notifies observers that multiple or all table values have changed.
+   * This triggers a complete view refresh of the entire table view.
+   * Use sparingly as it's the most expensive update operation.
+   */
+  final public void signalTableChanged()
   {
-    // signal that table values have changed (usually to trigger table redraw)
+    // emit table-level change signal for complete table refresh
     signal( Signal.TABLE_VALUES_CHANGED );
   }
 
   /***************************************** setUserData *****************************************/
-  public void setUserData( Object object )
+  /**
+   * Stores arbitrary application-specific data associated with this table.
+   * This provides a convenient way to attach custom metadata or state.
+   * 
+   * @param object any object to associate with this table, or null to clear
+   */
+  final public void setUserData( Object object )
   {
-    // set single object user-data that can retrieved later
+    // store reference to user-provided data object
     m_userData = object;
   }
 
   /***************************************** getUserData *****************************************/
-  public Object getUserData()
+  /**
+   * Retrieves the application-specific data previously stored with setUserData().
+   * 
+   * @return the previously stored user data object, or null if none was set
+   */
+  final public Object getUserData()
   {
-    // returns previously set user-data, or null
+    // return previously stored user data reference
     return m_userData;
   }
 
@@ -213,7 +333,7 @@ public class TableData implements ISignal
   @Override
   public String toString()
   {
-    // return as string
+    // return concise string representation showing current table dimensions
     return Utils.name( this ) + "[m_columnCount=" + m_columnCount + " m_rowCount=" + m_rowCount + "]";
   }
 
