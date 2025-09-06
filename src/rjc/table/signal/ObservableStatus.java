@@ -27,12 +27,18 @@ import rjc.table.Utils;
 /****************** Observable status with severity and associated text message ******************/
 /*************************************************************************************************/
 
+/**
+ * Observable status with severity level and associated text message that can signal
+ * listeners when changed. Provides automatic timer-based clearing functionality and
+ * CSS styling support for different severity levels.
+ */
 public class ObservableStatus implements ISignal
 {
   private Level  m_severity;            // severity of status
   private String m_msg;                 // text message for status
   private Timer  m_timer = new Timer(); // timer to clear temporary status
 
+  // enumeration of status severity levels from normal through fatal.
   public static enum Level // status types
   {
     NORMAL, WARNING, ERROR, FATAL
@@ -43,6 +49,9 @@ public class ObservableStatus implements ISignal
   private static final String STYLE_ERROR   = "-fx-text-fill: red;";
 
   /**************************************** constructor ******************************************/
+  /**
+   * Creates an observable status with normal severity and no message.
+   */
   public ObservableStatus()
   {
     // create empty status
@@ -51,6 +60,12 @@ public class ObservableStatus implements ISignal
   }
 
   /**************************************** constructor ******************************************/
+  /**
+   * Creates an observable status with the specified severity and message.
+   * 
+   * @param severity the initial severity level
+   * @param msg the initial text message
+   */
   public ObservableStatus( Level severity, String msg )
   {
     // create specified status
@@ -59,6 +74,13 @@ public class ObservableStatus implements ISignal
   }
 
   /******************************************* update ********************************************/
+  /**
+   * Updates the severity and message of this observable status.
+   * If either value changes, cancels any pending timer and signals all listeners.
+   * 
+   * @param severity the new severity level
+   * @param msg the new text message
+   */
   public void update( Level severity, String msg )
   {
     // update severity and message
@@ -72,6 +94,10 @@ public class ObservableStatus implements ISignal
   }
 
   /******************************************** clear ********************************************/
+  /**
+   * Clears the status to normal severity with no message.
+   * Cancels any pending timer and signals listeners if the status changes.
+   */
   public void clear()
   {
     // clear status to normal severity and no message
@@ -79,6 +105,11 @@ public class ObservableStatus implements ISignal
   }
 
   /******************************************* isError *******************************************/
+  /**
+   * Checks if the current status represents an error condition.
+   * 
+   * @return true if severity is ERROR or FATAL, false otherwise
+   */
   public Boolean isError()
   {
     // return if status in error state
@@ -86,6 +117,11 @@ public class ObservableStatus implements ISignal
   }
 
   /***************************************** setSeverity *****************************************/
+  /**
+   * Sets a new severity level while keeping the current message.
+   * 
+   * @param severity the new severity level
+   */
   public void setSeverity( Level severity )
   {
     // update severity
@@ -93,13 +129,25 @@ public class ObservableStatus implements ISignal
   }
 
   /***************************************** setMessage ******************************************/
+  /**
+   * Sets a new message while keeping the current severity level.
+   * 
+   * @param msg the new text message
+   */
   public void setMessage( String msg )
   {
     // update message
     update( m_severity, msg );
   }
 
-  /***************************************** setMessage ******************************************/
+  /************************************* clearAfterMillisecs *************************************/
+  /**
+   * Schedules the status to be cleared after the specified number of milliseconds.
+   * Cancels any previously scheduled clear operation. The clear will not occur
+   * if the status is modified before the timer expires.
+   * 
+   * @param millisecs the delay in milliseconds before clearing the status
+   */
   public void clearAfterMillisecs( int millisecs )
   {
     // clear the status after specified number of milliseconds (unless altered before)
@@ -116,6 +164,11 @@ public class ObservableStatus implements ISignal
   }
 
   /***************************************** getSeverity *****************************************/
+  /**
+   * Gets the current severity level of this observable status.
+   * 
+   * @return the current severity level
+   */
   public Level getSeverity()
   {
     // return status severity level
@@ -123,6 +176,11 @@ public class ObservableStatus implements ISignal
   }
 
   /***************************************** getMessage ******************************************/
+  /**
+   * Gets the current text message of this observable status.
+   * 
+   * @return the current text message, may be null
+   */
   public String getMessage()
   {
     // return status text message
@@ -130,6 +188,14 @@ public class ObservableStatus implements ISignal
   }
 
   /****************************************** getStyle *******************************************/
+  /**
+   * Gets the CSS style string appropriate for the specified severity level.
+   * Provides consistent visual styling across different severity levels.
+   * 
+   * @param severity the severity level to get styling for
+   * @return CSS style string for the specified severity
+   * @throws UnsupportedOperationException if severity level is not recognised
+   */
   public static String getStyle( Level severity )
   {
     // return suitable style css for specified severity
@@ -148,6 +214,11 @@ public class ObservableStatus implements ISignal
   }
 
   /****************************************** getStyle *******************************************/
+  /**
+   * Gets the CSS style string appropriate for the current severity level.
+   * 
+   * @return CSS style string for the current severity
+   */
   public String getStyle()
   {
     // return suitable style css for current severity

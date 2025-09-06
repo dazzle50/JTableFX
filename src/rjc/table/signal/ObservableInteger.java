@@ -24,15 +24,30 @@ import rjc.table.Utils;
 /**************************** Observable integer & read-only integer *****************************/
 /*************************************************************************************************/
 
+/**
+ * Observable integer value that can signal listeners when changed.
+ * Provides both mutable and read-only access patterns with proper integer comparison
+ * for change detection.
+ */
 public class ObservableInteger implements ISignal
 {
   private int             m_value;    // stored integer value
   private ReadOnlyInteger m_readonly; // read-only version of this observable
 
-  public class ReadOnlyInteger implements ISignal // provides read-only access
+  /**
+   * Read-only wrapper for ObservableInteger that provides immutable access
+   * to the underlying value while still receiving change notifications.
+   */
+  public static class ReadOnlyInteger implements ISignal // provides read-only access
   {
-    private ObservableInteger m_observable;
+    private final ObservableInteger m_observable;
 
+    /**
+     * Creates a read-only view of the specified observable integer.
+     * Automatically forwards change signals from the underlying observable.
+     * 
+     * @param observable the observable integer to wrap
+     */
     public ReadOnlyInteger( ObservableInteger observable )
     {
       // construct and propagate any signals
@@ -40,6 +55,11 @@ public class ObservableInteger implements ISignal
       m_observable.addListener( ( sender, oldValue ) -> signal( oldValue ) );
     }
 
+    /**
+     * Gets the current value of the observable integer.
+     * 
+     * @return the current integer value
+     */
     public int get()
     {
       // return value
@@ -54,29 +74,49 @@ public class ObservableInteger implements ISignal
   }
 
   /**************************************** constructor ******************************************/
+  /**
+   * Creates an observable integer with default value of 0.
+   */
   public ObservableInteger()
   {
-    // construct
+    // construct with default zero value
   }
 
   /**************************************** constructor ******************************************/
+  /**
+   * Creates an observable integer with the specified initial value.
+   * 
+   * @param value the initial integer value
+   */
   public ObservableInteger( int value )
   {
-    // construct
+    // construct with specified initial value
     m_value = value;
   }
 
   /********************************************* get *********************************************/
+  /**
+   * Gets the current value of this observable integer.
+   * 
+   * @return the current integer value
+   */
   public int get()
   {
-    // return value of integer
+    // return current value
     return m_value;
   }
 
   /********************************************* set *********************************************/
+  /**
+   * Sets a new value for this observable integer.
+   * If the new value differs from the current value,
+   * signals all listeners with the previous value.
+   * 
+   * @param newValue the new integer value to set
+   */
   public void set( int newValue )
   {
-    // set value of integer, and signal (this, old value) if change
+    // set value and signal if changed
     if ( newValue != m_value )
     {
       int oldValue = m_value;
@@ -86,9 +126,15 @@ public class ObservableInteger implements ISignal
   }
 
   /***************************************** getReadOnly *****************************************/
+  /**
+   * Gets a read-only view of this observable integer.
+   * The same read-only instance is returned on subsequent calls (lazy initialisation).
+   * 
+   * @return a read-only wrapper that provides immutable access to this observable
+   */
   public ReadOnlyInteger getReadOnly()
   {
-    // return read-only version of integer
+    // return lazily-created read-only wrapper
     if ( m_readonly == null )
       m_readonly = new ReadOnlyInteger( this );
     return m_readonly;
@@ -98,7 +144,7 @@ public class ObservableInteger implements ISignal
   @Override
   public String toString()
   {
-    // return class string
+    // return class name and current value
     return Utils.name( this ) + "=" + this.get();
   }
 

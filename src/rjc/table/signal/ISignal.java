@@ -27,150 +27,267 @@ import javafx.application.Platform;
 /******************* Interface for signal senders with default implementation ********************/
 /*************************************************************************************************/
 
+/**
+ * Interface providing signal/slot functionality with default implementations.
+ * Classes implementing this interface can emit signals to registered listeners.
+ * Supports both immediate and JavaFX Platform.runLater() delayed signal delivery.
+ * Uses weak references to prevent memory leaks when signal senders are garbage collected.
+ */
 public interface ISignal
 {
-  static class SignalHelper
+  /**
+   * Helper class that manages signal listeners and provides the core signal/slot functionality.
+   * Uses WeakHashMap to automatically clean up listeners when signal senders are garbage collected.
+   * Maintains separate collections for immediate and delayed (Platform.runLater) listeners.
+   */
+  final static class SignalHelper
   {
     final private static WeakHashMap<ISignal, ArrayList<IListener>> m_listeners      = new WeakHashMap<>();
     final private static WeakHashMap<ISignal, ArrayList<IListener>> m_laterListeners = new WeakHashMap<>();
 
     /****************************************** signal *******************************************/
-    private static void signal( ISignal signaller, Object[] objects )
+    /**
+     * Sends immediate signal to all registered listeners for the specified sender.
+     * Also sends signal to laterListeners using JavaFX Platform.runLater().
+     * 
+     * @param signaller the signal sender
+     * @param objects message parameters to send to listeners
+     */
+    final private static void signal( ISignal signaller, Object[] objects )
     {
-      // send signal objects to each listener registered with specified signal sender
+      // send signal objects to each immediate listener registered with specified signal sender
       var list = m_listeners.get( signaller );
       if ( list != null )
         list.forEach( ( listener ) -> listener.slot( signaller, objects ) );
+      // also send to later listeners via JavaFX Platform.runLater
       list = m_laterListeners.get( signaller );
       if ( list != null )
         list.forEach( ( listener ) -> Platform.runLater( () -> listener.slot( signaller, objects ) ) );
     }
 
     /**************************************** signalLater ****************************************/
-    private static void signalLater( ISignal signaller, Object[] objects )
+    /**
+     * Sends delayed signal using Platform.runLater to all registered listeners.
+     * 
+     * @param signaller the signal sender
+     * @param objects message parameters to send to listeners
+     */
+    final private static void signalLater( ISignal signaller, Object[] objects )
     {
-      // send signal objects using Platform.runLater to each listener registered with specified signal sender
+      // defer signal delivery to JavaFX application thread using Platform.runLater
       Platform.runLater( () -> signal( signaller, objects ) );
     }
 
     /*************************************** addListener *****************************************/
-    private static void addListener( ISignal signaller, IListener listener )
+    /**
+     * Registers an immediate listener for the specified signal sender.
+     * 
+     * @param signaller the signal sender to listen to
+     * @param listener the listener to register
+     */
+    final private static void addListener( ISignal signaller, IListener listener )
     {
-      // register listener for specified signal sender
+      // get or create listener list for this signal sender
       var list = m_listeners.get( signaller );
       if ( list == null )
       {
         list = new ArrayList<>();
         m_listeners.put( signaller, list );
       }
+      // add listener to the list
       list.add( listener );
     }
 
     /************************************* addLaterListener **************************************/
-    private static void addLaterListener( ISignal signaller, IListener listener )
+    /**
+     * Registers a delayed listener that receives signals via Platform.runLater.
+     * 
+     * @param signaller the signal sender to listen to
+     * @param listener the listener to register for delayed delivery
+     */
+    final private static void addLaterListener( ISignal signaller, IListener listener )
     {
-      // register listener for specified signal sender
+      // get or create later listener list for this signal sender
       var list = m_laterListeners.get( signaller );
       if ( list == null )
       {
         list = new ArrayList<>();
         m_laterListeners.put( signaller, list );
       }
+      // add listener to the later list
       list.add( listener );
     }
 
     /************************************** removeListener ***************************************/
-    private static void removeListener( ISignal signaller, IListener listener )
+    /**
+     * Unregisters a listener from both immediate and delayed listener collections.
+     * Safe to call even if listener is not registered - no action taken.
+     * 
+     * @param signaller the signal sender to remove listener from
+     * @param listener the listener to unregister
+     */
+    final private static void removeListener( ISignal signaller, IListener listener )
     {
-      // unregister listener for specified signal sender, no-action if not present
+      // remove from immediate listeners if present
       var list = m_listeners.get( signaller );
       if ( list != null )
         list.remove( listener );
+      // remove from later listeners if present
       list = m_laterListeners.get( signaller );
       if ( list != null )
         list.remove( listener );
     }
 
     /************************************ removeAllListeners *************************************/
-    private static void removeAllListeners( ISignal signaller )
+    /**
+     * Unregisters all listeners (both immediate and delayed) for the specified sender.
+     * Clears both listener collections but does not remove the sender from the maps.
+     * 
+     * @param signaller the signal sender to remove all listeners from
+     */
+    final private static void removeAllListeners( ISignal signaller )
     {
-      // unregister all listeners for specified signal sender
+      // clear immediate listeners list
       var list = m_listeners.get( signaller );
       if ( list != null )
         list.clear();
+      // clear later listeners list
       list = m_laterListeners.get( signaller );
       if ( list != null )
         list.clear();
     }
 
     /*************************************** getListeners ****************************************/
-    private static ArrayList<IListener> getListeners( ISignal signaller )
+    /**
+     * Returns the list of immediate listeners for the specified sender.
+     * Does not include delayed listeners - use getLaterListeners() for those.
+     * 
+     * @param signaller the signal sender to get listeners for
+     * @return list of immediate listeners, or null if no listeners registered
+     */
+    final private static ArrayList<IListener> getListeners( ISignal signaller )
     {
-      // return list of all listeners for specified signal sender, can be null
+      // return immediate listeners list (can be null if no listeners)
       return m_listeners.get( signaller );
     }
 
     /************************************* getLaterListeners *************************************/
-    private static ArrayList<IListener> getLaterListeners( ISignal signaller )
+    /**
+     * Returns the list of delayed listeners for the specified sender.
+     * Does not include immediate listeners - use getListeners() for those.
+     * 
+     * @param signaller the signal sender to get later listeners for
+     * @return list of delayed listeners, or null if no later listeners registered
+     */
+    final private static ArrayList<IListener> getLaterListeners( ISignal signaller )
     {
-      // return list of all listeners for specified signal sender, can be null
+      // return later listeners list (can be null if no later listeners)
       return m_laterListeners.get( signaller );
     }
   }
 
   /******************************************* signal ********************************************/
+  /**
+   * Sends an immediate signal to all registered listeners with optional message parameters.
+   * Listeners are called directly on the current thread, followed by delayed listeners
+   * which are called via Platform.runLater().
+   * 
+   * @param objects variable number of message objects to send to listeners
+   */
   default void signal( Object... objects )
   {
-    // default implementation for sending immediate signal to listeners
+    // delegate to helper for immediate signal delivery
     SignalHelper.signal( this, objects );
   }
 
   /***************************************** signalLater *****************************************/
+  /**
+   * Sends a delayed signal to all registered listeners using Platform.runLater().
+   * Signal delivery is deferred to the JavaFX Application Thread event queue.
+   * Useful for ensuring UI updates happen on the correct thread.
+   * 
+   * @param objects variable number of message objects to send to listeners
+   */
   default void signalLater( Object... objects )
   {
-    // default implementation for sending delayed signal to listeners
+    // delegate to helper for delayed signal delivery
     SignalHelper.signalLater( this, objects );
   }
 
   /***************************************** addListener *****************************************/
+  /**
+   * Registers a listener to receive immediate signals from this sender.
+   * The listener will be called directly on the thread that emits the signal.
+   * 
+   * @param listener the listener to register for immediate signal delivery
+   */
   default void addListener( IListener listener )
   {
-    // default implementation for adding a listener to a signal sender
+    // delegate to helper for adding immediate listener
     SignalHelper.addListener( this, listener );
   }
 
   /************************************** addLaterListener ***************************************/
+  /**
+   * Registers a listener to receive delayed signals via Platform.runLater().
+   * The listener will be called on the JavaFX Application Thread regardless
+   * of which thread emits the signal.
+   * 
+   * @param listener the listener to register for delayed signal delivery
+   */
   default void addLaterListener( IListener listener )
   {
-    // default implementation for adding a later listener to a signal sender
+    // delegate to helper for adding delayed listener
     SignalHelper.addLaterListener( this, listener );
   }
 
   /*************************************** removeListener ****************************************/
+  /**
+   * Unregisters a listener from both immediate and delayed signal delivery.
+   * Safe to call even if the listener was never registered.
+   * 
+   * @param listener the listener to unregister from all signal types
+   */
   default void removeListener( IListener listener )
   {
-    // default implementation for removing a listener from a signal sender (later & not-later)
+    // delegate to helper for removing listener from both collections
     SignalHelper.removeListener( this, listener );
   }
 
   /************************************* removeAllListeners **************************************/
+  /**
+   * Unregisters all listeners (both immediate and delayed) from this signal sender.
+   * Clears all listener collections but preserves the sender in the weak hash maps.
+   */
   default void removeAllListeners()
   {
-    // default implementation for removing all listeners from a signal sender (later & not-later)
+    // delegate to helper for removing all listeners
     SignalHelper.removeAllListeners( this );
   }
 
   /**************************************** getListeners *****************************************/
+  /**
+   * Returns the list of immediate listeners registered with this signal sender.
+   * Does not include delayed listeners - use getLaterListeners() for those.
+   * 
+   * @return list of immediate listeners, or null if no immediate listeners are registered
+   */
   default ArrayList<IListener> getListeners()
   {
-    // default implementation for getting list of all listeners for a signal sender (does not include later)
+    // delegate to helper for getting immediate listeners
     return SignalHelper.getListeners( this );
   }
 
   /************************************** getLaterListeners **************************************/
+  /**
+   * Returns the list of delayed listeners registered with this signal sender.
+   * Does not include immediate listeners - use getListeners() for those.
+   * 
+   * @return list of delayed listeners, or null if no delayed listeners are registered
+   */
   default ArrayList<IListener> getLaterListeners()
   {
-    // default implementation for getting list of all listeners for a signal sender (does not include not-later)
+    // delegate to helper for getting delayed listeners
     return SignalHelper.getLaterListeners( this );
   }
 

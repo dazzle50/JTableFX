@@ -30,8 +30,13 @@ import java.util.regex.Pattern;
 /******************* Miscellaneous utility public static methods and variables *******************/
 /*************************************************************************************************/
 
+/**
+ * Utility class providing various helper methods for debugging, string manipulation,
+ * and common operations used throughout the JTableFX library.
+ */
 public class Utils
 {
+  // current version of the JTableFX library
   public static final String             VERSION      = "v0.2.0 WIP";
 
   // pre-compiled formatter and pattern for better performance
@@ -44,6 +49,11 @@ public class Utils
   private static final StackWalker       STACK_WALKER = StackWalker.getInstance();
 
   /****************************************** timestamp ******************************************/
+  /**
+   * Returns the current date and time as a formatted string.
+   * 
+   * @return formatted timestamp string in "YYYY-MM-DD HH:MM:SS.SSS " format
+   */
   public static String timestamp()
   {
     // returns current date-time as string in format YYYY-MM-DD HH:MM:SS.SSS
@@ -51,6 +61,12 @@ public class Utils
   }
 
   /******************************************** trace ********************************************/
+  /**
+   * Debug utility that prints a timestamped trace message with calling method information.
+   * Output includes current timestamp, provided objects, and caller's file+line+method.
+   * 
+   * @param objects variable number of objects to include in the trace output
+   */
   public static void trace( Object... objects )
   {
     // sends to standard out date-time, the input objects, suffixed by file+line-number & method
@@ -64,6 +80,12 @@ public class Utils
   }
 
   /********************************************* path ********************************************/
+  /**
+   * Debug utility that prints a timestamped message with the simplified execution path.
+   * Shows the call chain from the calling method up to JavaFX launcher, excluding signal helpers.
+   * 
+   * @param objects variable number of objects to include in the path output
+   */
   public static void path( Object... objects )
   {
     // sends to standard out date-time, the input objects, and simplified stack path
@@ -77,8 +99,10 @@ public class Utils
       {
         StackFrame frame = iterator.next();
         String className = frame.getClassName();
+        // stop at javafx launcher to avoid unnecessary noise
         if ( EARLY_EXIT.equals( className ) )
           break;
+        // skip signal helper frames to reduce clutter
         if ( !SKIP_ISIGNAL.equals( className ) )
           str.append( stackFrameString( frame ) );
       }
@@ -88,6 +112,12 @@ public class Utils
   }
 
   /******************************************* stack *********************************************/
+  /**
+   * Debug utility that prints a timestamped message followed by the complete stack trace.
+   * Useful for detailed debugging when you need to see the full call hierarchy.
+   * 
+   * @param objects variable number of objects to include before the stack trace
+   */
   public static void stack( Object... objects )
   {
     // sends to standard out date-time and the input objects
@@ -98,6 +128,7 @@ public class Utils
     {
       var iterator = stream.iterator();
       iterator.next(); // skip stack()
+      // print each stack frame with indentation
       while ( iterator.hasNext() )
         System.out.println( "\t" + iterator.next() );
       return null; // nothing to return
@@ -105,6 +136,12 @@ public class Utils
   }
 
   /**************************************** stackFrameString ****************************************/
+  /**
+   * Formats a stack frame into a readable string representation.
+   * 
+   * @param frame the stack frame to format
+   * @return formatted string in " (filename:line) methodName()" format
+   */
   private static String stackFrameString( StackFrame frame )
   {
     // return frame as string in desired format
@@ -112,6 +149,14 @@ public class Utils
   }
 
   /**************************************** objectsString ****************************************/
+  /**
+   * Converts an array of objects into a space-separated string representation.
+   * Handles null values, strings with quotes, characters with single quotes,
+   * and arrays (including primitive arrays with a 20-item limit).
+   * 
+   * @param objects variable number of objects to convert to string
+   * @return StringBuilder containing the formatted object representations
+   */
   public static StringBuilder objectsString( Object... objects )
   {
     // converts objects to space separated string
@@ -121,8 +166,10 @@ public class Utils
       if ( obj == null )
         str.append( "null " );
       else if ( obj instanceof String s )
+        // wrap strings in double quotes for clarity
         str.append( '"' ).append( s ).append( "\" " );
       else if ( obj instanceof Character c )
+        // wrap characters in single quotes for clarity
         str.append( '\'' ).append( c ).append( "' " );
       else if ( obj.getClass().isArray() )
       {
@@ -132,16 +179,20 @@ public class Utils
           int len = Array.getLength( obj );
           int box = clamp( len, 0, 20 );
           List<Object> list = new ArrayList<>( box );
+          // extract up to 20 items from primitive array
           for ( int i = 0; i < box; i++ )
             list.add( Array.get( obj, i ) );
+          // indicate if array was truncated
           if ( box < len )
             list.add( "...of " + len );
           str.append( objectsString( list ) ).append( " " );
         }
         else
+          // handle object arrays recursively
           str.append( "[" ).append( objectsString( (Object[]) obj ) ).append( "] " );
       }
       else
+        // use object's toString() method
         str.append( obj ).append( " " );
     }
 
@@ -152,6 +203,13 @@ public class Utils
   }
 
   /******************************************* clean *********************************************/
+  /**
+   * Cleans a string by trimming whitespace and collapsing multiple whitespace characters
+   * into single spaces.
+   * 
+   * @param txt the string to clean
+   * @return cleaned string with normalized whitespace
+   */
   public static String clean( String txt )
   {
     // returns a clean string
@@ -159,6 +217,13 @@ public class Utils
   }
 
   /******************************************** name *********************************************/
+  /**
+   * Returns a string representation of an object containing its simple class name
+   * and hexadecimal identity hash code.
+   * 
+   * @param obj the object to get the name for
+   * @return string in format "ClassName@hexHash"
+   */
   public static String name( Object obj )
   {
     // returns the objects simple class name with hash identity in hex
@@ -166,12 +231,28 @@ public class Utils
   }
 
   /******************************************** clamp ********************************************/
+  /**
+   * Clamps an integer value between the specified minimum and maximum bounds.
+   * 
+   * @param val the value to clamp
+   * @param min the minimum allowed value (inclusive)
+   * @param max the maximum allowed value (inclusive)
+   * @return the clamped value
+   */
   public static int clamp( int val, int min, int max )
   {
     // return integer clamped between supplied min and max
     return val > max ? max : val < min ? min : val;
   }
 
+  /**
+   * Clamps a double value between the specified minimum and maximum bounds.
+   * 
+   * @param val the value to clamp
+   * @param min the minimum allowed value (inclusive)
+   * @param max the maximum allowed value (inclusive)
+   * @return the clamped value
+   */
   public static double clamp( double val, double min, double max )
   {
     // return double clamped between supplied min and max

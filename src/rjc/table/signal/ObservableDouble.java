@@ -24,15 +24,30 @@ import rjc.table.Utils;
 /***************************** Observable double & read-only double ******************************/
 /*************************************************************************************************/
 
+/**
+ * Observable double value that can signal listeners when changed.
+ * Provides both mutable and read-only access patterns with proper double comparison
+ * for change detection to handle floating-point precision issues.
+ */
 public class ObservableDouble implements ISignal
 {
   private double         m_value;    // stored double value
   private ReadOnlyDouble m_readonly; // read-only version of this observable
 
-  public class ReadOnlyDouble implements ISignal // provides read-only access
+  /**
+   * Read-only wrapper for ObservableDouble that provides immutable access
+   * to the underlying value while still receiving change notifications.
+   */
+  public static class ReadOnlyDouble implements ISignal // provides read-only access
   {
-    private ObservableDouble m_observable;
+    private final ObservableDouble m_observable;
 
+    /**
+     * Creates a read-only view of the specified observable double.
+     * Automatically forwards change signals from the underlying observable.
+     * 
+     * @param observable the observable double to wrap
+     */
     public ReadOnlyDouble( ObservableDouble observable )
     {
       // construct and propagate any signals
@@ -40,6 +55,11 @@ public class ObservableDouble implements ISignal
       m_observable.addListener( ( sender, oldValue ) -> signal( oldValue ) );
     }
 
+    /**
+     * Gets the current value of the observable double.
+     * 
+     * @return the current double value
+     */
     public double get()
     {
       // return value
@@ -54,30 +74,50 @@ public class ObservableDouble implements ISignal
   }
 
   /**************************************** constructor ******************************************/
+  /**
+   * Creates an observable double with default value of 0.0.
+   */
   public ObservableDouble()
   {
-    // construct
+    // construct with default zero value
   }
 
   /**************************************** constructor ******************************************/
+  /**
+   * Creates an observable double with the specified initial value.
+   * 
+   * @param value the initial double value
+   */
   public ObservableDouble( double value )
   {
-    // construct
+    // construct with specified initial value
     m_value = value;
   }
 
   /********************************************* get *********************************************/
+  /**
+   * Gets the current value of this observable double.
+   * 
+   * @return the current double value
+   */
   public double get()
   {
-    // return value of double
+    // return current value
     return m_value;
   }
 
   /********************************************* set *********************************************/
+  /**
+   * Sets a new value for this observable double.
+   * If the new value differs from the current value (using proper double comparison),
+   * signals all listeners with the previous value.
+   * 
+   * @param newValue the new double value to set
+   */
   public void set( double newValue )
   {
-    // set value of double, and signal if change
-    if ( newValue != m_value )
+    // set value and signal if changed using proper double comparison
+    if ( Double.compare( newValue, m_value ) != 0 )
     {
       double oldValue = m_value;
       m_value = newValue;
@@ -86,9 +126,15 @@ public class ObservableDouble implements ISignal
   }
 
   /***************************************** getReadOnly *****************************************/
+  /**
+   * Gets a read-only view of this observable double.
+   * The same read-only instance is returned on subsequent calls (lazy initialisation).
+   * 
+   * @return a read-only wrapper that provides immutable access to this observable
+   */
   public ReadOnlyDouble getReadOnly()
   {
-    // return read-only version of double
+    // return lazily-created read-only wrapper
     if ( m_readonly == null )
       m_readonly = new ReadOnlyDouble( this );
     return m_readonly;
@@ -98,7 +144,7 @@ public class ObservableDouble implements ISignal
   @Override
   public String toString()
   {
-    // return class string
+    // return class name and current value
     return Utils.name( this ) + "=" + this.get();
   }
 
