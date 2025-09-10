@@ -18,6 +18,7 @@
 
 package rjc.table.view;
 
+import javafx.scene.input.ContextMenuEvent;
 import rjc.table.Utils;
 import rjc.table.data.TableData;
 import rjc.table.data.TableData.Signal;
@@ -140,6 +141,9 @@ public class TableView extends TableViewComponents
       if ( getCursor() instanceof ITableViewCursor cursor )
         cursor.handleClicked( event );
     } );
+
+    // react to context-menu request events
+    overlay.setOnContextMenuRequested( event -> openContextMenu( event ) );
 
     // react to mouse wheel scroll events
     setOnScroll( event ->
@@ -288,6 +292,14 @@ public class TableView extends TableViewComponents
   {
     // return as string
     return Utils.name( this ) + "[ID=" + getId() + " w=" + getWidth() + " h=" + getHeight() + "]";
+  }
+
+  /*************************************** openContextMenu ***************************************/
+  public void openContextMenu( ContextMenuEvent event )
+  {
+    // generate and show context menu for this table-view
+    var menu = new TableContextMenu( this );
+    menu.show( this.getScene().getWindow(), event.getScreenX(), event.getScreenY() );
   }
 
 }

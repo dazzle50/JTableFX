@@ -43,6 +43,7 @@ public class MousePosition extends ObservablePosition
 
   final static private int HEADER    = TableAxis.HEADER;
   final static private int BEFORE    = TableAxis.BEFORE;
+  final static private int AFTER     = TableAxis.AFTER;
   final static private int INVALID   = TableAxis.INVALID;
 
   /**************************************** constructor ******************************************/
@@ -110,7 +111,7 @@ public class MousePosition extends ObservablePosition
       {
         m_cellXstart = width;
         m_cellXend = Integer.MAX_VALUE;
-        viewColumn = m_view.getData().getColumnCount() - 1;
+        viewColumn = AFTER;
       }
       else
       {
@@ -143,7 +144,7 @@ public class MousePosition extends ObservablePosition
       {
         m_cellYstart = height;
         m_cellYend = Integer.MAX_VALUE;
-        viewRow = m_view.getData().getRowCount() - 1;
+        viewRow = AFTER;
       }
       else
       {

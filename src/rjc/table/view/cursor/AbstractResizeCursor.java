@@ -130,6 +130,10 @@ abstract public class AbstractResizeCursor extends AbstractCursor
   /******************************************** drag *********************************************/
   protected void drag( int coordinate )
   {
+    // if command not started, don't do anything else
+    if ( m_command == null )
+      return;
+
     // resize columns or rows
     double pixels = ( coordinate - m_offset + m_scrollbar.getValue() ) / m_before;
     int size = (int) ( pixels / m_view.getZoom().get() );
@@ -142,6 +146,10 @@ abstract public class AbstractResizeCursor extends AbstractCursor
   /********************************************* end *********************************************/
   protected void end()
   {
+    // if command not started, don't do anything else
+    if ( m_command == null )
+      return;
+
     // end resizing, push resize command onto undo-stack
     m_view.getUndoStack().push( m_command );
     m_command = null;
