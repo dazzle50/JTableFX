@@ -96,7 +96,7 @@ public class UndoStack implements ISignal
         m_cleanIndex = Integer.MIN_VALUE;
     }
 
-    // add new command to stack WITHOUT doing, and update stack index
+    // add new command to stack, and update stack index
     m_stack.add( command );
     m_index = m_stack.size();
     signal();

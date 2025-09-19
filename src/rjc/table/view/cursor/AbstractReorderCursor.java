@@ -94,6 +94,10 @@ abstract public class AbstractReorderCursor extends AbstractCursor
   /*************************************** dragHorizontal ****************************************/
   protected void dragHorizontal( int coordinate )
   {
+    // if reordering not started, exit immediately
+    if ( !m_view.contains( m_line ) )
+      return;
+
     // horizontal reordering so position line at nearest column edge
     int column = Utils.clamp( m_view.getColumnIndex( coordinate ), TableAxis.FIRSTCELL,
         m_view.getData().getColumnCount() - 1 );
@@ -122,6 +126,10 @@ abstract public class AbstractReorderCursor extends AbstractCursor
   /**************************************** dragVertical *****************************************/
   protected void dragVertical( int coordinate )
   {
+    // if reordering not started, exit immediately
+    if ( !m_view.contains( m_line ) )
+      return;
+
     // vertical reordering so position line at nearest row edge
     int row = Utils.clamp( m_view.getRowIndex( coordinate ), TableAxis.FIRSTCELL, m_view.getData().getRowCount() - 1 );
     double ys = m_view.getRowStartY( row );
@@ -149,6 +157,10 @@ abstract public class AbstractReorderCursor extends AbstractCursor
   /********************************************* end *********************************************/
   protected void end()
   {
+    // if reordering not started, exit immediately
+    if ( !m_view.contains( m_line ) )
+      return;
+
     // move selected columns or rows to new position via command
     m_view.remove( m_line );
     Orientation orientation = m_line.getStartX() == m_line.getEndX() ? Orientation.HORIZONTAL : Orientation.VERTICAL;

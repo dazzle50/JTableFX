@@ -22,18 +22,44 @@ package rjc.table.undo;
 /**************************** Interface for all commands on UndoStack ****************************/
 /*************************************************************************************************/
 
+/**
+ * Interface defining the contract for all undoable commands that can be executed and reversed
+ * within the JTableFX undo/redo system. 
+ * 
+ * <p>Each command encapsulates both the forward operation (redo) and its
+ * inverse operation (undo), maintaining the necessary state to support both directions. 
+ * Commands are typically pushed onto an {@code UndoStack} where they can be 
+ * undone, and redone as needed. The stack maintains the history of operations and manages
+ * the current position within that history.</p>
+ * 
+ * <p><strong>Constructor Pattern:</strong> Command constructors normally attempt to perform
+ * the required action of the command during construction. This approach serves multiple purposes:
+ * testing parameter validity, verifying system state compatibility, and confirming that the
+ * desired change would result from the operation. This pre-execution enables the
+ * {@link #isValid()} method to provide accurate indication based on the constructor's
+ * success or failure.</p>
+ */
+
 public interface IUndoCommand
 {
-  // applies the command
+  /**
+   * Re-executes the command's forward operation after an undo
+   */
   public void redo();
 
-  // reverts the command
+  /**
+   * Reverts the command's operation, restoring the system to its previous state
+   */
   public void undo();
 
-  // returns short text string describing this command, e.g. "insert text"
+  /**
+   * Returns concise human-readable description of this command, e.g. "Insert text"
+   */
   public String text();
 
-  // returns true if command valid and ready to be pushed onto undo-stack
+  /**
+   * Returns true if command ready and valid to be pushed onto undo-stack
+   */
   default public boolean isValid()
   {
     return true;

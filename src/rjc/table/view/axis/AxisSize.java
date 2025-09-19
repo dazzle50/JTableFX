@@ -21,7 +21,9 @@ package rjc.table.view.axis;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 
 import rjc.table.signal.IListener;
@@ -44,7 +46,7 @@ public class AxisSize extends AxisBase implements IListener
 
   // exceptions to default size (negative are hidden)
   private Map<Integer, Integer> m_sizeExceptions   = new HashMap<>();
-  final static public int       HIDDEN_DEFAULT     = Integer.MIN_VALUE;
+  final static public int       HIDDEN_DEFAULT     = Integer.MIN_VALUE + 1;
 
   // cached cell index to start pixel coordinate
   private ArrayList<Integer>    m_startPixelCache  = new ArrayList<>();
@@ -431,6 +433,92 @@ public class AxisSize extends AxisBase implements IListener
   {
     // return true if cell is visible body cell
     return index >= FIRSTCELL && index < getCount() && m_sizeExceptions.getOrDefault( index, m_defaultSize ) > 0;
+  }
+
+  /***************************************** hideIndexes *****************************************/
+  public Set<Integer> hideIndexes( Set<Integer> indexes )
+  {
+    // hide cells if not already hidden, return set of indexes that were changed
+    var hidden = new HashSet<Integer>();
+    for ( int index : indexes )
+    {
+      int size = m_sizeExceptions.getOrDefault( index, -HIDDEN_DEFAULT );
+      if ( size > 0 )
+      {
+        m_sizeExceptions.put( index, -size );
+        hidden.add( index );
+      }
+    }
+
+    // clear caches if any were hidden and return set of hidden indexes (or null if none)
+    if ( !hidden.isEmpty() )
+    {
+      m_startPixelCache.clear();
+      m_totalPixelsCache.set( INVALID );
+      return hidden;
+    }
+    return null;
+  }
+
+  /**************************************** unhideIndexes ****************************************/
+  public Set<Integer> unhideIndexes( Set<Integer> indexes )
+  {
+    // unhide cells if not already visible, return set of indexes that were changed
+    var shown = new HashSet<Integer>();
+    for ( int index : indexes )
+    {
+      int size = m_sizeExceptions.getOrDefault( index, 0 );
+      if ( size == HIDDEN_DEFAULT )
+      {
+        m_sizeExceptions.remove( index );
+        shown.add( index );
+      }
+      else if ( size < 0 )
+      {
+        m_sizeExceptions.put( index, -size );
+        shown.add( index );
+      }
+    }
+
+    // clear caches if any were unhidden and return set of shown indexes (or null if none)
+    if ( !shown.isEmpty() )
+    {
+      m_startPixelCache.clear();
+      m_totalPixelsCache.set( INVALID );
+      return shown;
+    }
+    return null;
+  }
+
+  /****************************************** unhideAll ******************************************/
+  public Set<Integer> unhideAll()
+  {
+    // unhide all cells that are hidden, return set of indexes that were changed
+    var shown = new HashSet<Integer>();
+    for ( var exception : m_sizeExceptions.entrySet() )
+    {
+      int size = exception.getValue();
+      int index = exception.getKey();
+      if ( size == HIDDEN_DEFAULT )
+      {
+        m_sizeExceptions.remove( index );
+        shown.add( index );
+      }
+      else if ( size < 0 )
+      {
+        m_sizeExceptions.put( index, -size );
+        shown.add( index );
+      }
+    }
+
+    // clear caches if any were unhidden and return set of shown indexes (or null if none)
+    if ( !shown.isEmpty() )
+    {
+      m_startPixelCache.clear();
+      m_totalPixelsCache.set( INVALID );
+      return shown;
+    }
+    return null;
   }
 
 }

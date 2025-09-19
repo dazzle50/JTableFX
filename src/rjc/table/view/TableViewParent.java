@@ -123,4 +123,11 @@ public class TableViewParent extends Parent
     getChildren().remove( node );
   }
 
+  /****************************************** contains *******************************************/
+  public boolean contains( Node node )
+  {
+    // return true if node is in table displayed children
+    return getChildren().contains( node );
+  }
+
 }

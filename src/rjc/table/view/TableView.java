@@ -286,20 +286,19 @@ public class TableView extends TableViewComponents
       getVerticalScrollBar().scrollToShowIndex( row );
   }
 
+  /*************************************** openContextMenu ***************************************/
+  public void openContextMenu( ContextMenuEvent event )
+  {
+    // show context menu for this table-view at mouse click position
+    TableContextMenu.show( this, event.getScreenX(), event.getScreenY() );
+  }
+
   /****************************************** toString *******************************************/
   @Override
   public String toString()
   {
     // return as string
     return Utils.name( this ) + "[ID=" + getId() + " w=" + getWidth() + " h=" + getHeight() + "]";
-  }
-
-  /*************************************** openContextMenu ***************************************/
-  public void openContextMenu( ContextMenuEvent event )
-  {
-    // generate and show context menu for this table-view
-    var menu = new TableContextMenu( this );
-    menu.show( this.getScene().getWindow(), event.getScreenX(), event.getScreenY() );
   }
 
 }
