@@ -135,33 +135,36 @@ public class TableCanvasDraw extends Canvas
     // redraw parts of table or overlay that have been requested
     m_redrawIsRequested.set( false );
 
-    // redraw overlay if requested or full redraw requested
-    if ( m_overlayRedraw || m_fullRedraw )
-      getOverlay().redrawNow();
+    if ( isVisible() )
+    {
+      // redraw overlay if requested or full redraw requested
+      if ( m_overlayRedraw || m_fullRedraw )
+        getOverlay().redrawNow();
 
-    // ensure full canvas is redrawn if many columns/rows/cells are redrawn
-    if ( m_fullRedraw || m_redrawCount > REDRAW_COUNT_MAX )
-    {
-      // full redraw requested so don't need to redraw anything else
-      redrawNow();
-      m_redrawCount = 0;
-    }
-    else
-    {
-      // redraw requested cells that aren't covered by requested columns & rows
-      for ( long hash : m_cells )
+      // ensure full canvas is redrawn if many columns/rows/cells are redrawn
+      if ( m_fullRedraw || m_redrawCount > REDRAW_COUNT_MAX )
       {
-        int viewColumn = (int) ( hash >> 32 );
-        int viewRow = (int) hash;
-        if ( !m_columns.contains( viewColumn ) && !m_rows.contains( viewRow ) )
-          redrawCellNow( viewColumn, viewRow );
+        // full redraw requested so don't need to redraw anything else
+        redrawNow();
+        m_redrawCount = 0;
       }
+      else
+      {
+        // redraw requested cells that aren't covered by requested columns & rows
+        for ( long hash : m_cells )
+        {
+          int viewColumn = (int) ( hash >> 32 );
+          int viewRow = (int) hash;
+          if ( !m_columns.contains( viewColumn ) && !m_rows.contains( viewRow ) )
+            redrawCellNow( viewColumn, viewRow );
+        }
 
-      // redraw requested columns & rows
-      for ( int viewColumn : m_columns )
-        redrawColumnNow( viewColumn );
-      for ( int viewRow : m_rows )
-        redrawRowNow( viewRow );
+        // redraw requested columns & rows
+        for ( int viewColumn : m_columns )
+          redrawColumnNow( viewColumn );
+        for ( int viewRow : m_rows )
+          redrawRowNow( viewRow );
+      }
     }
 
     // clear requests
@@ -176,7 +179,7 @@ public class TableCanvasDraw extends Canvas
   private void redrawNow()
   {
     // request complete redraw of table canvas
-    if ( isVisible() && getHeight() > 0.0 )
+    if ( getHeight() > 0.0 )
     {
       getGraphicsContext2D().clearRect( 0.0, 0.0, getWidth(), getHeight() );
       int minColumnPos = m_view.getColumnIndex( m_view.getHeaderWidth() );
@@ -191,7 +194,7 @@ public class TableCanvasDraw extends Canvas
   {
     // redraw table body or header cell
     CellDrawer cell = m_view.getCellDrawer();
-    if ( isVisible() && viewColumn >= HEADER && viewRow >= HEADER )
+    if ( viewColumn >= HEADER && viewRow >= HEADER )
     {
       cell.setIndex( m_view, viewColumn, viewRow );
       cell.draw();
@@ -201,27 +204,29 @@ public class TableCanvasDraw extends Canvas
   /*************************************** redrawColumnNow ***************************************/
   protected void redrawColumnNow( int viewColumn )
   {
-    // redraw visible bit of column including header
+    // redraw visible bit of column including column header if column is not hidden
+    int columnWidth = m_view.getColumnsAxis().getIndexPixels( viewColumn );
+    if ( columnWidth <= 0 )
+      return;
+
+    // prepare cell drawer
     CellDrawer cell = m_view.getCellDrawer();
     cell.view = m_view;
     cell.gc = getGraphicsContext2D();
     cell.viewColumn = viewColumn;
+    cell.x = m_view.getColumnStartX( viewColumn );
+    cell.w = columnWidth;
 
-    // calculate which rows are visible
+    // redraw between visible min and max rows inclusive
     int minRow = m_view.getRowIndex( m_view.getHeaderHeight() );
     int maxRow = m_view.getRowIndex( (int) getHeight() );
-    cell.x = m_view.getColumnStartX( viewColumn );
-    cell.w = m_view.getColumnsAxis().getIndexPixels( viewColumn );
-    if ( cell.w == 0.0 )
-      return;
-
-    // redraw all body cells between min and max row positions inclusive
     int max = m_view.getData().getRowCount() - 1;
     if ( minRow < FIRSTCELL )
       minRow = FIRSTCELL;
     if ( maxRow > max )
       maxRow = max;
 
+    // redraw the column visible body cells
     cell.y = m_view.getRowStartY( minRow );
     for ( cell.viewRow = minRow; cell.viewRow <= maxRow; cell.viewRow++ )
     {
@@ -233,7 +238,7 @@ public class TableCanvasDraw extends Canvas
       }
     }
 
-    // redraw column header
+    // redraw column header cell
     cell.viewRow = HEADER;
     cell.y = 0.0;
     cell.h = m_view.getHeaderHeight();
@@ -243,44 +248,45 @@ public class TableCanvasDraw extends Canvas
   /**************************************** redrawRowNow *****************************************/
   protected void redrawRowNow( int viewRow )
   {
-    // redraw visible bit of row including header
-    if ( isVisible() && viewRow >= HEADER )
+    // redraw visible bit of row including row header if row is not hidden
+    int rowHeight = m_view.getRowsAxis().getIndexPixels( viewRow );
+    if ( rowHeight <= 0 )
+      return;
+
+    // prepare cell drawer
+    CellDrawer cell = m_view.getCellDrawer();
+    cell.view = m_view;
+    cell.gc = getGraphicsContext2D();
+    cell.viewRow = viewRow;
+    cell.y = m_view.getRowStartY( viewRow );
+    cell.h = rowHeight;
+
+    // redraw between visible min and max columns inclusive
+    int minColumn = m_view.getColumnIndex( m_view.getHeaderWidth() );
+    int maxColumn = m_view.getColumnIndex( (int) getWidth() );
+    int max = m_view.getData().getColumnCount() - 1;
+    if ( minColumn < FIRSTCELL )
+      minColumn = FIRSTCELL;
+    if ( maxColumn > max )
+      maxColumn = max;
+
+    // redraw the row visible body cells
+    cell.x = m_view.getColumnStartX( minColumn );
+    for ( cell.viewColumn = minColumn; cell.viewColumn <= maxColumn; cell.viewColumn++ )
     {
-      CellDrawer cell = m_view.getCellDrawer();
-      cell.view = m_view;
-      cell.gc = getGraphicsContext2D();
-      cell.viewRow = viewRow;
-
-      // calculate which columns are visible
-      int minColumn = m_view.getColumnIndex( m_view.getHeaderWidth() );
-      int maxColumn = m_view.getColumnIndex( (int) getWidth() );
-      cell.y = m_view.getRowStartY( viewRow );
-      cell.h = m_view.getRowsAxis().getIndexPixels( viewRow );
-
-      // redraw all body cells between min and max column positions inclusive
-      int max = m_view.getData().getColumnCount() - 1;
-      if ( minColumn < FIRSTCELL )
-        minColumn = FIRSTCELL;
-      if ( maxColumn > max )
-        maxColumn = max;
-
-      cell.x = m_view.getColumnStartX( minColumn );
-      for ( cell.viewColumn = minColumn; cell.viewColumn <= maxColumn; cell.viewColumn++ )
+      cell.w = m_view.getColumnStartX( cell.viewColumn + 1 ) - cell.x;
+      if ( cell.w > 0.0 )
       {
-        cell.w = m_view.getColumnStartX( cell.viewColumn + 1 ) - cell.x;
-        if ( cell.w > 0.0 )
-        {
-          cell.draw();
-          cell.x += cell.w;
-        }
+        cell.draw();
+        cell.x += cell.w;
       }
-
-      // redraw row header
-      cell.viewColumn = HEADER;
-      cell.x = 0.0;
-      cell.w = m_view.getHeaderWidth();
-      cell.draw();
     }
+
+    // redraw row header cell
+    cell.viewColumn = HEADER;
+    cell.x = 0.0;
+    cell.w = m_view.getHeaderWidth();
+    cell.draw();
   }
 
   /************************************* redrawColumnsNow ****************************************/

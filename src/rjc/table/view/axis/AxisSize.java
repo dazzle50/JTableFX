@@ -83,9 +83,6 @@ public class AxisSize extends AxisBase implements IListener
     // listen to signals sent to axis
     if ( sender == getCountProperty() )
     {
-      // set cached axis size to invalid
-      m_totalPixelsCache.set( INVALID );
-
       // remove any exceptions beyond count
       int oldCount = (int) msg[0];
       int newCount = getCount();
@@ -97,6 +94,9 @@ public class AxisSize extends AxisBase implements IListener
       // truncate cell start cache if new size smaller
       if ( newCount < m_startPixelCache.size() )
         m_startPixelCache.subList( newCount, m_startPixelCache.size() ).clear();
+
+      // set cached axis size to invalid
+      m_totalPixelsCache.set( INVALID );
     }
 
     else if ( sender == m_zoomProperty )
@@ -495,18 +495,23 @@ public class AxisSize extends AxisBase implements IListener
   {
     // unhide all cells that are hidden, return set of indexes that were changed
     var shown = new HashSet<Integer>();
-    for ( var exception : m_sizeExceptions.entrySet() )
+    var iterator = m_sizeExceptions.entrySet().iterator();
+    while ( iterator.hasNext() )
     {
+      var exception = iterator.next();
       int size = exception.getValue();
       int index = exception.getKey();
+
       if ( size == HIDDEN_DEFAULT )
       {
-        m_sizeExceptions.remove( index );
+        // remove entry using iterator to avoid concurrent modification
+        iterator.remove();
         shown.add( index );
       }
       else if ( size < 0 )
       {
-        m_sizeExceptions.put( index, -size );
+        // update entry with positive value
+        exception.setValue( -size );
         shown.add( index );
       }
     }

@@ -73,8 +73,6 @@ public class CommandResize implements ICommandResize
     for ( int index : m_indexes )
       m_axis.setIndexSize( index, m_newSize );
 
-    // update layout in case scroll-bar changed and redraw table view
-    m_view.updateLayout();
     m_view.redraw();
   }
 
@@ -91,8 +89,6 @@ public class CommandResize implements ICommandResize
         m_axis.setIndexSize( index, size );
     } );
 
-    // update layout in case scroll-bar need changed and redraw table view
-    m_view.updateLayout();
     m_view.redraw();
   }
 

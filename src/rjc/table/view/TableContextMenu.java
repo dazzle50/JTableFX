@@ -20,10 +20,17 @@ package rjc.table.view;
 
 import java.util.HashSet;
 
+import javafx.geometry.Pos;
 import javafx.scene.control.ContextMenu;
+import javafx.scene.control.CustomMenuItem;
+import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.SeparatorMenuItem;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.HBox;
 import rjc.table.undo.commands.CommandHideIndexes;
+import rjc.table.undo.commands.CommandUnhideAllIndexes;
+import rjc.table.view.action.Filter;
 import rjc.table.view.axis.TableAxis;
 
 /*************************************************************************************************/
@@ -53,13 +60,10 @@ public class TableContextMenu extends ContextMenu
     int mouseRow = view.getMouseCell().getRow();
     int mouseCol = view.getMouseCell().getColumn();
 
-    // if after last row/column then no context menu
-    if ( mouseRow == AFTER || mouseCol == AFTER )
-      return;
-
-    // generate the context-menu and show
+    // generate the context-menu and show (if has any items)
     var menu = new TableContextMenu( view, mouseRow, mouseCol );
-    menu.show( view.getScene().getWindow(), x, y );
+    if ( !menu.getItems().isEmpty() )
+      menu.show( view.getScene().getWindow(), x, y );
   }
 
   /**************************************** constructor ******************************************/
@@ -71,31 +75,70 @@ public class TableContextMenu extends ContextMenu
     m_mouseCol = mouseCol;
 
     // add menu items depending on where context menu was triggered
-    if ( mouseRow == HEADER && mouseCol == HEADER )
-      addTODO();
-
-    if ( mouseRow == HEADER && mouseCol >= FIRSTCELL )
-      addHideColumn().addSeparator().addShowAllColumns();
-
-    if ( mouseCol == HEADER && mouseRow >= FIRSTCELL )
-      addTODO();
-
-    if ( mouseRow >= FIRSTCELL && mouseCol >= FIRSTCELL )
-      addTODO();
+    if ( mouseRow == AFTER || mouseCol == AFTER )
+      buildAfter();
+    else if ( mouseRow == HEADER && mouseCol == HEADER )
+      buildCorner();
+    else if ( mouseRow == HEADER && mouseCol >= FIRSTCELL )
+      buildColumnHeader();
+    else if ( mouseCol == HEADER && mouseRow >= FIRSTCELL )
+      buildRowHeader();
+    else if ( mouseRow >= FIRSTCELL && mouseCol >= FIRSTCELL )
+      buildBody();
+    else
+      throw new IllegalStateException( "Unexpected mouse cell for context menu " + mouseCol + "," + mouseRow );
   }
 
+  // ####################################### Build Methods #######################################
+
+  /***************************************** buildAfter ******************************************/
+  private void buildAfter()
+  {
+    // after last row/column - no context menu
+  }
+
+  /***************************************** buildCorner *****************************************/
+  private void buildCorner()
+  {
+    // corner cell - no context menu
+    addTODO( "corner" );
+  }
+
+  /************************************** buildColumnHeader **************************************/
+  private void buildColumnHeader()
+  {
+    // column header cell - add relevant menu items
+    addHideColumn().addFilterColumn().addSeparator().addShowAllColumns();
+  }
+
+  /*************************************** buildRowHeader ****************************************/
+  private void buildRowHeader()
+  {
+    // row header cell - add relevant menu items
+    addHideRow().addSeparator().addShowAllRows();
+  }
+
+  /****************************************** buildBody ******************************************/
+  private void buildBody()
+  {
+    // body cell - no context menu
+    addTODO( "body" );
+  }
+
+  // ######################################## Add Methods ########################################
+
   /****************************************** addTODO ********************************************/
-  private TableContextMenu addTODO()
+  protected TableContextMenu addTODO( String name )
   {
     // add a disabled TODO menu item
-    MenuItem item = new MenuItem( "TODO" );
+    var item = new MenuItem( "TODO " + name );
     item.setDisable( true );
     getItems().add( item );
     return this;
   }
 
   /**************************************** addSeparator *****************************************/
-  private TableContextMenu addSeparator()
+  protected TableContextMenu addSeparator()
   {
     // add a separator menu item
     getItems().add( new SeparatorMenuItem() );
@@ -103,23 +146,48 @@ public class TableContextMenu extends ContextMenu
   }
 
   /************************************* addShowAllColumns ***************************************/
-  private TableContextMenu addShowAllColumns()
+  protected TableContextMenu addShowAllColumns()
   {
     // add a show all columns menu item
-    MenuItem item = new MenuItem( "Show All Columns" );
+    var item = new MenuItem( "Show All Columns" );
+
+    item.setOnAction( event ->
+    {
+      // unhide all hidden columns via undo-command and add to undostack
+      var command = new CommandUnhideAllIndexes( m_view, m_view.getColumnsAxis() );
+      m_view.getUndoStack().push( command );
+    } );
+
+    getItems().add( item );
+    return this;
+  }
+
+  /*************************************** addShowAllRows ****************************************/
+  protected TableContextMenu addShowAllRows()
+  {
+    // add a show all rows menu item
+    var item = new MenuItem( "Show All Rows" );
+
+    item.setOnAction( event ->
+    {
+      // unhide all hidden rows via undo-command and add to undostack
+      var command = new CommandUnhideAllIndexes( m_view, m_view.getRowsAxis() );
+      m_view.getUndoStack().push( command );
+    } );
+
     getItems().add( item );
     return this;
   }
 
   /*************************************** addHideColumn *****************************************/
-  private TableContextMenu addHideColumn()
+  protected TableContextMenu addHideColumn()
   {
     // add a hide column(s) menu item
-    MenuItem item = new MenuItem( "Hide Column(s)" );
+    var item = new MenuItem( "Hide Column(s)" );
 
     item.setOnAction( event ->
     {
-      // get set of columns to hide
+      // if mouse column is selected, hide all selected columns, else just hide mouse column
       var indexes = m_view.getSelection().isColumnSelected( m_mouseCol ) ? m_view.getSelection().getSelectedColumns()
           : new HashSet<Integer>( 1 );
       if ( indexes.isEmpty() )
@@ -129,6 +197,45 @@ public class TableContextMenu extends ContextMenu
       var command = new CommandHideIndexes( m_view, m_view.getColumnsAxis(), indexes );
       m_view.getUndoStack().push( command );
     } );
+
+    getItems().add( item );
+    return this;
+  }
+
+  /**************************************** addHideRow *******************************************/
+  protected TableContextMenu addHideRow()
+  {
+    // add a hide row(s) menu item
+    var item = new MenuItem( "Hide Row(s)" );
+
+    item.setOnAction( event ->
+    {
+      // if mouse row is selected, hide all selected rows, else just hide mouse row
+      var indexes = m_view.getSelection().isRowSelected( m_mouseRow ) ? m_view.getSelection().getSelectedRows()
+          : new HashSet<Integer>( 1 );
+      if ( indexes.isEmpty() )
+        indexes.add( m_mouseRow );
+
+      // hide the rows via undo-command and add to undostack
+      var command = new CommandHideIndexes( m_view, m_view.getRowsAxis(), indexes );
+      m_view.getUndoStack().push( command );
+    } );
+
+    getItems().add( item );
+    return this;
+  }
+
+  /************************************** addFilterColumn ****************************************/
+  protected TableContextMenu addFilterColumn()
+  {
+    // add a filter column menu item
+    var hbox = new HBox( 5 );
+    var filter = new TextField();
+    hbox.getChildren().addAll( new Label( "Filter" ), filter );
+    hbox.setAlignment( Pos.CENTER_LEFT );
+    var item = new CustomMenuItem( hbox );
+
+    filter.setOnAction( event -> Filter.columnTextContains( m_view, m_mouseCol, filter.getText() ) );
 
     getItems().add( item );
     return this;

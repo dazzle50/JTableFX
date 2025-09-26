@@ -1,4 +1,3 @@
-
 /**************************************************************************
  *  Copyright (C) 2025 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
@@ -19,53 +18,39 @@
 
 package rjc.table.undo.commands;
 
-import java.util.HashMap;
+import java.util.Set;
 
+import rjc.table.undo.IUndoCommand;
 import rjc.table.view.TableView;
 import rjc.table.view.axis.TableAxis;
 
 /*************************************************************************************************/
-/******************** UndoCommand for resizing all columns or rows + default *********************/
+/************** UndoCommand for unhiding all hidden columns or rows on a table-view **************/
 /*************************************************************************************************/
 
-public class CommandResizeAll implements ICommandResize
+public class CommandUnhideAllIndexes implements IUndoCommand
 {
-  private TableView                 m_view;          // table view
-  private TableAxis                 m_axis;          // columns or rows being resized
-  private String                    m_text;          // text describing command
-
-  private HashMap<Integer, Integer> m_oldExceptions; // old size exceptions before resize
-  private int                       m_oldDefault;    // old default before resize
-  private int                       m_newDefault;    // new default
+  private TableView    m_view;    // table view
+  private TableAxis    m_axis;    // axis for unhiding
+  private Set<Integer> m_indexes; // view-indexes being shown
+  private String       m_text;    // text describing command
 
   /**************************************** constructor ******************************************/
-  public CommandResizeAll( TableView view, TableAxis axis )
+  public CommandUnhideAllIndexes( TableView view, TableAxis axis )
   {
-    // prepare resize all command
+    // prepare unhide command and show all hidden indexes
     m_view = view;
     m_axis = axis;
-
-    // get old default size and exceptions before resizing starts
-    m_oldDefault = axis.getDefaultSize();
-    m_oldExceptions = new HashMap<>();
-    axis.getSizeExceptions().forEach( ( index, size ) -> m_oldExceptions.put( index, size ) );
-  }
-
-  /***************************************** setNewSize ******************************************/
-  @Override
-  public void setNewSize( int size )
-  {
-    // set command new size
-    m_newDefault = size;
+    m_indexes = axis.unhideAll();
+    m_view.redraw();
   }
 
   /******************************************* redo **********************************************/
   @Override
   public void redo()
   {
-    // action command
-    m_axis.setDefaultSize( m_newDefault );
-    m_axis.clearSizeExceptions();
+    // unhide the indexes
+    m_axis.unhideIndexes( m_indexes );
     m_view.redraw();
   }
 
@@ -73,9 +58,8 @@ public class CommandResizeAll implements ICommandResize
   @Override
   public void undo()
   {
-    // revert command
-    m_axis.setDefaultSize( m_oldDefault );
-    m_oldExceptions.forEach( ( index, size ) -> m_axis.setIndexSize( index, size ) );
+    // re-hide the indexes
+    m_axis.hideIndexes( m_indexes );
     m_view.redraw();
   }
 
@@ -83,16 +67,23 @@ public class CommandResizeAll implements ICommandResize
   @Override
   public String text()
   {
-    // command description
+    // construct command description
     if ( m_text == null )
     {
-      m_text = "Resized all" + ( m_axis == m_view.getColumnsAxis() ? " columns" : " rows" );
+      m_text = "Unhide all " + ( m_axis == m_view.getColumnsAxis() ? "columns" : "rows" );
 
       if ( m_view.getId() != null )
         m_text = m_view.getId() + " - " + m_text;
     }
-
     return m_text;
+  }
+
+  /******************************************* isValid *******************************************/
+  @Override
+  public boolean isValid()
+  {
+    // command is valid only if some indexes unhidden (indicated by m_indexes not null)
+    return m_indexes != null;
   }
 
 }

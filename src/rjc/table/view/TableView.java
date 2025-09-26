@@ -82,19 +82,9 @@ public class TableView extends TableViewComponents
       }
     } );
 
-    // react to column count change
-    getData().columnCountProperty().addListener( ( sender, msg ) ->
-    {
-      updateLayout();
-      tableModified();
-    } );
-
-    // react to row count change
-    getData().rowCountProperty().addListener( ( sender, msg ) ->
-    {
-      updateLayout();
-      tableModified();
-    } );
+    // react to column & row count changes
+    getData().columnCountProperty().addListener( ( sender, msg ) -> tableModified() );
+    getData().rowCountProperty().addListener( ( sender, msg ) -> tableModified() );
   }
 
   /************************************** addMouseHandlers ***************************************/
@@ -178,9 +168,13 @@ public class TableView extends TableViewComponents
       redraw();
     } );
 
-    // react to size changes (don't use layoutChildren as that gets called even when scrolling)
+    // react to view size changes (don't use layoutChildren as that gets called even when scrolling)
     widthProperty().addListener( ( sender, msg ) -> updateLayout() );
     heightProperty().addListener( ( sender, msg ) -> updateLayout() );
+
+    // react to axis size changes including hiding & unhiding indexes
+    getColumnsAxis().getTotalPixelsProperty().addListener( ( sender, msg ) -> updateLayout() );
+    getRowsAxis().getTotalPixelsProperty().addListener( ( sender, msg ) -> updateLayout() );
 
     // react to scroll bar position value changes
     getHorizontalScrollBar().valueProperty().addListener( ( property, oldValue, newValue ) -> tableModified() );
@@ -210,11 +204,7 @@ public class TableView extends TableViewComponents
     } );
 
     // react to zoom values changes
-    getZoom().addListener( ( sender, msg ) ->
-    {
-      updateLayout();
-      tableModified();
-    } );
+    getZoom().addListener( ( sender, msg ) -> tableModified() );
 
     // react to keyboard events
     setOnKeyPressed( new KeyPressed() );
