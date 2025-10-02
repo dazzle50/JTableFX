@@ -18,7 +18,10 @@
 
 package rjc.table.view;
 
-import java.util.HashSet;
+import java.util.EnumSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.WeakHashMap;
 
 import javafx.geometry.Pos;
 import javafx.scene.control.ContextMenu;
@@ -28,9 +31,8 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
-import rjc.table.undo.commands.CommandHideIndexes;
-import rjc.table.undo.commands.CommandUnhideAllIndexes;
 import rjc.table.view.action.Filter;
+import rjc.table.view.action.HideShow;
 import rjc.table.view.axis.TableAxis;
 
 /*************************************************************************************************/
@@ -53,6 +55,14 @@ public class TableContextMenu extends ContextMenu
   private static final int HEADER    = TableAxis.HEADER;    // index of header row/column
   private static final int AFTER     = TableAxis.AFTER;     // index of after-last row/column
 
+  // optional context menu items that can be omitted from context menu
+  public enum OptionalMenuItems
+  {
+    HIDE_COLUMNS, HIDE_ROWS, SHOW_ALL_COLUMNS, SHOW_ALL_ROWS, FILTER_COLUMN_CONTAINS_TEXT
+  }
+
+  private static final Map<TableView, Set<OptionalMenuItems>> OMIT = new WeakHashMap<>();
+
   /******************************************** show *********************************************/
   public static void show( TableView view, double x, double y )
   {
@@ -64,6 +74,35 @@ public class TableContextMenu extends ContextMenu
     var menu = new TableContextMenu( view, mouseRow, mouseCol );
     if ( !menu.getItems().isEmpty() )
       menu.show( view.getScene().getWindow(), x, y );
+  }
+
+  /******************************************* omit **********************************************/
+  public static void omit( TableView view, OptionalMenuItems... items )
+  {
+    // omit specified context menu items for this table-view
+    var set = OMIT.get( view );
+    if ( set == null )
+    {
+      set = EnumSet.noneOf( OptionalMenuItems.class );
+      OMIT.put( view, set );
+    }
+    for ( var item : items )
+      set.add( item );
+  }
+
+  /***************************************** clearOmit *******************************************/
+  public static void clearOmit( TableView view )
+  {
+    // clear omitted context menu items for this table-view
+    OMIT.remove( view );
+  }
+
+  /***************************************** isOmitted *******************************************/
+  public static boolean isOmitted( TableView view, OptionalMenuItems item )
+  {
+    // return true if specified context menu item is omitted for this table-view
+    var set = OMIT.get( view );
+    return set != null && set.contains( item );
   }
 
   /**************************************** constructor ******************************************/
@@ -94,34 +133,34 @@ public class TableContextMenu extends ContextMenu
   /***************************************** buildAfter ******************************************/
   private void buildAfter()
   {
-    // after last row/column - no context menu
+    // build context menu for after last table-view body row/column - currently no context menu
   }
 
   /***************************************** buildCorner *****************************************/
   private void buildCorner()
   {
-    // corner cell - no context menu
+    // build context menu for table-view corner cell - currently no context menu
     addTODO( "corner" );
   }
 
   /************************************** buildColumnHeader **************************************/
   private void buildColumnHeader()
   {
-    // column header cell - add relevant menu items
+    // build context menu for table-view column header row - add relevant menu items
     addHideColumn().addFilterColumn().addSeparator().addShowAllColumns();
   }
 
   /*************************************** buildRowHeader ****************************************/
   private void buildRowHeader()
   {
-    // row header cell - add relevant menu items
+    // build context menu for table-view row header column - add relevant menu items
     addHideRow().addSeparator().addShowAllRows();
   }
 
   /****************************************** buildBody ******************************************/
   private void buildBody()
   {
-    // body cell - no context menu
+    // build context menu for table-view body cells - currently no context menu
     addTODO( "body" );
   }
 
@@ -148,16 +187,13 @@ public class TableContextMenu extends ContextMenu
   /************************************* addShowAllColumns ***************************************/
   protected TableContextMenu addShowAllColumns()
   {
+    // exit without adding menu item if option is omitted for this table-view
+    if ( isOmitted( m_view, OptionalMenuItems.SHOW_ALL_COLUMNS ) )
+      return this;
+
     // add a show all columns menu item
     var item = new MenuItem( "Show All Columns" );
-
-    item.setOnAction( event ->
-    {
-      // unhide all hidden columns via undo-command and add to undostack
-      var command = new CommandUnhideAllIndexes( m_view, m_view.getColumnsAxis() );
-      m_view.getUndoStack().push( command );
-    } );
-
+    item.setOnAction( event -> HideShow.showAllColumns( m_view ) );
     getItems().add( item );
     return this;
   }
@@ -165,16 +201,13 @@ public class TableContextMenu extends ContextMenu
   /*************************************** addShowAllRows ****************************************/
   protected TableContextMenu addShowAllRows()
   {
+    // exit without adding menu item if option is omitted for this table-view
+    if ( isOmitted( m_view, OptionalMenuItems.SHOW_ALL_ROWS ) )
+      return this;
+
     // add a show all rows menu item
     var item = new MenuItem( "Show All Rows" );
-
-    item.setOnAction( event ->
-    {
-      // unhide all hidden rows via undo-command and add to undostack
-      var command = new CommandUnhideAllIndexes( m_view, m_view.getRowsAxis() );
-      m_view.getUndoStack().push( command );
-    } );
-
+    item.setOnAction( event -> HideShow.showAllRows( m_view ) );
     getItems().add( item );
     return this;
   }
@@ -182,22 +215,13 @@ public class TableContextMenu extends ContextMenu
   /*************************************** addHideColumn *****************************************/
   protected TableContextMenu addHideColumn()
   {
+    // exit without adding menu item if option is omitted for this table-view
+    if ( isOmitted( m_view, OptionalMenuItems.HIDE_COLUMNS ) )
+      return this;
+
     // add a hide column(s) menu item
     var item = new MenuItem( "Hide Column(s)" );
-
-    item.setOnAction( event ->
-    {
-      // if mouse column is selected, hide all selected columns, else just hide mouse column
-      var indexes = m_view.getSelection().isColumnSelected( m_mouseCol ) ? m_view.getSelection().getSelectedColumns()
-          : new HashSet<Integer>( 1 );
-      if ( indexes.isEmpty() )
-        indexes.add( m_mouseCol );
-
-      // hide the columns via undo-command and add to undostack
-      var command = new CommandHideIndexes( m_view, m_view.getColumnsAxis(), indexes );
-      m_view.getUndoStack().push( command );
-    } );
-
+    item.setOnAction( event -> HideShow.hideColumns( m_view, m_mouseCol ) );
     getItems().add( item );
     return this;
   }
@@ -205,22 +229,13 @@ public class TableContextMenu extends ContextMenu
   /**************************************** addHideRow *******************************************/
   protected TableContextMenu addHideRow()
   {
+    // exit without adding menu item if option is omitted for this table-view
+    if ( isOmitted( m_view, OptionalMenuItems.HIDE_ROWS ) )
+      return this;
+
     // add a hide row(s) menu item
     var item = new MenuItem( "Hide Row(s)" );
-
-    item.setOnAction( event ->
-    {
-      // if mouse row is selected, hide all selected rows, else just hide mouse row
-      var indexes = m_view.getSelection().isRowSelected( m_mouseRow ) ? m_view.getSelection().getSelectedRows()
-          : new HashSet<Integer>( 1 );
-      if ( indexes.isEmpty() )
-        indexes.add( m_mouseRow );
-
-      // hide the rows via undo-command and add to undostack
-      var command = new CommandHideIndexes( m_view, m_view.getRowsAxis(), indexes );
-      m_view.getUndoStack().push( command );
-    } );
-
+    item.setOnAction( event -> HideShow.hideRows( m_view, m_mouseRow ) );
     getItems().add( item );
     return this;
   }
@@ -228,6 +243,10 @@ public class TableContextMenu extends ContextMenu
   /************************************** addFilterColumn ****************************************/
   protected TableContextMenu addFilterColumn()
   {
+    // exit without adding menu item if option is omitted for this table-view
+    if ( isOmitted( m_view, OptionalMenuItems.FILTER_COLUMN_CONTAINS_TEXT ) )
+      return this;
+
     // add a filter column menu item
     var hbox = new HBox( 5 );
     var filter = new TextField();
@@ -236,7 +255,6 @@ public class TableContextMenu extends ContextMenu
     var item = new CustomMenuItem( hbox );
 
     filter.setOnAction( event -> Filter.columnTextContains( m_view, m_mouseCol, filter.getText() ) );
-
     getItems().add( item );
     return this;
   }

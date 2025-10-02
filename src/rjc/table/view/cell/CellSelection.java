@@ -345,6 +345,48 @@ public class CellSelection implements ISignal
     return rows;
   }
 
+  /********************************** areAllVisibleRowsSelected **********************************/
+  /**
+   * Checks if all visible rows are currently selected.
+   *
+   * @return true if all visible rows are selected, false otherwise
+   */
+  public boolean areAllVisibleRowsSelected()
+  {
+    // return true if all visible rows are selected
+    int top = m_view.getRowsAxis().getFirstVisible();
+    int bottom = m_view.getRowsAxis().getLastVisible();
+
+    // check each visible row, return false as soon as one is not selected
+    for ( int row = top; row <= bottom; row++ )
+      if ( m_view.getRowsAxis().isIndexVisible( row ) && !isRowSelected( row ) )
+        return false;
+
+    // all visible rows are selected
+    return true;
+  }
+
+  /******************************** areAllVisibleColumnsSelected *********************************/
+  /**
+   * Checks if all visible columns are currently selected.
+   *
+   * @return true if all visible columns are selected, false otherwise
+   */
+  public boolean areAllVisibleColumnsSelected()
+  {
+    // return true if all visible columns are selected
+    int left = m_view.getColumnsAxis().getFirstVisible();
+    int right = m_view.getColumnsAxis().getLastVisible();
+
+    // check each visible column, return false as soon as one is not selected
+    for ( int col = left; col <= right; col++ )
+      if ( m_view.getColumnsAxis().isIndexVisible( col ) && !isColumnSelected( col ) )
+        return false;
+
+    // all visible columns are selected
+    return true;
+  }
+
   /****************************************** getAreas *******************************************/
   public ArrayList<int[]> getAreas()
   {

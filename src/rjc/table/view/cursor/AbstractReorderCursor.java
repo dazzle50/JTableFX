@@ -64,14 +64,16 @@ abstract public class AbstractReorderCursor extends AbstractCursor
     m_line.setStartY( 0.0 );
     m_line.setEndY( Math.min( m_view.getCanvas().getHeight(), m_view.getTableHeight() ) );
 
-    // reselect just the specified columns
     m_selected = m_view.getSelection().getSelectedColumns();
+    if ( m_selected == null || m_view.getSelection().areAllVisibleColumnsSelected() )
+      return; // cannot reorder all columns
+
     m_view.getSelection().clear();
     m_view.getSelection().selectColumns( m_selected );
 
     // start reordering
-    dragHorizontal( m_x );
     m_view.add( m_line );
+    dragHorizontal( m_x );
   }
 
   /**************************************** startVertical ****************************************/
@@ -81,14 +83,16 @@ abstract public class AbstractReorderCursor extends AbstractCursor
     m_line.setStartX( 0.0 );
     m_line.setEndX( Math.min( m_view.getCanvas().getWidth(), m_view.getTableWidth() ) );
 
-    // reselect just the specified rows
     m_selected = m_view.getSelection().getSelectedRows();
+    if ( m_selected == null || m_view.getSelection().areAllVisibleRowsSelected() )
+      return; // cannot reorder all rows
+
     m_view.getSelection().clear();
     m_view.getSelection().selectRows( m_selected );
 
     // start reordering
-    dragVertical( m_y );
     m_view.add( m_line );
+    dragVertical( m_y );
   }
 
   /*************************************** dragHorizontal ****************************************/
