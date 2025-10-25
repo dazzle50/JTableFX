@@ -48,6 +48,9 @@ public class HideShow
     if ( indexes == null || view.getSelection().areAllVisibleRowsSelected() )
       return false; // cannot hide all rows
 
+    if ( view.getRowsAxis().getFirstVisible() == view.getRowsAxis().getLastVisible() )
+      return false; // cannot hide last remaining row
+
     if ( indexes.isEmpty() )
       indexes.add( row );
 
@@ -73,6 +76,9 @@ public class HideShow
 
     if ( indexes == null || view.getSelection().areAllVisibleColumnsSelected() )
       return false; // cannot hide all columns
+
+    if ( view.getColumnsAxis().getFirstVisible() == view.getColumnsAxis().getLastVisible() )
+      return false; // cannot hide last remaining column
 
     if ( indexes.isEmpty() )
       indexes.add( column );

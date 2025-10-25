@@ -19,6 +19,7 @@
 package rjc.table.view.axis;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,12 +45,12 @@ public class AxisSize extends AxisBase implements IListener
   private int                   m_headerSize;
   private ReadOnlyDouble        m_zoomProperty;
 
-  // exceptions to default size (negative are hidden)
+  // exceptions to default size and hidden indexes tracking
   private Map<Integer, Integer> m_sizeExceptions   = new HashMap<>();
-  final static public int       HIDDEN_DEFAULT     = Integer.MIN_VALUE + 1;
+  private BitSet                m_hiddenIndexes    = new BitSet();
 
   // cached cell index to start pixel coordinate
-  private ArrayList<Integer>    m_startPixelCache  = new ArrayList<>();
+  private PixelCache            m_startPixelCache  = new PixelCache();
 
   // observable integer for cached axis size in pixels (includes header)
   private ObservableInteger     m_totalPixelsCache = new ObservableInteger( INVALID );
@@ -72,6 +73,7 @@ public class AxisSize extends AxisBase implements IListener
     m_minimumSize = 20;
     m_headerSize = 50;
     m_sizeExceptions.clear();
+    m_hiddenIndexes.clear();
     m_startPixelCache.clear();
     m_totalPixelsCache.set( INVALID );
   }
@@ -87,18 +89,16 @@ public class AxisSize extends AxisBase implements IListener
       int oldCount = (int) msg[0];
       int newCount = getCount();
       if ( newCount < oldCount )
-        for ( int key : m_sizeExceptions.keySet() )
-          if ( key >= newCount )
-            m_sizeExceptions.remove( key );
-
-      // truncate cell start cache if new size smaller
-      if ( newCount < m_startPixelCache.size() )
-        m_startPixelCache.subList( newCount, m_startPixelCache.size() ).clear();
+      {
+        // clear hidden indexes and exceptions beyond new count
+        m_hiddenIndexes.clear( newCount, oldCount );
+        m_sizeExceptions.keySet().removeIf( key -> key >= newCount );
+      }
 
       // set cached axis size to invalid
       m_totalPixelsCache.set( INVALID );
+      m_startPixelCache.truncate( newCount );
     }
-
     else if ( sender == m_zoomProperty )
     {
       // zoom value has changed so clear the pixel caches
@@ -160,9 +160,7 @@ public class AxisSize extends AxisBase implements IListener
         for ( var exception : m_sizeExceptions.entrySet() )
         {
           int size = exception.getValue();
-          if ( size < 0 && size > -minSize )
-            exception.setValue( -minSize );
-          else if ( size > 0 && size < minSize )
+          if ( size < minSize )
             exception.setValue( minSize );
         }
 
@@ -210,21 +208,29 @@ public class AxisSize extends AxisBase implements IListener
       truncatePixelCaches( index, zoom( newSize ) - zoom( oldSize ) );
   }
 
-  /*************************************** getTotalPixels ****************************************/
+  /*************************************** getTotalPixels ***********************************????????????????*****/
   public int getTotalPixels()
   {
     // return axis total size in pixels (including header)
     if ( m_totalPixelsCache.get() == INVALID )
     {
       // cached size is invalid, so re-calculate
-      int defaultCount = getCount() - m_sizeExceptions.size();
-
       int pixels = getHeaderPixels();
-      for ( int size : m_sizeExceptions.values() )
-        if ( size > 0 /* not hidden */ )
-          pixels += zoom( size );
 
-      m_totalPixelsCache.set( pixels + defaultCount * zoom( m_defaultSize ) );
+      // count visible indexes without exceptions
+      int visibleDefaultCount = getCount() - m_sizeExceptions.size();
+
+      // subtract hidden indexes that use default size
+      for ( int i = m_hiddenIndexes.nextSetBit( 0 ); i >= 0; i = m_hiddenIndexes.nextSetBit( i + 1 ) )
+        if ( !m_sizeExceptions.containsKey( i ) )
+          visibleDefaultCount--;
+
+      // add pixels for exceptions (excluding hidden)
+      for ( var entry : m_sizeExceptions.entrySet() )
+        if ( !m_hiddenIndexes.get( entry.getKey() ) )
+          pixels += zoom( entry.getValue() );
+
+      m_totalPixelsCache.set( pixels + visibleDefaultCount * zoom( m_defaultSize ) );
     }
 
     return m_totalPixelsCache.get();
@@ -244,9 +250,13 @@ public class AxisSize extends AxisBase implements IListener
     if ( index == HEADER )
       return zoom( m_headerSize );
 
+    // return zero if index is hidden
+    if ( m_hiddenIndexes.get( index ) )
+      return 0;
+
     // return cell size from exception or default
     int size = m_sizeExceptions.getOrDefault( index, m_defaultSize );
-    return size > 0 ? zoom( size ) : 0;
+    return zoom( size );
   }
 
   /**************************************** getStartPixel ****************************************/
@@ -312,17 +322,7 @@ public class AxisSize extends AxisBase implements IListener
     }
 
     // find position by binary search of cache
-    int startPos = 0;
-    int endPos = m_startPixelCache.size();
-    while ( startPos != endPos )
-    {
-      int rowPos = ( endPos + startPos ) / 2;
-      if ( m_startPixelCache.get( rowPos ) <= coordinate )
-        startPos = rowPos + 1;
-      else
-        endPos = rowPos;
-    }
-    return startPos - 1;
+    return m_startPixelCache.getIndex( coordinate );
   }
 
   /************************************* truncatePixelCaches *************************************/
@@ -333,8 +333,7 @@ public class AxisSize extends AxisBase implements IListener
       m_totalPixelsCache.set( m_totalPixelsCache.get() + deltaPixels );
 
     // truncate cache length if greater than specified new size
-    if ( m_startPixelCache.size() > newCacheSize )
-      m_startPixelCache.subList( newCacheSize, m_startPixelCache.size() ).clear();
+    m_startPixelCache.truncate( newCacheSize );
   }
 
   /************************************** getSizeExceptions **************************************/
@@ -385,6 +384,21 @@ public class AxisSize extends AxisBase implements IListener
             m_sizeExceptions.get( exceptionIndex ) );
     }
     m_sizeExceptions = newSizeExceptions;
+
+    // update hidden indexes taking into account moves
+    var newHiddenIndexes = new BitSet();
+    for ( int hiddenIndex = m_hiddenIndexes.nextSetBit( 0 ); hiddenIndex >= 0; hiddenIndex = m_hiddenIndexes
+        .nextSetBit( hiddenIndex + 1 ) )
+    {
+      int moved = movedSorted.indexOf( hiddenIndex );
+      if ( moved >= 0 )
+        // moved index
+        newHiddenIndexes.set( insertIndex + moved );
+      else
+        // not-moved index
+        newHiddenIndexes.set( adjustedIndex( hiddenIndex, insertIndex, movedSorted ) );
+    }
+    m_hiddenIndexes = newHiddenIndexes;
   }
 
   /**************************************** adjustedIndex ****************************************/
@@ -432,7 +446,7 @@ public class AxisSize extends AxisBase implements IListener
   public boolean isIndexVisible( int index )
   {
     // return true if cell is visible body cell
-    return index >= FIRSTCELL && index < getCount() && m_sizeExceptions.getOrDefault( index, m_defaultSize ) > 0;
+    return index >= FIRSTCELL && index < getCount() && !m_hiddenIndexes.get( index );
   }
 
   /***************************************** hideIndexes *****************************************/
@@ -441,14 +455,11 @@ public class AxisSize extends AxisBase implements IListener
     // hide cells if not already hidden, return set of indexes that were changed
     var hidden = new HashSet<Integer>();
     for ( int index : indexes )
-    {
-      int size = m_sizeExceptions.getOrDefault( index, -HIDDEN_DEFAULT );
-      if ( size > 0 )
+      if ( !m_hiddenIndexes.get( index ) )
       {
-        m_sizeExceptions.put( index, -size );
+        m_hiddenIndexes.set( index );
         hidden.add( index );
       }
-    }
 
     // clear caches if any were hidden and return set of hidden indexes (or null if none)
     if ( !hidden.isEmpty() )
@@ -466,19 +477,11 @@ public class AxisSize extends AxisBase implements IListener
     // unhide cells if not already visible, return set of indexes that were changed
     var shown = new HashSet<Integer>();
     for ( int index : indexes )
-    {
-      int size = m_sizeExceptions.getOrDefault( index, 0 );
-      if ( size == HIDDEN_DEFAULT )
+      if ( m_hiddenIndexes.get( index ) )
       {
-        m_sizeExceptions.remove( index );
+        m_hiddenIndexes.clear( index );
         shown.add( index );
       }
-      else if ( size < 0 )
-      {
-        m_sizeExceptions.put( index, -size );
-        shown.add( index );
-      }
-    }
 
     // clear caches if any were unhidden and return set of shown indexes (or null if none)
     if ( !shown.isEmpty() )
@@ -495,30 +498,13 @@ public class AxisSize extends AxisBase implements IListener
   {
     // unhide all cells that are hidden, return set of indexes that were changed
     var shown = new HashSet<Integer>();
-    var iterator = m_sizeExceptions.entrySet().iterator();
-    while ( iterator.hasNext() )
-    {
-      var exception = iterator.next();
-      int size = exception.getValue();
-      int index = exception.getKey();
-
-      if ( size == HIDDEN_DEFAULT )
-      {
-        // remove entry using iterator to avoid concurrent modification
-        iterator.remove();
-        shown.add( index );
-      }
-      else if ( size < 0 )
-      {
-        // update entry with positive value
-        exception.setValue( -size );
-        shown.add( index );
-      }
-    }
+    for ( int i = m_hiddenIndexes.nextSetBit( 0 ); i >= 0; i = m_hiddenIndexes.nextSetBit( i + 1 ) )
+      shown.add( i );
 
     // clear caches if any were unhidden and return set of shown indexes (or null if none)
     if ( !shown.isEmpty() )
     {
+      m_hiddenIndexes.clear();
       m_startPixelCache.clear();
       m_totalPixelsCache.set( INVALID );
       return shown;

@@ -58,19 +58,180 @@ public class TableOverlay extends Canvas
   /****************************************** redrawNow ******************************************/
   public void redrawNow()
   {
-    // clip overlay drawing to table body
+    // exit immediately without drawing if no size
+    if ( getHeight() <= 0 || getWidth() <= 0 )
+      return;
+
+    // some highlights are clipped to table body so to not overdraw the headers
     m_gc.clearRect( 0.0, 0.0, getWidth(), getHeight() );
     m_gc.save();
     m_gc.beginPath();
     m_gc.rect( m_view.getHeaderWidth() - 1, m_view.getHeaderHeight() - 1, getWidth(), getHeight() );
     m_gc.clip();
 
-    // draw overlay
+    // draw selected areas and focus cell (with clipping)
     highlightSelectedAreas( m_view.getSelection().getAreas() );
     highlightFocusCell( m_view.getFocusCell() );
 
-    // remove clip
+    // remove the clipping
     m_gc.restore();
+
+    // draw hidden/filtered/sorted columns/rows highlights (without clipping)
+    highlightHiddenColumns();
+    highlightHiddenRows();
+    highlightFilteredColumns();
+    highlightFilteredRows();
+    highlightSortedColumns();
+    highlightSortedRows();
+  }
+
+  /********************************** highlightFilteredColumns ***********************************/
+  private void highlightFilteredColumns()
+  {
+    // TODO highlight columns with filters applied
+    // drawFunnel( 1, -1 );
+  }
+
+  /************************************ highlightFilteredRows ************************************/
+  private void highlightFilteredRows()
+  {
+    // TODO Auto-generated method stub
+    // drawFunnel( -1, 1 );
+  }
+
+  /*********************************** highlightSortedColumns ************************************/
+  private void highlightSortedColumns()
+  {
+    // TODO Auto-generated method stub
+    // drawDownArrow( 1, -1 );
+    // drawUpArrow( 0, -1 );
+  }
+
+  /************************************* highlightSortedRows *************************************/
+  private void highlightSortedRows()
+  {
+    // TODO Auto-generated method stub
+    // drawDownArrow( -1, 1 );
+    // drawUpArrow( -1, 0 );
+  }
+
+  /************************************ highlightHiddenRows **************************************/
+  /**
+   * Highlights locations where rows are hidden by drawing visual indicators.
+   */
+  private void highlightHiddenRows()
+  {
+    // highlight where rows are hidden
+    Color stroke = m_view.isFocused() ? Colours.SELECTED_BORDER : Colours.SELECTED_BORDER.desaturate();
+    m_gc.setStroke( stroke );
+
+    // check between visible min and max rows inclusive
+    int row = m_view.getRowIndex( m_view.getHeaderHeight() ) - 1;
+    int maxRow = m_view.getRowIndex( (int) getHeight() );
+    maxRow = Math.min( maxRow, m_view.getData().getRowCount() );
+
+    double x = 0.5;
+    double w = m_view.getHeaderWidth() - 1;
+    int y = m_view.getRowStartY( row );
+
+    while ( row <= maxRow )
+    {
+      // find next hidden row, by skipping contiguous visible rows
+      int nextY = m_view.getRowStartY( ++row );
+      while ( nextY > y && row <= maxRow )
+      {
+        y = nextY;
+        nextY = m_view.getRowStartY( ++row );
+      }
+
+      // draw line to indicate hidden row(s)
+      if ( row <= maxRow && y >= m_view.getHeaderHeight() )
+        m_gc.strokeLine( x, y - 0.5, w - 0.5, y - 0.5 );
+    }
+  }
+
+  /********************************** highlightHiddenColumns *************************************/
+  /**
+   * Highlights locations where columns are hidden by drawing visual indicators.
+   */
+  private void highlightHiddenColumns()
+  {
+    // highlight where columns are hidden
+    Color stroke = m_view.isFocused() ? Colours.SELECTED_BORDER : Colours.SELECTED_BORDER.desaturate();
+    m_gc.setStroke( stroke );
+
+    // check between visible min and max columns inclusive
+    int column = m_view.getColumnIndex( m_view.getHeaderWidth() ) - 1;
+    int maxColumn = m_view.getColumnIndex( (int) getWidth() );
+    maxColumn = Math.min( maxColumn, m_view.getData().getColumnCount() );
+
+    double y = 0.5;
+    double h = m_view.getHeaderHeight() - 1;
+    int x = m_view.getColumnStartX( column );
+
+    while ( column <= maxColumn )
+    {
+      // find next hidden column, by skipping contiguous visible columns
+      int nextX = m_view.getColumnStartX( ++column );
+      while ( nextX > x && column <= maxColumn )
+      {
+        x = nextX;
+        nextX = m_view.getColumnStartX( ++column );
+      }
+
+      // draw line to indicate hidden column(s)
+      if ( column <= maxColumn && x >= m_view.getHeaderWidth() )
+        m_gc.strokeLine( x - 0.5, y, x - 0.5, h - 0.5 );
+    }
+  }
+
+  /************************************** drawUpArrow ********************************************/
+  private void drawUpArrow( int viewColumn, int viewRow )
+  {
+    // draw up arrow to indicate descending sort column/row
+    var shape = new int[] { 0, 1, 2, 3, 4, 0, 0, 0, 0, 0 };
+    drawShape( viewColumn, viewRow, shape, 7.5, -4.5 );
+  }
+
+  /************************************* drawDownArrow *******************************************/
+  private void drawDownArrow( int viewColumn, int viewRow )
+  {
+    // draw down arrow to indicate ascending sort column/row
+    var shape = new int[] { 0, 0, 0, 0, 0, 4, 3, 2, 1, 0 };
+    drawShape( viewColumn, viewRow, shape, 7.5, -4.5 );
+  }
+
+  /***************************************** drawFunnel ******************************************/
+  private void drawFunnel( int viewColumn, int viewRow )
+  {
+    // draw funnel shape to indicate filtered column/row
+    var shape = new int[] { 4, 4, 3, 2, 1, 1, 1, 1, 1, 0 };
+    drawShape( viewColumn + 1, viewRow, shape, -8.5, -4.5 );
+  }
+
+  /**************************************** drawShape ********************************************/
+  /**
+   * Draws a shape icon at the specified cell position using an array of line widths.
+   * 
+   * @param viewColumn the column index
+   * @param viewRow the row index
+   * @param shape array of half-widths for each horizontal line of the shape
+   * @param xOffset horizontal offset from the calculated base position
+   * @param yOffset vertical offset from the calculated base position
+   */
+  private void drawShape( int viewColumn, int viewRow, int[] shape, double xOffset, double yOffset )
+  {
+    // draw shape icon with appropriate stroke color based on focus state
+    Color stroke = m_view.isFocused() ? Colours.SELECTED_BORDER : Colours.SELECTED_BORDER.desaturate();
+    m_gc.setStroke( stroke );
+
+    // calculate base position for the shape
+    double x = m_view.getColumnStartX( viewColumn ) + xOffset;
+    double y = ( m_view.getRowStartY( viewRow ) + m_view.getRowStartY( viewRow + 1 ) ) / 2.0 + yOffset;
+
+    // draw each horizontal line of the shape
+    for ( int i = 0; i < shape.length; i++ )
+      m_gc.strokeLine( x - shape[i], y + i, x + shape[i], y + i );
   }
 
   /*********************************** highlightSelectedAreas ************************************/
