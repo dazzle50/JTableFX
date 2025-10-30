@@ -23,14 +23,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 
-import javafx.geometry.Pos;
 import javafx.scene.control.ContextMenu;
-import javafx.scene.control.CustomMenuItem;
 import javafx.scene.control.Label;
+import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.SeparatorMenuItem;
-import javafx.scene.control.TextField;
-import javafx.scene.layout.HBox;
+import javafx.scene.paint.Paint;
 import rjc.table.view.action.Filter;
 import rjc.table.view.action.HideShow;
 import rjc.table.view.axis.TableAxis;
@@ -58,7 +56,7 @@ public class TableContextMenu extends ContextMenu
   // optional context menu items that can be omitted from context menu
   public enum OptionalMenuItems
   {
-    HIDE_COLUMNS, HIDE_ROWS, SHOW_ALL_COLUMNS, SHOW_ALL_ROWS, FILTER_COLUMN_CONTAINS_TEXT
+    COLUMNS_HIDE, ROWS_HIDE, COLUMNS_SHOW_ALL, ROWS_SHOW_ALL, COLUMN_FILTER_TEXT
   }
 
   private static final Map<TableView, Set<OptionalMenuItems>> OMIT = new WeakHashMap<>();
@@ -147,7 +145,7 @@ public class TableContextMenu extends ContextMenu
   private void buildColumnHeader()
   {
     // build context menu for table-view column header row - add relevant menu items
-    addHideColumn().addFilterColumn().addSeparator().addShowAllColumns();
+    addHideColumn().addSeparator().addShowAllColumns().addFilterTextColumn();
   }
 
   /*************************************** buildRowHeader ****************************************/
@@ -188,7 +186,7 @@ public class TableContextMenu extends ContextMenu
   protected TableContextMenu addShowAllColumns()
   {
     // exit without adding menu item if option is omitted for this table-view
-    if ( isOmitted( m_view, OptionalMenuItems.SHOW_ALL_COLUMNS ) )
+    if ( isOmitted( m_view, OptionalMenuItems.COLUMNS_SHOW_ALL ) )
       return this;
 
     // add a show all columns menu item
@@ -202,7 +200,7 @@ public class TableContextMenu extends ContextMenu
   protected TableContextMenu addShowAllRows()
   {
     // exit without adding menu item if option is omitted for this table-view
-    if ( isOmitted( m_view, OptionalMenuItems.SHOW_ALL_ROWS ) )
+    if ( isOmitted( m_view, OptionalMenuItems.ROWS_SHOW_ALL ) )
       return this;
 
     // add a show all rows menu item
@@ -216,7 +214,7 @@ public class TableContextMenu extends ContextMenu
   protected TableContextMenu addHideColumn()
   {
     // exit without adding menu item if option is omitted for this table-view
-    if ( isOmitted( m_view, OptionalMenuItems.HIDE_COLUMNS ) )
+    if ( isOmitted( m_view, OptionalMenuItems.COLUMNS_HIDE ) )
       return this;
 
     // add a hide column(s) menu item
@@ -230,7 +228,7 @@ public class TableContextMenu extends ContextMenu
   protected TableContextMenu addHideRow()
   {
     // exit without adding menu item if option is omitted for this table-view
-    if ( isOmitted( m_view, OptionalMenuItems.HIDE_ROWS ) )
+    if ( isOmitted( m_view, OptionalMenuItems.ROWS_HIDE ) )
       return this;
 
     // add a hide row(s) menu item
@@ -240,22 +238,35 @@ public class TableContextMenu extends ContextMenu
     return this;
   }
 
-  /************************************** addFilterColumn ****************************************/
-  protected TableContextMenu addFilterColumn()
+  /************************************ addFilterTextColumn **************************************/
+  protected TableContextMenu addFilterTextColumn()
   {
     // exit without adding menu item if option is omitted for this table-view
-    if ( isOmitted( m_view, OptionalMenuItems.FILTER_COLUMN_CONTAINS_TEXT ) )
+    if ( isOmitted( m_view, OptionalMenuItems.COLUMN_FILTER_TEXT ) )
       return this;
 
-    // add a filter column menu item
-    var hbox = new HBox( 5 );
-    var filter = new TextField();
-    hbox.getChildren().addAll( new Label( "Filter" ), filter );
-    hbox.setAlignment( Pos.CENTER_LEFT );
-    var item = new CustomMenuItem( hbox );
+    // add a filter text sub-menu for column
+    var filterText = new Menu( "Filter text" );
 
-    filter.setOnAction( event -> Filter.columnTextContains( m_view, m_mouseCol, filter.getText() ) );
-    getItems().add( item );
+    var contains = new MenuItemTextField( "Contains" );
+    contains.setOnAction( () -> Filter.columnTextContains( m_view, m_mouseCol, contains.getFieldText() ) );
+
+    var starts = new MenuItemTextField( "Starts with" );
+    starts.setOnAction( () -> Filter.columnTextStarts( m_view, m_mouseCol, starts.getFieldText() ) );
+
+    var regex = new MenuItemTextField( "Regex" );
+    regex.setOnAction( () -> Filter.columnTextRegex( m_view, m_mouseCol, regex.getFieldText() ) );
+
+    // ensure aligned when menu shown, and text-fill is correct (otherwise lost)
+    filterText.setOnShown( event ->
+    {
+      Paint textFill = ( (Label) getStyleableNode().lookup( ".label" ) ).getTextFill();
+      MenuItemTextField.align( textFill, contains, starts, regex );
+    } );
+
+    // add sub-menu items, and add sub-menu to context menu
+    filterText.getItems().addAll( contains, starts, regex );
+    getItems().add( filterText );
     return this;
   }
 

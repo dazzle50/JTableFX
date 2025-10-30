@@ -19,10 +19,11 @@
 package rjc.table.view.action;
 
 import java.util.HashSet;
+import java.util.function.Predicate;
 
-import rjc.table.Utils;
 import rjc.table.undo.commands.CommandHideIndexes;
 import rjc.table.view.TableView;
+import rjc.table.view.axis.TableAxis;
 
 /*************************************************************************************************/
 /************************ Filter table-view columns/rows via undo command ************************/
@@ -33,33 +34,85 @@ public class Filter
   /************************************* columnTextContains **************************************/
   public static void columnTextContains( TableView view, int mouseCol, String text )
   {
-    Utils.trace( ">>>>>>>>>>>", view, mouseCol, text );
+    // filter rows where column text contains the specified text
+    filterAxis( view, view.getRowsAxis(), view.getColumnsAxis().getDataIndex( mouseCol ),
+        valueText -> valueText.contains( text ) );
+  }
 
-    // TODO implement column filtering
+  /************************************** columnTextStarts ***************************************/
+  public static void columnTextStarts( TableView view, int mouseCol, String text )
+  {
+    // filter rows where column text starts with the specified text
+    filterAxis( view, view.getRowsAxis(), view.getColumnsAxis().getDataIndex( mouseCol ),
+        valueText -> valueText.startsWith( text ) );
+  }
+
+  /************************************** columnTextRegex ****************************************/
+  public static void columnTextRegex( TableView view, int mouseCol, String regex )
+  {
+    // filter rows where column text matches the regex pattern
+    var pattern = java.util.regex.Pattern.compile( regex );
+    filterAxis( view, view.getRowsAxis(), view.getColumnsAxis().getDataIndex( mouseCol ),
+        valueText -> pattern.matcher( valueText ).find() );
+  }
+
+  /*************************************** rowTextContains ***************************************/
+  public static void rowTextContains( TableView view, int mouseRow, String text )
+  {
+    // filter columns where row text contains the specified text
+    filterAxis( view, view.getColumnsAxis(), view.getRowsAxis().getDataIndex( mouseRow ),
+        valueText -> valueText.contains( text ) );
+  }
+
+  /**************************************** rowTextStarts ****************************************/
+  public static void rowTextStarts( TableView view, int mouseRow, String text )
+  {
+    // filter columns where row text starts with the specified text
+    filterAxis( view, view.getColumnsAxis(), view.getRowsAxis().getDataIndex( mouseRow ),
+        valueText -> valueText.startsWith( text ) );
+  }
+
+  /**************************************** rowTextRegex *****************************************/
+  public static void rowTextRegex( TableView view, int mouseRow, String regex )
+  {
+    // filter columns where row text matches the regex pattern
+    var pattern = java.util.regex.Pattern.compile( regex );
+    filterAxis( view, view.getColumnsAxis(), view.getRowsAxis().getDataIndex( mouseRow ),
+        valueText -> pattern.matcher( valueText ).find() );
+  }
+
+  /****************************************** filterAxis *****************************************/
+  private static void filterAxis( TableView view, TableAxis axisToFilter, int fixedDataIndex,
+      Predicate<String> textPredicate )
+  {
+    // collect indexes that don't match the filter predicate
     var toHide = new HashSet<Integer>();
-    int dataColumn = view.getColumnsAxis().getDataIndex( mouseCol );
-    int nextRow = view.getRowsAxis().getFirstVisible();
-    int viewRow;
+    boolean isFilteringRows = axisToFilter == view.getRowsAxis();
 
-    // loop round all visible rows
+    // iterate through all visible indexes to check for text match
+    int currentIndex = axisToFilter.getFirstVisible();
+    int previousIndex;
+
     do
     {
-      viewRow = nextRow;
-      int dataRow = view.getRowsAxis().getDataIndex( viewRow );
+      int dataIndex = axisToFilter.getDataIndex( currentIndex );
 
-      var value = view.getData().getValue( dataColumn, dataRow );
-      var valueText = value == null ? "" : value.toString();
+      // get cell value based on whether filtering rows or columns
+      Object value = isFilteringRows ? view.getData().getValue( fixedDataIndex, dataIndex )
+          : view.getData().getValue( dataIndex, fixedDataIndex );
+      String valueText = value == null ? "" : value.toString();
 
-      if ( valueText.indexOf( text ) < 0 )
-        toHide.add( viewRow );
+      // add index to hide set if predicate test fails
+      if ( !textPredicate.test( valueText ) )
+        toHide.add( currentIndex );
 
-      nextRow = view.getRowsAxis().getNextVisible( viewRow );
+      previousIndex = currentIndex;
+      currentIndex = axisToFilter.getNextVisible( currentIndex );
     }
-    while ( nextRow != viewRow );
+    while ( currentIndex != previousIndex );
 
-    // hide the columns that don't match via undo-command and add to undostack
-    Utils.trace( ">>>>>>>>>>>", toHide );
-    var command = new CommandHideIndexes( view, view.getRowsAxis(), toHide );
+    // execute hide command via undo stack
+    var command = new CommandHideIndexes( view, axisToFilter, toHide );
     view.getUndoStack().push( command );
   }
 }
