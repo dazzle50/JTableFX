@@ -18,15 +18,12 @@
 
 package rjc.table.view.axis;
 
-import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 
+import rjc.table.HashSetInt;
 import rjc.table.signal.IListener;
 import rjc.table.signal.ISignal;
 import rjc.table.signal.ObservableDouble.ReadOnlyDouble;
@@ -208,7 +205,7 @@ public class AxisSize extends AxisBase implements IListener
       truncatePixelCaches( index, zoom( newSize ) - zoom( oldSize ) );
   }
 
-  /*************************************** getTotalPixels ***********************************????????????????*****/
+  /*************************************** getTotalPixels ****************************************/
   public int getTotalPixels()
   {
     // return axis total size in pixels (including header)
@@ -368,13 +365,15 @@ public class AxisSize extends AxisBase implements IListener
   }
 
   /************************************** reorderExceptions **************************************/
-  protected void reorderExceptions( ArrayList<Integer> movedSorted, int insertIndex )
+  protected void reorderExceptions( int[] movedSorted, int insertIndex )
   {
     // update size exceptions taking into account moves
     var newSizeExceptions = new HashMap<Integer, Integer>();
-    for ( int exceptionIndex : new TreeSet<Integer>( m_sizeExceptions.keySet() ) )
+    var sortedKeys = m_sizeExceptions.keySet().stream().sorted().mapToInt( Integer::intValue ).toArray();
+
+    for ( int exceptionIndex : sortedKeys )
     {
-      int moved = movedSorted.indexOf( exceptionIndex );
+      int moved = java.util.Arrays.binarySearch( movedSorted, exceptionIndex );
       if ( moved >= 0 )
         // moved index
         newSizeExceptions.put( insertIndex + moved, m_sizeExceptions.get( exceptionIndex ) );
@@ -390,7 +389,7 @@ public class AxisSize extends AxisBase implements IListener
     for ( int hiddenIndex = m_hiddenIndexes.nextSetBit( 0 ); hiddenIndex >= 0; hiddenIndex = m_hiddenIndexes
         .nextSetBit( hiddenIndex + 1 ) )
     {
-      int moved = movedSorted.indexOf( hiddenIndex );
+      int moved = java.util.Arrays.binarySearch( movedSorted, hiddenIndex );
       if ( moved >= 0 )
         // moved index
         newHiddenIndexes.set( insertIndex + moved );
@@ -402,17 +401,17 @@ public class AxisSize extends AxisBase implements IListener
   }
 
   /**************************************** adjustedIndex ****************************************/
-  private Integer adjustedIndex( int exceptionIndex, int insertIndex, ArrayList<Integer> movedSorted )
+  private int adjustedIndex( int exceptionIndex, int insertIndex, int[] movedSorted )
   {
     // count of moved before exception index
     int before = 0;
-    while ( movedSorted.size() > before && movedSorted.get( before ) < exceptionIndex )
+    while ( before < movedSorted.length && movedSorted[before] < exceptionIndex )
       before++;
 
     if ( exceptionIndex < insertIndex + before )
       return exceptionIndex - before;
 
-    return exceptionIndex - before + movedSorted.size();
+    return exceptionIndex - before + movedSorted.length;
   }
 
   /*************************************** setZoomProperty ***************************************/
@@ -450,11 +449,11 @@ public class AxisSize extends AxisBase implements IListener
   }
 
   /***************************************** hideIndexes *****************************************/
-  public Set<Integer> hideIndexes( Set<Integer> indexes )
+  public HashSetInt hideIndexes( HashSetInt indexes )
   {
     // hide cells if not already hidden, return set of indexes that were changed
-    var hidden = new HashSet<Integer>();
-    for ( int index : indexes )
+    var hidden = new HashSetInt();
+    for ( int index : indexes.toArray() )
       if ( !m_hiddenIndexes.get( index ) )
       {
         m_hiddenIndexes.set( index );
@@ -472,11 +471,11 @@ public class AxisSize extends AxisBase implements IListener
   }
 
   /**************************************** unhideIndexes ****************************************/
-  public Set<Integer> unhideIndexes( Set<Integer> indexes )
+  public HashSetInt unhideIndexes( HashSetInt indexes )
   {
     // unhide cells if not already visible, return set of indexes that were changed
-    var shown = new HashSet<Integer>();
-    for ( int index : indexes )
+    var shown = new HashSetInt();
+    for ( int index : indexes.toArray() )
       if ( m_hiddenIndexes.get( index ) )
       {
         m_hiddenIndexes.clear( index );
@@ -494,10 +493,10 @@ public class AxisSize extends AxisBase implements IListener
   }
 
   /****************************************** unhideAll ******************************************/
-  public Set<Integer> unhideAll()
+  public HashSetInt unhideAll()
   {
     // unhide all cells that are hidden, return set of indexes that were changed
-    var shown = new HashSet<Integer>();
+    var shown = new HashSetInt();
     for ( int i = m_hiddenIndexes.nextSetBit( 0 ); i >= 0; i = m_hiddenIndexes.nextSetBit( i + 1 ) )
       shown.add( i );
 

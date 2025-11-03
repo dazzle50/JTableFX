@@ -18,11 +18,8 @@
 
 package rjc.table.undo.commands;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
-
 import javafx.geometry.Orientation;
+import rjc.table.HashSetInt;
 import rjc.table.data.IDataReorderColumns;
 import rjc.table.data.IDataReorderRows;
 import rjc.table.data.TableData;
@@ -35,14 +32,14 @@ import rjc.table.view.cursor.AbstractReorderCursor;
 
 public class CommandReorderData implements IUndoCommand
 {
-  private TableData    m_data;        // table data
-  private Orientation  m_orientation; // orientation being reordered
-  private Set<Integer> m_indexes;     // data-indexes being moved
-  private int          m_insert;      // insert position
-  private String       m_text;        // text describing command
+  private TableData   m_data;        // table data
+  private Orientation m_orientation; // orientation being reordered
+  private HashSetInt  m_indexes;     // data-indexes being moved
+  private int         m_insert;      // insert position
+  private String      m_text;        // text describing command
 
   /**************************************** constructor ******************************************/
-  public CommandReorderData( TableData data, Orientation orientation, Set<Integer> selected, int insertIndex )
+  public CommandReorderData( TableData data, Orientation orientation, HashSetInt selected, int insertIndex )
   {
     // prepare reorder command
     m_data = data;
@@ -78,11 +75,10 @@ public class CommandReorderData implements IUndoCommand
     int oldOffset = m_indexes.size() - newOffset;
 
     // create ordered list to process moves in predictable order
-    var list = new ArrayList<Integer>( m_indexes );
-    list.sort( null );
+    var list = m_indexes.toSortedArray();
 
     // move columns or rows back to their prior positions
-    HashSet<Integer> index = new HashSet<>( 1 );
+    HashSetInt index = new HashSetInt();
     for ( int oldPos : list )
       if ( m_insert > oldPos )
       {

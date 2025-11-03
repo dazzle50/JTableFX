@@ -19,7 +19,8 @@
 package rjc.table.data;
 
 import java.util.List;
-import java.util.Set;
+
+import rjc.table.HashSetInt;
 
 /*************************************************************************************************/
 /************************* Interface for deleting columns in table data **************************/
@@ -49,7 +50,7 @@ public interface IDataDeleteColumns
    * @throws Exceptions if invalid input parameters are provided  
    * @implNote The default implementation returns {@code null} (no operation performed)
    */
-  default public List<Object> deleteColumns( Set<Integer> columnIndexes )
+  default public List<Object> deleteColumns( HashSetInt columnIndexes )
   {
     // return null if deletion failed or no columns were deleted
     return null;

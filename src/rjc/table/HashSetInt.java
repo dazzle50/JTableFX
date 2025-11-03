@@ -20,6 +20,8 @@ package rjc.table;
 
 import java.util.Arrays;
 import java.util.NoSuchElementException;
+import java.util.Set;
+import java.util.function.IntPredicate;
 
 /*************************************************************************************************/
 /******************* HashSet for primitive int values avoiding boxing overhead *******************/
@@ -74,15 +76,38 @@ public class HashSetInt
    */
   public HashSetInt( int initialCapacity, float loadFactor )
   {
+    // validate parameters
     if ( initialCapacity < 0 )
       throw new IllegalArgumentException( "Illegal capacity: " + initialCapacity );
     if ( loadFactor <= 0 || Float.isNaN( loadFactor ) )
       throw new IllegalArgumentException( "Illegal load factor: " + loadFactor );
 
+    // initialise table
     m_loadFactor = loadFactor;
     m_table = new int[tableSizeFor( initialCapacity )];
     Arrays.fill( m_table, EMPTY );
     m_threshold = (int) ( m_table.length * m_loadFactor );
+  }
+
+  /***************************************** fromSet *********************************************/
+  /**
+   * Creates a HashSetInt from a Set of Integer values.
+   * 
+   * @param set the set of Integer values to convert
+   * @return a new HashSetInt containing all values from the set
+   * @throws IllegalArgumentException if set contains Integer.MIN_VALUE or Integer.MIN_VALUE + 1 (reserved values)
+   * @throws NullPointerException if set is null or contains null values
+   */
+  public static HashSetInt fromSet( Set<Integer> set )
+  {
+    // create HashSetInt with appropriate capacity
+    HashSetInt result = new HashSetInt( set.size() );
+
+    // add all values from set
+    for ( Integer value : set )
+      result.add( value );
+
+    return result;
   }
 
   /*************************************** tableSizeFor ******************************************/
@@ -214,6 +239,7 @@ public class HashSetInt
   /******************************************* resize ********************************************/
   private void resize()
   {
+    // double table size
     int[] oldTable = m_table;
     m_table = new int[oldTable.length * 2];
     Arrays.fill( m_table, EMPTY );
@@ -260,6 +286,36 @@ public class HashSetInt
     m_deletedCount = 0;
   }
 
+  /****************************************** removeIf *******************************************/
+  /**
+   * Removes all of the elements of this set that satisfy the given predicate.
+   * 
+   * @param predicate a predicate which returns true for elements to be removed
+   * @return the number of elements removed
+   */
+  public int removeIf( IntPredicate predicate )
+  {
+    // remove all elements matching predicate
+    int removed = 0;
+    for ( int i = 0; i < m_table.length; i++ )
+    {
+      int value = m_table[i];
+      if ( value != EMPTY && value != DELETED && predicate.test( value ) )
+      {
+        m_table[i] = DELETED;
+        m_size--;
+        m_deletedCount++;
+        removed++;
+      }
+    }
+
+    // resize if too many deleted entries
+    if ( m_deletedCount > m_size )
+      resize();
+
+    return removed;
+  }
+
   /****************************************** toArray ********************************************/
   /**
    * Returns an array containing all of the elements in this set.
@@ -275,6 +331,21 @@ public class HashSetInt
     for ( int value : m_table )
       if ( value != EMPTY && value != DELETED )
         result[pos++] = value;
+
+    return result;
+  }
+
+  /************************************** toSortedArray ******************************************/
+  /**
+   * Returns a sorted array containing all of the elements in this set.
+   * 
+   * @return a sorted array containing all elements in this set
+   */
+  public int[] toSortedArray()
+  {
+    // get unsorted array, then sort it
+    int[] result = toArray();
+    Arrays.sort( result );
 
     return result;
   }

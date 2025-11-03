@@ -18,9 +18,8 @@
 
 package rjc.table.view.cursor;
 
-import java.util.HashSet;
-
 import javafx.geometry.Orientation;
+import rjc.table.HashSetInt;
 import rjc.table.undo.commands.CommandResize;
 import rjc.table.undo.commands.CommandResizeAll;
 import rjc.table.undo.commands.ICommandResize;
@@ -62,7 +61,7 @@ abstract public class AbstractResizeCursor extends AbstractCursor
   }
 
   /******************************************** start ********************************************/
-  protected void start( int coordinate, HashSet<Integer> selected )
+  protected void start( int coordinate, HashSetInt selected )
   {
     // if resize index is not selected, ignore selected
     int index = getSelectedIndex( coordinate );
@@ -76,12 +75,16 @@ abstract public class AbstractResizeCursor extends AbstractCursor
     // count visible selected sections before and adjust offset
     m_offset = m_axis.getStartPixel( index + 1, 0 );
     m_before = 0;
-    for ( int section : selected )
+    var iterator = selected.iterator();
+    while ( iterator.hasNext() )
+    {
+      int section = iterator.next();
       if ( section <= index && m_axis.isIndexVisible( section ) )
       {
         m_before++;
         m_offset -= m_axis.getIndexPixels( section );
       }
+    }
 
     // create resize command
     m_command = new CommandResize( m_view, m_axis, selected );

@@ -19,9 +19,8 @@
 package rjc.table.view.cell;
 
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.TreeSet;
 
+import rjc.table.HashSetInt;
 import rjc.table.Utils;
 import rjc.table.signal.ISignal;
 import rjc.table.view.TableView;
@@ -88,10 +87,10 @@ public class CellSelection implements ISignal
   }
 
   /**************************************** selectColumns ****************************************/
-  public void selectColumns( HashSet<Integer> columns )
+  public void selectColumns( HashSetInt columns )
   {
     // select specified columns
-    var orderedColumns = new TreeSet<Integer>( columns );
+    var orderedColumns = columns.toSortedArray();
     int startColumn = INVALID;
     int endColumn = INVALID;
 
@@ -122,10 +121,10 @@ public class CellSelection implements ISignal
   }
 
   /***************************************** selectRows ******************************************/
-  public void selectRows( HashSet<Integer> rows )
+  public void selectRows( HashSetInt rows )
   {
     // select specified rows
-    var orderedRows = new TreeSet<Integer>( rows );
+    var orderedRows = rows.toSortedArray();
     int startRow = INVALID;
     int endRow = INVALID;
 
@@ -258,26 +257,21 @@ public class CellSelection implements ISignal
   }
 
   /************************************* getResizableColumns **************************************/
-  public HashSet<Integer> getResizableColumns()
+  public HashSetInt getResizableColumns()
   {
     // return list of selected columns with non-resizable removed
     var columns = getSelectedColumns();
     if ( columns != null )
-    {
-      var column = columns.iterator();
-      while ( column.hasNext() )
-        if ( !m_view.isColumnResizable( column.next() ) )
-          column.remove();
-    }
+      columns.removeIf( column -> !m_view.isColumnResizable( column ) );
 
     return columns;
   }
 
   /************************************* getSelectedColumns **************************************/
-  public HashSet<Integer> getSelectedColumns()
+  public HashSetInt getSelectedColumns()
   {
     // return return list of selected columns, null = all, empty-set = none
-    var columns = new HashSet<Integer>();
+    var columns = new HashSetInt();
     int first = m_view.getColumnsAxis().getFirstVisible();
     int last = m_view.getColumnsAxis().getLastVisible();
     int top = m_view.getRowsAxis().getFirstVisible();
@@ -302,26 +296,21 @@ public class CellSelection implements ISignal
   }
 
   /************************************** getResizableRows ***************************************/
-  public HashSet<Integer> getResizableRows()
+  public HashSetInt getResizableRows()
   {
     // return list of selected rows with non-resizable removed
     var rows = getSelectedRows();
     if ( rows != null )
-    {
-      var row = rows.iterator();
-      while ( row.hasNext() )
-        if ( !m_view.isRowResizable( row.next() ) )
-          row.remove();
-    }
+      rows.removeIf( row -> !m_view.isRowResizable( row ) );
 
     return rows;
   }
 
   /*************************************** getSelectedRows ***************************************/
-  public HashSet<Integer> getSelectedRows()
+  public HashSetInt getSelectedRows()
   {
     // return return list of selected rows, null = all, empty-set = none
-    var rows = new HashSet<Integer>();
+    var rows = new HashSetInt();
     int first = m_view.getColumnsAxis().getFirstVisible();
     int last = m_view.getColumnsAxis().getLastVisible();
     int top = m_view.getRowsAxis().getFirstVisible();

@@ -19,8 +19,8 @@
 package rjc.table.undo.commands;
 
 import java.util.HashMap;
-import java.util.HashSet;
 
+import rjc.table.HashSetInt;
 import rjc.table.view.TableView;
 import rjc.table.view.axis.TableAxis;
 
@@ -32,7 +32,7 @@ public class CommandResize implements ICommandResize
 {
   private TableView                 m_view;                 // table view
   private TableAxis                 m_axis;                 // columns or rows being resized
-  private HashSet<Integer>          m_indexes;              // indexes being resized
+  private HashSetInt                m_indexes;              // indexes being resized
   private String                    m_text;                 // text describing command
 
   private HashMap<Integer, Integer> m_oldExceptions;        // old size exceptions before resize
@@ -41,7 +41,7 @@ public class CommandResize implements ICommandResize
   final static private int          NO_EXCEPTION = -999999; // no size exception
 
   /**************************************** constructor ******************************************/
-  public CommandResize( TableView view, TableAxis axis, HashSet<Integer> selected )
+  public CommandResize( TableView view, TableAxis axis, HashSetInt selected )
   {
     // prepare resize command
     m_view = view;
@@ -50,11 +50,13 @@ public class CommandResize implements ICommandResize
 
     // get any exceptions for selected before resizing starts
     m_oldExceptions = new HashMap<>();
-    selected.forEach( ( index ) ->
+    HashSetInt.IntIterator iter = selected.iterator();
+    while ( iter.hasNext() )
     {
+      int index = iter.next();
       int size = axis.getSizeExceptions().getOrDefault( index, NO_EXCEPTION );
       m_oldExceptions.put( index, size );
-    } );
+    }
   }
 
   /***************************************** setNewSize ******************************************/
@@ -70,8 +72,9 @@ public class CommandResize implements ICommandResize
   public void redo()
   {
     // action command
-    for ( int index : m_indexes )
-      m_axis.setIndexSize( index, m_newSize );
+    HashSetInt.IntIterator iter = m_indexes.iterator();
+    while ( iter.hasNext() )
+      m_axis.setIndexSize( iter.next(), m_newSize );
 
     m_view.redraw();
   }

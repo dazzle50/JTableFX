@@ -18,9 +18,9 @@
 
 package rjc.table.view.action;
 
-import java.util.HashSet;
 import java.util.function.Predicate;
 
+import rjc.table.HashSetInt;
 import rjc.table.undo.commands.CommandHideIndexes;
 import rjc.table.view.TableView;
 import rjc.table.view.axis.TableAxis;
@@ -86,33 +86,35 @@ public class Filter
       Predicate<String> textPredicate )
   {
     // collect indexes that don't match the filter predicate
-    var toHide = new HashSet<Integer>();
+    var indexesToHide = new HashSetInt();
     boolean isFilteringRows = axisToFilter == view.getRowsAxis();
 
     // iterate through all visible indexes to check for text match
-    int currentIndex = axisToFilter.getFirstVisible();
-    int previousIndex;
+    int currentVisibleIndex = axisToFilter.getFirstVisible();
+    int previousVisibleIndex;
 
     do
     {
-      int dataIndex = axisToFilter.getDataIndex( currentIndex );
+      // get data index for current visible position
+      int currentDataIndex = axisToFilter.getDataIndex( currentVisibleIndex );
 
       // get cell value based on whether filtering rows or columns
-      Object value = isFilteringRows ? view.getData().getValue( fixedDataIndex, dataIndex )
-          : view.getData().getValue( dataIndex, fixedDataIndex );
-      String valueText = value == null ? "" : value.toString();
+      Object cellValue = isFilteringRows ? view.getData().getValue( fixedDataIndex, currentDataIndex )
+          : view.getData().getValue( currentDataIndex, fixedDataIndex );
+      String cellText = cellValue == null ? "" : cellValue.toString();
 
       // add index to hide set if predicate test fails
-      if ( !textPredicate.test( valueText ) )
-        toHide.add( currentIndex );
+      if ( !textPredicate.test( cellText ) )
+        indexesToHide.add( currentVisibleIndex );
 
-      previousIndex = currentIndex;
-      currentIndex = axisToFilter.getNextVisible( currentIndex );
+      // advance to next visible index
+      previousVisibleIndex = currentVisibleIndex;
+      currentVisibleIndex = axisToFilter.getNextVisible( currentVisibleIndex );
     }
-    while ( currentIndex != previousIndex );
+    while ( currentVisibleIndex != previousVisibleIndex );
 
     // execute hide command via undo stack
-    var command = new CommandHideIndexes( view, axisToFilter, toHide );
-    view.getUndoStack().push( command );
+    var hideCommand = new CommandHideIndexes( view, axisToFilter, indexesToHide );
+    view.getUndoStack().push( hideCommand );
   }
 }

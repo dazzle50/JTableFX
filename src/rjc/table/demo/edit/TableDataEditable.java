@@ -19,8 +19,8 @@
 package rjc.table.demo.edit;
 
 import java.util.ArrayList;
-import java.util.Set;
 
+import rjc.table.HashSetInt;
 import rjc.table.data.IDataReorderRows;
 import rjc.table.data.TableData;
 import rjc.table.demo.edit.EditableData.Column;
@@ -77,17 +77,16 @@ public class TableDataEditable extends TableData implements IDataReorderRows
 
   /***************************************** reorderRows *****************************************/
   @Override
-  public boolean reorderRows( Set<Integer> fromIndexes, int insertIndex )
+  public boolean reorderRows( HashSetInt fromIndexes, int insertIndex )
   {
     // prepare a sorted list of the indexes to be moved
-    var sortedIndexes = new ArrayList<Integer>( fromIndexes );
-    sortedIndexes.sort( null );
+    var sortedIndexes = fromIndexes.toSortedArray();
 
     // remove these rows (highest to lowest index to preserve position)
     var beforeHash = m_rows.hashCode();
-    var removed = new ArrayList<EditableData>( sortedIndexes.size() );
-    for ( int i = sortedIndexes.size(); i-- > 0; )
-      removed.add( m_rows.remove( (int) sortedIndexes.get( i ) ) );
+    var removed = new ArrayList<EditableData>( sortedIndexes.length );
+    for ( int i = sortedIndexes.length; i-- > 0; )
+      removed.add( m_rows.remove( sortedIndexes[i] ) );
 
     // adjust insert-index to take account of removed rows
     int oldInsert = insertIndex;

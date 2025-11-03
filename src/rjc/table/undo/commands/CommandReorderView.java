@@ -18,10 +18,7 @@
 
 package rjc.table.undo.commands;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
-
+import rjc.table.HashSetInt;
 import rjc.table.undo.IUndoCommand;
 import rjc.table.view.TableView;
 import rjc.table.view.axis.TableAxis;
@@ -33,14 +30,14 @@ import rjc.table.view.cursor.AbstractReorderCursor;
 
 public class CommandReorderView implements IUndoCommand
 {
-  private TableView    m_view;    // table view
-  private TableAxis    m_axis;    // axis being reordered
-  private Set<Integer> m_indexes; // view-indexes being moved
-  private int          m_insert;  // insert position
-  private String       m_text;    // text describing command
+  private TableView  m_view;    // table view
+  private TableAxis  m_axis;    // axis being reordered
+  private HashSetInt m_indexes; // view-indexes being moved
+  private int        m_insert;  // insert position
+  private String     m_text;    // text describing command
 
   /**************************************** constructor ******************************************/
-  public CommandReorderView( TableView view, TableAxis axis, Set<Integer> selected, int insertIndex )
+  public CommandReorderView( TableView view, TableAxis axis, HashSetInt selected, int insertIndex )
   {
     // prepare reorder command
     m_view = view;
@@ -73,11 +70,10 @@ public class CommandReorderView implements IUndoCommand
     int oldOffset = m_indexes.size() - newOffset;
 
     // create ordered list to process moves in predictable order
-    var list = new ArrayList<Integer>( m_indexes );
-    list.sort( null );
+    var list = m_indexes.toSortedArray();
 
     // move columns or rows back to their prior positions
-    HashSet<Integer> index = new HashSet<>( 1 );
+    HashSetInt index = new HashSetInt();
     for ( int oldPos : list )
       if ( m_insert > oldPos )
       {

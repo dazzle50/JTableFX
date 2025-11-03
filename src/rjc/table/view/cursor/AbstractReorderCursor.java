@@ -18,12 +18,10 @@
 
 package rjc.table.view.cursor;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import javafx.geometry.Orientation;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.StrokeLineCap;
+import rjc.table.HashSetInt;
 import rjc.table.Utils;
 import rjc.table.data.IDataReorderColumns;
 import rjc.table.data.IDataReorderRows;
@@ -39,10 +37,10 @@ import rjc.table.view.axis.TableAxis;
 
 abstract public class AbstractReorderCursor extends AbstractCursor
 {
-  private static final int        LINE_WIDTH = 5;
-  private static Line             m_line;
-  private static HashSet<Integer> m_selected;    // columns or rows to be moved
-  private static int              m_pos;         // column or row axis position for reordering
+  private static final int  LINE_WIDTH = 5;
+  private static Line       m_line;
+  private static HashSetInt m_selected;    // columns or rows to be moved
+  private static int        m_pos;         // column or row axis position for reordering
 
   /**************************************** constructor ******************************************/
   public AbstractReorderCursor( String imageFile, int xHotspot, int yHotspot )
@@ -211,12 +209,13 @@ abstract public class AbstractReorderCursor extends AbstractCursor
   }
 
   /***************************************** countBefore *****************************************/
-  public static int countBefore( Set<Integer> set, int position )
+  public static int countBefore( HashSetInt set, int position )
   {
     // count set entries with value lower than position
     int count = 0;
-    for ( int value : set )
-      if ( value < position )
+    var iter = set.iterator();
+    while ( iter.hasNext() )
+      if ( iter.next() < position )
         count++;
 
     return count;

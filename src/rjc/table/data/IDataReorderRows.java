@@ -18,7 +18,7 @@
 
 package rjc.table.data;
 
-import java.util.Set;
+import rjc.table.HashSetInt;
 
 /*************************************************************************************************/
 /************************** Interface for reordering rows in table data **************************/
@@ -49,7 +49,7 @@ public interface IDataReorderRows
    * @throws Exceptions if invalid input parameters are provided  
    * @implNote The default implementation returns {@code false} (no operation performed)
    */
-  default public boolean reorderRows( Set<Integer> fromIndexes, int insertIndex )
+  default public boolean reorderRows( HashSetInt fromIndexes, int insertIndex )
   {
     // return if reordering successful (and resulted in different row order)
     return false;

@@ -19,7 +19,8 @@
 package rjc.table.data;
 
 import java.util.List;
-import java.util.Set;
+
+import rjc.table.HashSetInt;
 
 /*************************************************************************************************/
 /*************************** Interface for deleting rows in table data ***************************/
@@ -49,7 +50,7 @@ public interface IDataDeleteRows
    * @throws Exceptions if invalid input parameters are provided  
    * @implNote The default implementation returns {@code null} (no operation performed)
    */
-  default public List<Object> deleteRows( Set<Integer> rowIndexes )
+  default public List<Object> deleteRows( HashSetInt rowIndexes )
   {
     // return null if deletion failed or no rows were deleted
     return null;

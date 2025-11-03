@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javafx.application.Platform;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.text.FontSmoothingType;
+import rjc.table.HashSetInt;
 import rjc.table.view.axis.TableAxis;
 import rjc.table.view.cell.CellDrawer;
 
@@ -39,8 +40,8 @@ public class TableCanvasDraw extends Canvas
   private AtomicBoolean    m_redrawIsRequested;                      // flag if redraw has been scheduled
   private boolean          m_fullRedraw;                             // full view redraw (headers & body including overlay)
   private boolean          m_overlayRedraw;                          // just overlay redraw
-  private HashSet<Integer> m_columns;                                // requested view column indexes
-  private HashSet<Integer> m_rows;                                   // requested view row indexes
+  private HashSetInt       m_columns;                                // requested view column indexes
+  private HashSetInt       m_rows;                                   // requested view row indexes
   private HashSet<Long>    m_cells;                                  // long = (long) column << 32 | row & 0xFFFFFFFFL
   private int              m_redrawCount;                            // count to ensure canvas cleared periodically
 
@@ -61,8 +62,8 @@ public class TableCanvasDraw extends Canvas
     m_view = tableView;
     m_overlay = new TableOverlay( tableView );
     m_redrawIsRequested = new AtomicBoolean();
-    m_columns = new HashSet<>();
-    m_rows = new HashSet<>();
+    m_columns = new HashSetInt();
+    m_rows = new HashSetInt();
     m_cells = new HashSet<>();
 
     getGraphicsContext2D().setFontSmoothingType( FontSmoothingType.LCD );
@@ -160,10 +161,12 @@ public class TableCanvasDraw extends Canvas
         }
 
         // redraw requested columns & rows
-        for ( int viewColumn : m_columns )
-          redrawColumnNow( viewColumn );
-        for ( int viewRow : m_rows )
-          redrawRowNow( viewRow );
+        var columnIter = m_columns.iterator();
+        while ( columnIter.hasNext() )
+          redrawColumnNow( columnIter.next() );
+        var rowIter = m_rows.iterator();
+        while ( rowIter.hasNext() )
+          redrawRowNow( rowIter.next() );
       }
     }
 

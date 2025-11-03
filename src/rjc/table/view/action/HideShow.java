@@ -18,8 +18,7 @@
 
 package rjc.table.view.action;
 
-import java.util.HashSet;
-
+import rjc.table.HashSetInt;
 import rjc.table.undo.commands.CommandHideIndexes;
 import rjc.table.undo.commands.CommandUnhideAllIndexes;
 import rjc.table.view.TableView;
@@ -42,8 +41,7 @@ public class HideShow
   public static boolean hideRows( TableView view, int row )
   {
     // if mouse row is selected, hide all selected rows, else just hide mouse row
-    var indexes = view.getSelection().isRowSelected( row ) ? view.getSelection().getSelectedRows()
-        : new HashSet<Integer>( 1 );
+    var indexes = view.getSelection().isRowSelected( row ) ? view.getSelection().getSelectedRows() : new HashSetInt(1);
 
     if ( indexes == null || view.getSelection().areAllVisibleRowsSelected() )
       return false; // cannot hide all rows
@@ -72,7 +70,7 @@ public class HideShow
   {
     // if mouse column is selected, hide all selected columns, else just hide mouse column
     var indexes = view.getSelection().isColumnSelected( column ) ? view.getSelection().getSelectedColumns()
-        : new HashSet<Integer>( 1 );
+        : new HashSetInt(1);
 
     if ( indexes == null || view.getSelection().areAllVisibleColumnsSelected() )
       return false; // cannot hide all columns

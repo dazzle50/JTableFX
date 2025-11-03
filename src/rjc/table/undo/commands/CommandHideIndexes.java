@@ -18,8 +18,7 @@
 
 package rjc.table.undo.commands;
 
-import java.util.Set;
-
+import rjc.table.HashSetInt;
 import rjc.table.undo.IUndoCommand;
 import rjc.table.view.TableView;
 import rjc.table.view.axis.TableAxis;
@@ -30,13 +29,13 @@ import rjc.table.view.axis.TableAxis;
 
 public class CommandHideIndexes implements IUndoCommand
 {
-  private TableView    m_view;    // table view
-  private TableAxis    m_axis;    // axis for hiding
-  private Set<Integer> m_indexes; // view-indexes being hidden
-  private String       m_text;    // text describing command
+  private TableView  m_view;    // table view
+  private TableAxis  m_axis;    // axis for hiding
+  private HashSetInt m_indexes; // view-indexes being hidden
+  private String     m_text;    // text describing command
 
   /**************************************** constructor ******************************************/
-  public CommandHideIndexes( TableView view, TableAxis axis, Set<Integer> indexes )
+  public CommandHideIndexes( TableView view, TableAxis axis, HashSetInt indexes )
   {
     // prepare hide command and hide the requested indexes
     m_view = view;

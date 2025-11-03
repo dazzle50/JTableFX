@@ -19,8 +19,8 @@
 package rjc.table.view.axis;
 
 import java.util.ArrayList;
-import java.util.Set;
 
+import rjc.table.HashSetInt;
 import rjc.table.signal.ObservableInteger.ReadOnlyInteger;
 
 /*************************************************************************************************/
@@ -79,37 +79,43 @@ public class AxisMap extends AxisSize
   }
 
   /******************************************* reorder *******************************************/
-  public void reorder( Set<Integer> toBeMovedIndexes, int insertIndex )
+  /**
+   * Reorders the view-to-data index mapping by moving specified indexes to a new position.
+   * 
+   * @param toBeMovedIndexes the set of view indexes to move
+   * @param insertIndex the position where moved indexes should be inserted
+   */
+  public void reorder( HashSetInt toBeMovedIndexes, int insertIndex )
   {
-    // reorder mapping between view-indexes and data-indexes
-    var movedSorted = new ArrayList<Integer>( toBeMovedIndexes );
-    movedSorted.sort( null );
-
-    // ensure data-view mapping array is big enough
-    int neededSize = Math.max( insertIndex, movedSorted.getLast() );
-    while ( m_dataIndexFromViewIndex.size() <= neededSize )
+    // convert set to sorted array for processing in order
+    int[] sortedMovedIndexes = toBeMovedIndexes.toSortedArray();
+    
+    // ensure mapping array is large enough for highest affected index
+    int maxRequiredIndex = Math.max( insertIndex, sortedMovedIndexes[sortedMovedIndexes.length - 1] );
+    while ( m_dataIndexFromViewIndex.size() <= maxRequiredIndex )
       m_dataIndexFromViewIndex.add( m_dataIndexFromViewIndex.size() );
 
-    // remove the indexes to be moved from mapping (highest to lowest to preserve position)
-    var movedList = new ArrayList<Integer>( movedSorted.size() );
-    for ( int i = movedSorted.size(); i-- > 0; )
-      movedList.add( m_dataIndexFromViewIndex.remove( (int) movedSorted.get( i ) ) );
+    // extract data indexes from positions being moved (reverse order preserves positions)
+    int[] extractedDataIndexes = new int[sortedMovedIndexes.length];
+    for ( int i = sortedMovedIndexes.length - 1; i >= 0; i-- )
+      extractedDataIndexes[i] = m_dataIndexFromViewIndex.remove( sortedMovedIndexes[i] );
 
-    // adjust insert-index to take account of removed entries
-    int oldInsert = insertIndex;
-    for ( int index : movedSorted )
-      if ( index < oldInsert )
-        insertIndex--;
+    // calculate insert position adjusted for removed entries before it
+    int adjustedInsertIndex = insertIndex;
+    for ( int movedIndex : sortedMovedIndexes )
+      if ( movedIndex < insertIndex )
+        adjustedInsertIndex--;
       else
-        break;
+        break; // sorted array so no more will be less than insertIndex
 
-    // re-insert moved indexes back into mapping at adjusted insert position and in correct order
-    m_dataIndexFromViewIndex.addAll( insertIndex, movedList.reversed() );
+    // reinsert extracted data indexes at adjusted position (reverse order)
+    for ( int i = extractedDataIndexes.length - 1; i >= 0; i-- )
+      m_dataIndexFromViewIndex.add( adjustedInsertIndex, extractedDataIndexes[i] );
 
-    // truncate pixel cache in case sizes also moved
-    int min = Math.min( insertIndex, movedSorted.getFirst() );
-    truncatePixelCaches( min, 0 );
-    reorderExceptions( movedSorted, insertIndex );
+    // update pixel caches and exception mappings for affected range
+    int minAffectedIndex = Math.min( adjustedInsertIndex, sortedMovedIndexes[0] );
+    truncatePixelCaches( minAffectedIndex, 0 );
+    reorderExceptions( sortedMovedIndexes, insertIndex );
   }
 
   /************************************* getIndexMappingHash *************************************/
