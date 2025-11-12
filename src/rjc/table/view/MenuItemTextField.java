@@ -59,21 +59,6 @@ public class MenuItemTextField extends CustomMenuItem
     setContent( hbox );
   }
 
-  /**************************************** setOnAction ******************************************/
-  /**
-   * Sets the action to run when Enter is pressed in the text field or menu item is activated.
-   * 
-   * @param runnable the action to execute
-   */
-  public void setOnAction( Runnable runnable )
-  {
-    // trigger action on text field enter key
-    m_textField.setOnAction( e -> runnable.run() );
-
-    // trigger action on menu item activation
-    super.setOnAction( e -> runnable.run() );
-  }
-
   /**************************************** getFieldText *****************************************/
   /**
    * Returns the current text entered in the text field.

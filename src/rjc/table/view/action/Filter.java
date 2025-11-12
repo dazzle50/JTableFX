@@ -21,6 +21,7 @@ package rjc.table.view.action;
 import java.util.function.Predicate;
 
 import rjc.table.HashSetInt;
+import rjc.table.signal.ObservableStatus.Level;
 import rjc.table.undo.commands.CommandHideIndexes;
 import rjc.table.view.TableView;
 import rjc.table.view.axis.TableAxis;
@@ -88,6 +89,7 @@ public class Filter
     // collect indexes that don't match the filter predicate
     var indexesToHide = new HashSetInt();
     boolean isFilteringRows = axisToFilter == view.getRowsAxis();
+    int valuesChecked = 0;
 
     // iterate through all visible indexes to check for text match
     int currentVisibleIndex = axisToFilter.getFirstVisible();
@@ -108,10 +110,15 @@ public class Filter
         indexesToHide.add( currentVisibleIndex );
 
       // advance to next visible index
+      valuesChecked++;
       previousVisibleIndex = currentVisibleIndex;
       currentVisibleIndex = axisToFilter.getNextVisible( currentVisibleIndex );
     }
     while ( currentVisibleIndex != previousVisibleIndex );
+
+    // update status with number of records found
+    int found = valuesChecked - indexesToHide.size();
+    view.getStatus().update( Level.NORMAL, found + " of " + valuesChecked + " records found" );
 
     // execute hide command via undo stack
     var hideCommand = new CommandHideIndexes( view, axisToFilter, indexesToHide );

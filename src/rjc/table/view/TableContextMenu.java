@@ -249,13 +249,13 @@ public class TableContextMenu extends ContextMenu
     var filterText = new Menu( "Filter text" );
 
     var contains = new MenuItemTextField( "Contains" );
-    contains.setOnAction( () -> Filter.columnTextContains( m_view, m_mouseCol, contains.getFieldText() ) );
+    contains.setOnAction( ( event ) -> Filter.columnTextContains( m_view, m_mouseCol, contains.getFieldText() ) );
 
     var starts = new MenuItemTextField( "Starts with" );
-    starts.setOnAction( () -> Filter.columnTextStarts( m_view, m_mouseCol, starts.getFieldText() ) );
+    starts.setOnAction( ( event ) -> Filter.columnTextStarts( m_view, m_mouseCol, starts.getFieldText() ) );
 
     var regex = new MenuItemTextField( "Regex" );
-    regex.setOnAction( () -> Filter.columnTextRegex( m_view, m_mouseCol, regex.getFieldText() ) );
+    regex.setOnAction( ( event ) -> Filter.columnTextRegex( m_view, m_mouseCol, regex.getFieldText() ) );
 
     // ensure aligned when menu shown, and text-fill is correct (otherwise lost)
     filterText.setOnShown( event ->

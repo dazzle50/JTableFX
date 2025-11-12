@@ -164,6 +164,7 @@ public class TableView extends TableViewComponents
     focusedProperty().addListener( ( property, oldFocus, newFocus ) -> redraw() );
     visibleProperty().addListener( ( property, oldVisibility, newVisibility ) ->
     {
+      getStatus().clear();
       updateLayout();
       redraw();
     } );

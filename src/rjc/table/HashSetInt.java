@@ -34,7 +34,7 @@ import java.util.function.IntPredicate;
  */
 public class HashSetInt
 {
-  private static final int   DEFAULT_CAPACITY    = 16;
+  private static final int   DEFAULT_CAPACITY    = 8;
   private static final float DEFAULT_LOAD_FACTOR = 0.75f;
   private static final int   EMPTY               = Integer.MIN_VALUE;
   private static final int   DELETED             = Integer.MIN_VALUE + 1;
@@ -227,13 +227,8 @@ public class HashSetInt
   /******************************************** hash *********************************************/
   private int hash( int value )
   {
-    // spread bits using supplemental hash function
-    value ^= ( value >>> 16 );
-    value *= 0x85ebca6b;
-    value ^= ( value >>> 13 );
-    value *= 0xc2b2ae35;
-    value ^= ( value >>> 16 );
-    return value;
+    // optimised for small sequential values - fibonacci hashing
+    return value * 0x9e3779b1;
   }
 
   /******************************************* resize ********************************************/

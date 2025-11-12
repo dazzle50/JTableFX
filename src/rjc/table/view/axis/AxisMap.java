@@ -18,8 +18,6 @@
 
 package rjc.table.view.axis;
 
-import java.util.ArrayList;
-
 import rjc.table.HashSetInt;
 import rjc.table.signal.ObservableInteger.ReadOnlyInteger;
 
@@ -29,8 +27,8 @@ import rjc.table.signal.ObservableInteger.ReadOnlyInteger;
 
 public class AxisMap extends AxisSize
 {
-  // array mapping from view-index to data-index
-  private ArrayList<Integer> m_dataIndexFromViewIndex = new ArrayList<>();
+  // mapping from view-index to data-index
+  private IndexMapping m_dataIndexFromViewIndex = new IndexMapping();
 
   /**************************************** constructor ******************************************/
   public AxisMap( ReadOnlyInteger countProperty )
@@ -51,31 +49,15 @@ public class AxisMap extends AxisSize
   /**************************************** getDataIndex *****************************************/
   public int getDataIndex( int viewIndex )
   {
-    // return the data-model index from the table-view index
-    if ( viewIndex >= FIRSTCELL && viewIndex < m_dataIndexFromViewIndex.size() )
-      return m_dataIndexFromViewIndex.get( viewIndex );
-
-    // if not in mapping but within count, then return view index as not re-ordered
-    if ( viewIndex >= INVALID && viewIndex < getCount() )
-      return viewIndex;
-
-    // view index is out of bounds so return invalid
-    return INVALID;
+    // delegate to index mapping with boundary checking
+    return m_dataIndexFromViewIndex.getWithBounds( viewIndex, getCount(), FIRSTCELL, INVALID );
   }
 
   /**************************************** getViewIndex *****************************************/
   public int getViewIndex( int dataIndex )
   {
-    // return the table-view index from the data-model index
-    if ( dataIndex >= FIRSTCELL && dataIndex < m_dataIndexFromViewIndex.size() )
-      return m_dataIndexFromViewIndex.indexOf( dataIndex );
-
-    // if not in mapping but within count, then return data index as not re-ordered
-    if ( dataIndex >= INVALID && dataIndex < getCount() )
-      return dataIndex;
-
-    // data index is out of bounds so return invalid
-    return INVALID;
+    // delegate to index mapping with boundary checking
+    return m_dataIndexFromViewIndex.indexOfWithBounds( dataIndex, getCount(), FIRSTCELL, INVALID );
   }
 
   /******************************************* reorder *******************************************/
@@ -89,31 +71,11 @@ public class AxisMap extends AxisSize
   {
     // convert set to sorted array for processing in order
     int[] sortedMovedIndexes = toBeMovedIndexes.toSortedArray();
-    
-    // ensure mapping array is large enough for highest affected index
-    int maxRequiredIndex = Math.max( insertIndex, sortedMovedIndexes[sortedMovedIndexes.length - 1] );
-    while ( m_dataIndexFromViewIndex.size() <= maxRequiredIndex )
-      m_dataIndexFromViewIndex.add( m_dataIndexFromViewIndex.size() );
 
-    // extract data indexes from positions being moved (reverse order preserves positions)
-    int[] extractedDataIndexes = new int[sortedMovedIndexes.length];
-    for ( int i = sortedMovedIndexes.length - 1; i >= 0; i-- )
-      extractedDataIndexes[i] = m_dataIndexFromViewIndex.remove( sortedMovedIndexes[i] );
-
-    // calculate insert position adjusted for removed entries before it
-    int adjustedInsertIndex = insertIndex;
-    for ( int movedIndex : sortedMovedIndexes )
-      if ( movedIndex < insertIndex )
-        adjustedInsertIndex--;
-      else
-        break; // sorted array so no more will be less than insertIndex
-
-    // reinsert extracted data indexes at adjusted position (reverse order)
-    for ( int i = extractedDataIndexes.length - 1; i >= 0; i-- )
-      m_dataIndexFromViewIndex.add( adjustedInsertIndex, extractedDataIndexes[i] );
+    // perform bulk reorder and get minimum affected index
+    int minAffectedIndex = m_dataIndexFromViewIndex.bulkReorder( sortedMovedIndexes, insertIndex );
 
     // update pixel caches and exception mappings for affected range
-    int minAffectedIndex = Math.min( adjustedInsertIndex, sortedMovedIndexes[0] );
     truncatePixelCaches( minAffectedIndex, 0 );
     reorderExceptions( sortedMovedIndexes, insertIndex );
   }
@@ -121,11 +83,7 @@ public class AxisMap extends AxisSize
   /************************************* getIndexMappingHash *************************************/
   public int getIndexMappingHash()
   {
-    // remove any unneeded mapping, and return hash-code of resulting array
-    int index = m_dataIndexFromViewIndex.size() - 1;
-    while ( index >= 0 && m_dataIndexFromViewIndex.get( index ) == index )
-      m_dataIndexFromViewIndex.remove( index-- );
-
+    // hash-code automatically trims identity mappings
     return m_dataIndexFromViewIndex.hashCode();
   }
 
