@@ -200,7 +200,8 @@ public class TableCanvasDraw extends Canvas
     if ( viewColumn >= HEADER && viewRow >= HEADER )
     {
       cell.setIndex( m_view, viewColumn, viewRow );
-      cell.draw();
+      if ( cell.w > 0.0 && cell.h > 0.0 )
+        cell.draw();
     }
   }
 

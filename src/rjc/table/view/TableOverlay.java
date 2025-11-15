@@ -24,6 +24,9 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.text.FontSmoothingType;
+import rjc.table.view.action.Filter;
+import rjc.table.view.action.Sort;
+import rjc.table.view.axis.TableAxis;
 import rjc.table.view.cell.ViewPosition;
 
 /*************************************************************************************************/
@@ -88,31 +91,107 @@ public class TableOverlay extends Canvas
   /********************************** highlightFilteredColumns ***********************************/
   private void highlightFilteredColumns()
   {
-    // TODO highlight columns with filters applied
-    // drawFunnel( 1, -1 );
+    // check each visible column between visible min and max columns inclusive
+    int lastColumn = m_view.getColumnIndex( (int) getWidth() );
+    int viewColumn = m_view.getColumnIndex( m_view.getHeaderWidth() );
+
+    while ( viewColumn <= lastColumn )
+    {
+      // check if this visible column is filtered
+      int dataColumn = m_view.getColumnsAxis().getDataIndex( viewColumn );
+      if ( Filter.isColumnFiltered( m_view, dataColumn ) )
+        drawFunnel( viewColumn, TableAxis.HEADER );
+
+      // move to next visible column (or exit if none)
+      int previous = viewColumn;
+      viewColumn = m_view.getColumnsAxis().getNextVisible( viewColumn );
+      if ( viewColumn == previous )
+        break;
+    }
   }
 
   /************************************ highlightFilteredRows ************************************/
   private void highlightFilteredRows()
   {
-    // TODO Auto-generated method stub
-    // drawFunnel( -1, 1 );
+    // check each visible row between visible min and max rows inclusive
+    int lastRow = m_view.getRowIndex( (int) getHeight() );
+    int viewRow = m_view.getRowIndex( m_view.getHeaderHeight() );
+
+    while ( viewRow <= lastRow )
+    {
+      // check if this visible row is filtered
+      int dataRow = m_view.getRowsAxis().getDataIndex( viewRow );
+      if ( Filter.isRowFiltered( m_view, dataRow ) )
+        drawFunnel( TableAxis.HEADER, viewRow );
+
+      // move to next visible row (or exit if none)
+      int previous = viewRow;
+      viewRow = m_view.getRowsAxis().getNextVisible( viewRow );
+      if ( viewRow == previous )
+        break;
+    }
   }
 
   /*********************************** highlightSortedColumns ************************************/
   private void highlightSortedColumns()
   {
-    // TODO Auto-generated method stub
-    // drawDownArrow( 1, -1 );
-    // drawUpArrow( 0, -1 );
+    // check each visible column between visible min and max columns inclusive
+    int lastColumn = m_view.getColumnIndex( (int) getWidth() );
+    int viewColumn = m_view.getColumnIndex( m_view.getHeaderWidth() );
+
+    while ( viewColumn <= lastColumn )
+    {
+      // check if this visible column is sorted
+      int dataColumn = m_view.getColumnsAxis().getDataIndex( viewColumn );
+      switch ( Sort.isColumnSorted( m_view, dataColumn ) )
+      {
+        case ASCENDING:
+          drawUpArrow( viewColumn, TableAxis.HEADER );
+          break;
+        case DESCENDING:
+          drawDownArrow( viewColumn, TableAxis.HEADER );
+          break;
+        default:
+          break;
+      }
+
+      // move to next visible column (or exit if none)
+      int previous = viewColumn;
+      viewColumn = m_view.getColumnsAxis().getNextVisible( viewColumn );
+      if ( viewColumn == previous )
+        break;
+    }
   }
 
   /************************************* highlightSortedRows *************************************/
   private void highlightSortedRows()
   {
-    // TODO Auto-generated method stub
-    // drawDownArrow( -1, 1 );
-    // drawUpArrow( -1, 0 );
+    // check each visible row between visible min and max rows inclusive
+    int lastRow = m_view.getRowIndex( (int) getHeight() );
+    int viewRow = m_view.getRowIndex( m_view.getHeaderHeight() );
+
+    while ( viewRow <= lastRow )
+    {
+      // check if this visible row is sorted
+      int dataRow = m_view.getRowsAxis().getDataIndex( viewRow );
+      switch ( Sort.isRowSorted( m_view, dataRow ) )
+      {
+        case ASCENDING:
+          drawUpArrow( TableAxis.HEADER, viewRow );
+          break;
+        case DESCENDING:
+          drawDownArrow( TableAxis.HEADER, viewRow );
+          break;
+        default:
+          break;
+      }
+
+      // move to next visible row (or exit if none)
+      int previous = viewRow;
+      viewRow = m_view.getRowsAxis().getNextVisible( viewRow );
+      if ( viewRow == previous )
+        break;
+    }
   }
 
   /************************************ highlightHiddenRows **************************************/
