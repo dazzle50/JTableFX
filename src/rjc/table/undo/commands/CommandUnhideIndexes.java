@@ -24,10 +24,10 @@ import rjc.table.view.TableView;
 import rjc.table.view.axis.TableAxis;
 
 /*************************************************************************************************/
-/************** UndoCommand for unhiding all hidden columns or rows on a table-view **************/
+/**************** UndoCommand for unhiding hidden columns or rows on a table-view ****************/
 /*************************************************************************************************/
 
-public class CommandUnhideAllIndexes implements IUndoCommand
+public class CommandUnhideIndexes implements IUndoCommand
 {
   private TableView  m_view;    // table view
   private TableAxis  m_axis;    // axis for unhiding
@@ -35,12 +35,12 @@ public class CommandUnhideAllIndexes implements IUndoCommand
   private String     m_text;    // text describing command
 
   /**************************************** constructor ******************************************/
-  public CommandUnhideAllIndexes( TableView view, TableAxis axis )
+  public CommandUnhideIndexes( TableView view, TableAxis axis, HashSetInt indexes )
   {
-    // prepare unhide command and show all hidden indexes
+    // prepare unhide command to show specified hidden indexes
     m_view = view;
     m_axis = axis;
-    m_indexes = axis.unhideAll();
+    m_indexes = axis.unhideIndexes( indexes );
     m_view.redraw();
   }
 
@@ -69,7 +69,7 @@ public class CommandUnhideAllIndexes implements IUndoCommand
     // construct command description
     if ( m_text == null )
     {
-      m_text = "Unhide all " + ( m_axis == m_view.getColumnsAxis() ? "columns" : "rows" );
+      m_text = "Unhide " + ( m_axis == m_view.getColumnsAxis() ? "columns" : "rows" );
 
       if ( m_view.getId() != null )
         m_text = m_view.getId() + " - " + m_text;

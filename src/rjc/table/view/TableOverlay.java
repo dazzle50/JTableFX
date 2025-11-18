@@ -202,14 +202,14 @@ public class TableOverlay extends Canvas
   {
     // highlight where rows are hidden
     Color stroke = m_view.isFocused() ? Colours.SELECTED_BORDER : Colours.SELECTED_BORDER.desaturate();
-    m_gc.setStroke( stroke );
+    m_gc.setFill( stroke );
 
     // check between visible min and max rows inclusive
     int row = m_view.getRowIndex( m_view.getHeaderHeight() ) - 1;
     int maxRow = m_view.getRowIndex( (int) getHeight() );
     maxRow = Math.min( maxRow, m_view.getData().getRowCount() );
 
-    double x = 0.5;
+    double x = 0;
     double w = m_view.getHeaderWidth() - 1;
     int y = m_view.getRowStartY( row );
 
@@ -225,7 +225,7 @@ public class TableOverlay extends Canvas
 
       // draw line to indicate hidden row(s)
       if ( row <= maxRow && y >= m_view.getHeaderHeight() )
-        m_gc.strokeLine( x, y - 0.5, w - 0.5, y - 0.5 );
+        m_gc.fillRect( x, y - 1.5, w, 2 );
     }
   }
 
@@ -237,14 +237,14 @@ public class TableOverlay extends Canvas
   {
     // highlight where columns are hidden
     Color stroke = m_view.isFocused() ? Colours.SELECTED_BORDER : Colours.SELECTED_BORDER.desaturate();
-    m_gc.setStroke( stroke );
+    m_gc.setFill( stroke );
 
     // check between visible min and max columns inclusive
     int column = m_view.getColumnIndex( m_view.getHeaderWidth() ) - 1;
     int maxColumn = m_view.getColumnIndex( (int) getWidth() );
     maxColumn = Math.min( maxColumn, m_view.getData().getColumnCount() );
 
-    double y = 0.5;
+    double y = 0;
     double h = m_view.getHeaderHeight() - 1;
     int x = m_view.getColumnStartX( column );
 
@@ -260,7 +260,7 @@ public class TableOverlay extends Canvas
 
       // draw line to indicate hidden column(s)
       if ( column <= maxColumn && x >= m_view.getHeaderWidth() )
-        m_gc.strokeLine( x - 0.5, y, x - 0.5, h - 0.5 );
+        m_gc.fillRect( x - 1.5, y, 2, h );
     }
   }
 

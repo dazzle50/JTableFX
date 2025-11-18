@@ -56,7 +56,7 @@ public class TableContextMenu extends ContextMenu
   // optional context menu items that can be omitted from context menu
   public enum OptionalMenuItems
   {
-    COLUMNS_HIDE, ROWS_HIDE, COLUMNS_SHOW_ALL, ROWS_SHOW_ALL, COLUMN_FILTER_TEXT
+    COLUMN_HIDE, ROW_HIDE, COLUMN_SHOW, ROW_SHOW, COLUMN_FILTER_TEXT, ROW_FILTER_TEXT, COLUMN_SORT, ROW_SORT, COLUMN_INSERT, ROW_INSERT, COLUMN_DELETE, ROW_DELETE
   }
 
   private static final Map<TableView, Set<OptionalMenuItems>> OMIT = new WeakHashMap<>();
@@ -145,14 +145,14 @@ public class TableContextMenu extends ContextMenu
   private void buildColumnHeader()
   {
     // build context menu for table-view column header row - add relevant menu items
-    addHideColumn().addSeparator().addShowAllColumns().addFilterTextColumn();
+    addFilterTextColumn().addHideColumn().addShowColumn();
   }
 
   /*************************************** buildRowHeader ****************************************/
   private void buildRowHeader()
   {
     // build context menu for table-view row header column - add relevant menu items
-    addHideRow().addSeparator().addShowAllRows();
+    addFilterTextRow().addHideRow().addShowRow();
   }
 
   /****************************************** buildBody ******************************************/
@@ -182,30 +182,30 @@ public class TableContextMenu extends ContextMenu
     return this;
   }
 
-  /************************************* addShowAllColumns ***************************************/
-  protected TableContextMenu addShowAllColumns()
+  /*************************************** addShowColumn *****************************************/
+  protected TableContextMenu addShowColumn()
   {
     // exit without adding menu item if option is omitted for this table-view
-    if ( isOmitted( m_view, OptionalMenuItems.COLUMNS_SHOW_ALL ) )
+    if ( isOmitted( m_view, OptionalMenuItems.COLUMN_SHOW ) )
       return this;
 
-    // add a show all columns menu item
-    var item = new MenuItem( "Show All Columns" );
-    item.setOnAction( event -> HideShow.showAllColumns( m_view ) );
+    // add a show columns menu item
+    var item = new MenuItem( "Show" );
+    item.setOnAction( event -> HideShow.showColumns( m_view ) );
     getItems().add( item );
     return this;
   }
 
-  /*************************************** addShowAllRows ****************************************/
-  protected TableContextMenu addShowAllRows()
+  /***************************************** addShowRow ******************************************/
+  protected TableContextMenu addShowRow()
   {
     // exit without adding menu item if option is omitted for this table-view
-    if ( isOmitted( m_view, OptionalMenuItems.ROWS_SHOW_ALL ) )
+    if ( isOmitted( m_view, OptionalMenuItems.ROW_SHOW ) )
       return this;
 
-    // add a show all rows menu item
-    var item = new MenuItem( "Show All Rows" );
-    item.setOnAction( event -> HideShow.showAllRows( m_view ) );
+    // add a show rows menu item
+    var item = new MenuItem( "Show" );
+    item.setOnAction( event -> HideShow.showRows( m_view ) );
     getItems().add( item );
     return this;
   }
@@ -214,11 +214,11 @@ public class TableContextMenu extends ContextMenu
   protected TableContextMenu addHideColumn()
   {
     // exit without adding menu item if option is omitted for this table-view
-    if ( isOmitted( m_view, OptionalMenuItems.COLUMNS_HIDE ) )
+    if ( isOmitted( m_view, OptionalMenuItems.COLUMN_HIDE ) )
       return this;
 
     // add a hide column(s) menu item
-    var item = new MenuItem( "Hide Column(s)" );
+    var item = new MenuItem( "Hide" );
     item.setOnAction( event -> HideShow.hideColumns( m_view, m_mouseCol ) );
     getItems().add( item );
     return this;
@@ -228,11 +228,11 @@ public class TableContextMenu extends ContextMenu
   protected TableContextMenu addHideRow()
   {
     // exit without adding menu item if option is omitted for this table-view
-    if ( isOmitted( m_view, OptionalMenuItems.ROWS_HIDE ) )
+    if ( isOmitted( m_view, OptionalMenuItems.ROW_HIDE ) )
       return this;
 
     // add a hide row(s) menu item
-    var item = new MenuItem( "Hide Row(s)" );
+    var item = new MenuItem( "Hide" );
     item.setOnAction( event -> HideShow.hideRows( m_view, m_mouseRow ) );
     getItems().add( item );
     return this;
@@ -270,4 +270,35 @@ public class TableContextMenu extends ContextMenu
     return this;
   }
 
+  /************************************** addFilterTextRow ***************************************/
+  protected TableContextMenu addFilterTextRow()
+  {
+    // exit without adding menu item if option is omitted for this table-view
+    if ( isOmitted( m_view, OptionalMenuItems.ROW_FILTER_TEXT ) )
+      return this;
+
+    // add a filter text sub-menu for row
+    var filterText = new Menu( "Filter text" );
+
+    var contains = new MenuItemTextField( "Contains" );
+    contains.setOnAction( ( event ) -> Filter.rowTextContains( m_view, m_mouseRow, contains.getFieldText() ) );
+
+    var starts = new MenuItemTextField( "Starts with" );
+    starts.setOnAction( ( event ) -> Filter.rowTextStarts( m_view, m_mouseRow, starts.getFieldText() ) );
+
+    var regex = new MenuItemTextField( "Regex" );
+    regex.setOnAction( ( event ) -> Filter.rowTextRegex( m_view, m_mouseRow, regex.getFieldText() ) );
+
+    // ensure aligned when menu shown, and text-fill is correct (otherwise lost)
+    filterText.setOnShown( event ->
+    {
+      Paint textFill = ( (Label) getStyleableNode().lookup( ".label" ) ).getTextFill();
+      MenuItemTextField.align( textFill, contains, starts, regex );
+    } );
+
+    // add sub-menu items, and add sub-menu to context menu
+    filterText.getItems().addAll( contains, starts, regex );
+    getItems().add( filterText );
+    return this;
+  }
 }

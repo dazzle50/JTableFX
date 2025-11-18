@@ -20,7 +20,7 @@ package rjc.table.view.action;
 
 import rjc.table.HashSetInt;
 import rjc.table.undo.commands.CommandHideIndexes;
-import rjc.table.undo.commands.CommandUnhideAllIndexes;
+import rjc.table.undo.commands.CommandUnhideIndexes;
 import rjc.table.view.TableView;
 
 /*************************************************************************************************/
@@ -87,31 +87,41 @@ public class HideShow
     return view.getUndoStack().push( command );
   }
 
-  /**************************************** showAllColumns ****************************************/
+  /**************************************** showColumns ******************************************/
   /**
-   * Unhide all hidden columns in the specified TableView
-   * 
+   * Unhide any hidden columns that are currently selected.
+   *  
    * @param view TableView to operate on
    * @return true if undo-command successfully pushed to undo-stack, else false
    */
-  public static boolean showAllColumns( TableView view )
+  public static boolean showColumns( TableView view )
   {
-    // unhide all hidden columns via undo-command and add to undostack
-    var command = new CommandUnhideAllIndexes( view, view.getColumnsAxis() );
+    // get currently selected columns
+    var indexes = view.getSelection().getSelectedColumns();
+    if ( indexes == null ) // all visible columns are selected so unhide all
+      indexes = view.getColumnsAxis().getHiddenIndexes();
+
+    // unhide the columns via undo-command and add to undostack
+    var command = new CommandUnhideIndexes( view, view.getColumnsAxis(), indexes );
     return view.getUndoStack().push( command );
   }
 
-  /****************************************** showAllRows *****************************************/
+  /****************************************** showRows ******************************************/
   /**
-   * Unhide all hidden rows in the specified TableView
-   * 
+   * Unhide any hidden rows that are currently selected.
+   *  
    * @param view TableView to operate on
    * @return true if undo-command successfully pushed to undo-stack, else false
    */
-  public static boolean showAllRows( TableView view )
+  public static boolean showRows( TableView view )
   {
-    // unhide all hidden rows via undo-command and add to undostack
-    var command = new CommandUnhideAllIndexes( view, view.getRowsAxis() );
+    // get currently selected rows
+    var indexes = view.getSelection().getSelectedRows();
+    if ( indexes == null ) // all visible rows are selected so unhide all
+      indexes = view.getRowsAxis().getHiddenIndexes();
+
+    // unhide the rows via undo-command and add to undostack
+    var command = new CommandUnhideIndexes( view, view.getRowsAxis(), indexes );
     return view.getUndoStack().push( command );
   }
 }

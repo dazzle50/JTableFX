@@ -367,6 +367,16 @@ public class AxisSize extends AxisBase implements IListener
   /************************************** reorderExceptions **************************************/
   protected void reorderExceptions( int[] movedSorted, int insertIndex )
   {
+    // calculate adjusted insert position
+    int adjustedTarget = insertIndex;
+    for ( int sourceIndex : movedSorted )
+    {
+      if ( sourceIndex < insertIndex )
+        adjustedTarget--;
+      else
+        break;
+    }
+
     // update size exceptions taking into account moves
     var newSizeExceptions = new HashMap<Integer, Integer>();
     var sortedKeys = m_sizeExceptions.keySet().stream().sorted().mapToInt( Integer::intValue ).toArray();
@@ -376,10 +386,10 @@ public class AxisSize extends AxisBase implements IListener
       int moved = java.util.Arrays.binarySearch( movedSorted, exceptionIndex );
       if ( moved >= 0 )
         // moved index
-        newSizeExceptions.put( insertIndex + moved, m_sizeExceptions.get( exceptionIndex ) );
+        newSizeExceptions.put( adjustedTarget + moved, m_sizeExceptions.get( exceptionIndex ) );
       else
         // not-moved index
-        newSizeExceptions.put( adjustedIndex( exceptionIndex, insertIndex, movedSorted ),
+        newSizeExceptions.put( adjustedIndex( exceptionIndex, adjustedTarget, movedSorted ),
             m_sizeExceptions.get( exceptionIndex ) );
     }
     m_sizeExceptions = newSizeExceptions;
@@ -392,10 +402,10 @@ public class AxisSize extends AxisBase implements IListener
       int moved = java.util.Arrays.binarySearch( movedSorted, hiddenIndex );
       if ( moved >= 0 )
         // moved index
-        newHiddenIndexes.set( insertIndex + moved );
+        newHiddenIndexes.set( adjustedTarget + moved );
       else
         // not-moved index
-        newHiddenIndexes.set( adjustedIndex( hiddenIndex, insertIndex, movedSorted ) );
+        newHiddenIndexes.set( adjustedIndex( hiddenIndex, adjustedTarget, movedSorted ) );
     }
     m_hiddenIndexes = newHiddenIndexes;
   }
@@ -511,4 +521,19 @@ public class AxisSize extends AxisBase implements IListener
     return null;
   }
 
+  /************************************** getHiddenIndexes ***************************************/
+  /**
+   * Returns a set containing all hidden cell indexes.
+   * 
+   * @return HashSetInt containing all hidden cell indexes
+   */
+  public HashSetInt getHiddenIndexes()
+  {
+    // convert bitset to hashsetint containing all hidden indexes
+    var hidden = new HashSetInt();
+    for ( int i = m_hiddenIndexes.nextSetBit( 0 ); i >= 0; i = m_hiddenIndexes.nextSetBit( i + 1 ) )
+      hidden.add( i );
+
+    return hidden;
+  }
 }
