@@ -24,6 +24,25 @@ import java.util.Arrays;
 /********************* Cache for storing start pixel positions of axis cells *********************/
 /*************************************************************************************************/
 
+/**
+ * Provides an efficient cache for storing the starting pixel coordinates of axis cells (rows or
+ * columns). The cache maintains a monotonically increasing sequence of pixel positions, where each
+ * entry represents the starting pixel coordinate of a cell at a given index.
+ * <p>
+ * This cache is used to optimise coordinate-to-cell index lookups and cell position calculations
+ * in table views. Rather than recalculating pixel positions from scratch each time, previously
+ * calculated positions are stored and reused. The cache is built incrementally on-demand as cells
+ * are accessed or rendered.
+ * <p>
+ * The cache automatically manages its capacity, growing as needed with a 25% growth factor to
+ * balance memory usage and reallocations. It supports efficient binary search via
+ * {@link #getIndex(int)} to quickly determine which cell corresponds to a given pixel coordinate.
+ * <p>
+ * Cache invalidation occurs when axis properties change (e.g., cell sizes, zoom level, or cell
+ * visibility), at which point the cache can be cleared or truncated as appropriate.
+ * 
+ * @see AxisLayout
+ */
 public class PixelCache
 {
   private int[] m_cache = new int[0];
@@ -31,7 +50,9 @@ public class PixelCache
 
   /******************************************** clear ********************************************/
   /**
-   * Clears the cache, resetting size to zero.
+   * Clears the cache, resetting the size to zero whilst retaining the allocated array capacity
+   * for potential reuse. This is more efficient than creating a new array when the cache will be
+   * repopulated.
    */
   public void clear()
   {
@@ -41,9 +62,9 @@ public class PixelCache
 
   /********************************************* size ********************************************/
   /**
-   * Returns the number of valid entries in the cache.
+   * Returns the number of valid entries currently stored in the cache.
    * 
-   * @return Current cache size
+   * @return The current cache size (number of valid entries)
    */
   public int size()
   {
@@ -53,11 +74,13 @@ public class PixelCache
 
   /********************************************* get *********************************************/
   /**
-   * Returns the cached pixel value at the specified index.
+   * Returns the cached pixel value at the specified index position.
    * 
-   * @param index Position in cache to retrieve
-   * @return Pixel value at index
-   * @throws IndexOutOfBoundsException if index is negative or >= size
+   * @param index
+   *          The position in the cache to retrieve (must be >= 0 and < size)
+   * @return The pixel value stored at the specified index
+   * @throws IndexOutOfBoundsException
+   *           if index is negative or >= size
    */
   public int get( int index )
   {
@@ -71,9 +94,11 @@ public class PixelCache
 
   /********************************************* add *********************************************/
   /**
-   * Adds a new pixel value to the end of the cache.
+   * Adds a new pixel value to the end of the cache, automatically expanding the internal array
+   * capacity if necessary.
    * 
-   * @param value Pixel value to add
+   * @param value
+   *          The pixel value to append to the cache
    */
   public void add( int value )
   {
@@ -86,9 +111,12 @@ public class PixelCache
 
   /****************************************** truncate *******************************************/
   /**
-   * Truncates the cache to the specified size if current size is larger.
+   * Truncates the cache to the specified size if the current size exceeds it. If the current size
+   * is already less than or equal to the new size, no action is taken. This is useful when cells
+   * are removed or resized, invalidating later cache entries.
    * 
-   * @param newSize Maximum size for cache
+   * @param newSize
+   *          The maximum size for the cache
    */
   public void truncate( int newSize )
   {
@@ -98,11 +126,6 @@ public class PixelCache
   }
 
   /*************************************** ensureCapacity ****************************************/
-  /**
-   * Ensures the internal array has at least the specified capacity.
-   * 
-   * @param minCapacity Minimum required capacity
-   */
   private void ensureCapacity( int minCapacity )
   {
     // ensure array has at least the minimum capacity
@@ -116,33 +139,36 @@ public class PixelCache
 
   /****************************************** getIndex *******************************************/
   /**
-   * Performs binary search to find the index whose cached value is less than or equal to the
-   * target value.
+   * Performs a binary search to find the largest index whose cached pixel value is less than or
+   * equal to the specified target value. This is used to determine which cell corresponds to a
+   * given pixel coordinate. The cache must be sorted in ascending order for this method to work
+   * correctly.
    * 
-   * @param value Value to search for
-   * @return Index of largest cached value <= targetValue, or -1 if all values are greater
+   * @param value
+   *          The pixel value to search for
+   * @return The index of the largest cached value <= value, or -1 if all cached values are greater
+   *         than the target
    */
   public int getIndex( int value )
   {
-    // find position by binary search
-    int startPos = 0;
-    int endPos = m_size;
-    while ( startPos != endPos )
-    {
-      int midPos = ( endPos + startPos ) / 2;
-      if ( m_cache[midPos] <= value )
-        startPos = midPos + 1;
-      else
-        endPos = midPos;
-    }
-    return startPos - 1;
+    // use java's optimised binary search to find insertion point
+    int result = Arrays.binarySearch( m_cache, 0, m_size, value );
+
+    // if exact match found, return that index
+    if ( result >= 0 )
+      return result;
+
+    // convert insertion point to index of largest element <= value
+    // insertion point is -(result + 1), so largest element <= value is at insertion point - 1
+    int insertionPoint = -result - 1;
+    return insertionPoint - 1;
   }
 
   /****************************************** isEmpty ********************************************/
   /**
-   * Returns true if the cache contains no entries.
+   * Returns true if the cache contains no valid entries.
    * 
-   * @return true if cache is empty
+   * @return true if the cache is empty (size == 0), false otherwise
    */
   public boolean isEmpty()
   {

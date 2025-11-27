@@ -22,7 +22,7 @@ import java.util.Objects;
 
 import rjc.table.data.TableData;
 import rjc.table.undo.IUndoCommand;
-import rjc.table.view.axis.AxisBase;
+import rjc.table.view.axis.TableAxis;
 
 /*************************************************************************************************/
 /********************* Default UndoCommand for setting TableData cell value **********************/
@@ -80,7 +80,7 @@ public class CommandSetValue implements IUndoCommand
   {
     // command description
     if ( m_text == null )
-      m_text = m_data.getValue( m_dataColumn, AxisBase.HEADER ) + " " + m_data.getValue( AxisBase.HEADER, m_dataRow )
+      m_text = m_data.getValue( m_dataColumn, TableAxis.HEADER ) + " " + m_data.getValue( TableAxis.HEADER, m_dataRow )
           + " = " + m_newValue;
 
     return m_text;

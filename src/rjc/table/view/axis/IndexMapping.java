@@ -24,14 +24,17 @@ package rjc.table.view.axis;
 
 public class IndexMapping
 {
-  private int[] m_mapping; // sparse array: only stores reordered indices
-  private int   m_size;    // logical size (may exceed array length)
+  private int[]           m_dataIndices;                  // sparse array: only stores reordered indices
+  private int             m_size;                         // logical size (may exceed array length)
+
+  public static final int FIRSTCELL = TableAxis.FIRSTCELL;
+  public static final int INVALID   = TableAxis.INVALID;
 
   /**************************************** constructor ******************************************/
   public IndexMapping()
   {
-    // initialize with empty mapping
-    m_mapping = new int[16];
+    // initialise with empty mapping
+    m_dataIndices = new int[8];
     m_size = 0;
   }
 
@@ -79,8 +82,8 @@ public class IndexMapping
   public int get( int viewIndex )
   {
     // return mapped value if within stored range, otherwise identity mapping
-    if ( viewIndex < m_mapping.length )
-      return m_mapping[viewIndex];
+    if ( viewIndex < m_dataIndices.length )
+      return m_dataIndices[viewIndex];
 
     return viewIndex;
   }
@@ -95,7 +98,7 @@ public class IndexMapping
   {
     // ensure capacity and store value
     ensureCapacity( m_size + 1 );
-    m_mapping[m_size++] = dataIndex;
+    m_dataIndices[m_size++] = dataIndex;
   }
 
   /********************************************* add *********************************************/
@@ -111,10 +114,10 @@ public class IndexMapping
     ensureCapacity( m_size + 1 );
 
     // shift elements right to make space
-    System.arraycopy( m_mapping, position, m_mapping, position + 1, m_size - position );
+    System.arraycopy( m_dataIndices, position, m_dataIndices, position + 1, m_size - position );
 
     // insert new value and increment size
-    m_mapping[position] = dataIndex;
+    m_dataIndices[position] = dataIndex;
     m_size++;
   }
 
@@ -128,10 +131,10 @@ public class IndexMapping
   public int remove( int position )
   {
     // get value to return
-    int removed = m_mapping[position];
+    int removed = m_dataIndices[position];
 
     // shift elements left to fill gap
-    System.arraycopy( m_mapping, position + 1, m_mapping, position, m_size - position - 1 );
+    System.arraycopy( m_dataIndices, position + 1, m_dataIndices, position, m_size - position - 1 );
 
     // decrement size
     m_size--;
@@ -144,19 +147,24 @@ public class IndexMapping
    * Finds the view index for a given data index within the mapping size.
    * 
    * @param dataIndex the data index to search for
-   * @param maxIndex the maximum view index to return (typically count boundary)
-   * @return the view index, or -1 if not found in stored mappings
+   * @param serachLimit the maximum view index to return (typically count boundary)
+   * @return the view index, or INVALID if not found in stored mappings
    */
-  public int indexOf( int dataIndex, int maxIndex )
+  public int indexOf( int dataIndex, int searchLimit )
   {
     // search stored mappings for data index up to size limit
-    int searchLimit = Math.min( m_size, maxIndex );
-    for ( int i = 0; i < searchLimit; i++ )
-      if ( m_mapping[i] == dataIndex )
+    int limit = Math.min( m_size, searchLimit );
+
+    // early exit if data index is beyond what we could possibly have stored
+    if ( dataIndex >= limit && dataIndex < searchLimit )
+      return dataIndex; // identity mapping
+
+    for ( int i = 0; i < limit; i++ )
+      if ( m_dataIndices[i] == dataIndex )
         return i;
 
     // not found in stored mappings
-    return -1;
+    return INVALID;
   }
 
   /***************************************** indexOf *********************************************/
@@ -188,7 +196,7 @@ public class IndexMapping
     // compute hash from remaining stored values
     int hash = 1;
     for ( int i = 0; i < m_size; i++ )
-      hash = 31 * hash + m_mapping[i];
+      hash = 31 * hash + m_dataIndices[i];
 
     return hash;
   }
@@ -206,44 +214,11 @@ public class IndexMapping
     int originalSize = m_size;
 
     // remove trailing entries where mapping[i] == i
-    while ( m_size > 0 && m_mapping[m_size - 1] == m_size - 1 )
+    while ( m_size > 0 && m_dataIndices[m_size - 1] == m_size - 1 )
       m_size--;
 
     // return whether any trimming occurred
     return m_size < originalSize;
-  }
-
-  /***************************************** isIdentity ******************************************/
-  /**
-   * Checks if this mapping represents an identity mapping (no reordering).
-   * 
-   * @return true if all stored mappings match identity (index == value)
-   */
-  public boolean isIdentity()
-  {
-    // check if all stored values equal their indices
-    for ( int i = 0; i < m_size; i++ )
-      if ( m_mapping[i] != i )
-        return false;
-
-    return true;
-  }
-
-  /*************************************** hasReordering *****************************************/
-  /**
-   * Fast check if any reordering has occurred by looking for first non-identity mapping.
-   * This is faster than isIdentity() as it returns on first mismatch.
-   * 
-   * @return true if any index doesn't map to itself
-   */
-  public boolean hasReordering()
-  {
-    // early exit on first non-identity mapping
-    for ( int i = 0; i < m_size; i++ )
-      if ( m_mapping[i] != i )
-        return true;
-
-    return false;
   }
 
   /**************************************** bulkReorder ******************************************/
@@ -255,7 +230,7 @@ public class IndexMapping
    * @param targetIndex the position where moved indices should be inserted
    * @return the minimum index affected by the reordering
    */
-  public int bulkReorder( int[] sortedSourceIndexes, int targetIndex )
+  public int reorderIndices( int[] sortedSourceIndexes, int targetIndex )
   {
     // ensure mapping array covers all affected indices
     int maxRequiredIndex = Math.max( targetIndex, sortedSourceIndexes[sortedSourceIndexes.length - 1] );
@@ -285,62 +260,23 @@ public class IndexMapping
     return Math.min( adjustedTarget, sortedSourceIndexes[0] );
   }
 
-  /**************************************** getViewRange *****************************************/
-  /**
-   * Gets a contiguous range of data indices for the specified view range.
-   * Useful for bulk operations like rendering visible cells.
-   * 
-   * @param startViewIndex the starting view index (inclusive)
-   * @param endViewIndex the ending view index (exclusive)
-   * @param output array to store data indices (must be large enough)
-   * @return the output array for chaining
-   */
-  public int[] getViewRange( int startViewIndex, int endViewIndex, int[] output )
-  {
-    // fill output array with data indices for view range
-    for ( int i = 0; i < endViewIndex - startViewIndex; i++ )
-      output[i] = get( startViewIndex + i );
-
-    return output;
-  }
-
-  /**************************************** copyToArray ******************************************/
-  /**
-   * Copies the internal mapping to a new array for external processing.
-   * Only copies up to the logical size, not the full capacity.
-   * 
-   * @return a new array containing the stored mappings
-   */
-  public int[] copyToArray()
-  {
-    // create new array with exact size needed
-    int[] copy = new int[m_size];
-
-    // copy stored mappings
-    System.arraycopy( m_mapping, 0, copy, 0, m_size );
-
-    return copy;
-  }
-
   /*************************************** getWithBounds *****************************************/
   /**
    * Gets the data index with boundary checking against count.
    * Returns INVALID constant if indices are out of bounds.
    * 
    * @param viewIndex the view index to look up
-   * @param count the maximum valid index (exclusive)
-   * @param FIRSTCELL the first valid cell index constant
-   * @param INVALID the invalid index constant
+   * @param maxValidIndex the maximum valid index (exclusive)
    * @return the data index, viewIndex if not mapped, or INVALID if out of bounds
    */
-  public int getWithBounds( int viewIndex, int count, int FIRSTCELL, int INVALID )
+  public int getWithBounds( int viewIndex, int maxValidIndex )
   {
     // check if within stored mappings
     if ( viewIndex >= FIRSTCELL && viewIndex < m_size )
-      return m_mapping[viewIndex];
+      return m_dataIndices[viewIndex];
 
     // check if within valid range but not explicitly mapped
-    if ( viewIndex >= INVALID && viewIndex < count )
+    if ( viewIndex >= INVALID && viewIndex < maxValidIndex )
       return viewIndex;
 
     // out of bounds
@@ -354,11 +290,9 @@ public class IndexMapping
    * 
    * @param dataIndex the data index to search for
    * @param count the maximum valid index (exclusive)
-   * @param FIRSTCELL the first valid cell index constant
-   * @param INVALID the invalid index constant
    * @return the view index, dataIndex if not mapped, or INVALID if out of bounds
    */
-  public int indexOfWithBounds( int dataIndex, int count, int FIRSTCELL, int INVALID )
+  public int indexOfWithBounds( int dataIndex, int count )
   {
     // check if within stored mappings
     if ( dataIndex >= FIRSTCELL && dataIndex < m_size )
@@ -377,32 +311,22 @@ public class IndexMapping
   }
 
   /************************************** ensureCapacity *****************************************/
-  private void ensureCapacity( int minCapacity )
+  private void ensureCapacity( int requiredCapacity )
   {
-    // grow array if needed
-    if ( minCapacity > m_mapping.length )
-    {
-      // calculate new capacity using 1.5x growth factor for better memory efficiency
-      // 1.5x balances growth speed vs memory waste better than 2x for sparse data
-      int growthCapacity = m_mapping.length + ( m_mapping.length >> 1 );
-      int newCapacity = Math.max( growthCapacity, minCapacity );
+    // return early if capacity is already sufficient
+    if ( requiredCapacity <= m_dataIndices.length )
+      return;
 
-      // cap maximum growth to avoid huge allocations for very large indices
-      int maxGrowth = m_mapping.length + 1024 + ( m_mapping.length >> 5 );
-      if ( newCapacity > maxGrowth && minCapacity <= maxGrowth )
-        newCapacity = maxGrowth;
+    // grow by 1.5x or to required capacity, whichever is larger
+    int newCapacity = Math.max( requiredCapacity + 4, m_dataIndices.length + ( m_dataIndices.length >> 3 ) + 4 );
 
-      int[] newMapping = new int[newCapacity];
+    // allocate new array with identity mapping initialisation
+    int[] newDataIndices = new int[newCapacity];
+    System.arraycopy( m_dataIndices, 0, newDataIndices, 0, m_size );
+    for ( int i = m_size; i < newCapacity; i++ )
+      newDataIndices[i] = i;
 
-      // copy existing values
-      System.arraycopy( m_mapping, 0, newMapping, 0, m_size );
-
-      // Initialise new slots with identity mapping
-      for ( int i = m_size; i < newCapacity; i++ )
-        newMapping[i] = i;
-
-      m_mapping = newMapping;
-    }
+    m_dataIndices = newDataIndices;
   }
 
 }
