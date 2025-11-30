@@ -21,7 +21,7 @@ package rjc.table.view.axis;
 import java.util.Arrays;
 
 /*************************************************************************************************/
-/********************* Cache for storing start pixel positions of axis cells *********************/
+/**************** Efficient cache for storing start pixel positions of axis cells ****************/
 /*************************************************************************************************/
 
 /**
@@ -151,17 +151,11 @@ public class PixelCache
    */
   public int getIndex( int value )
   {
-    // use java's optimised binary search to find insertion point
+    // binary search returns (-(insertion point) - 1) if not found
     int result = Arrays.binarySearch( m_cache, 0, m_size, value );
 
-    // if exact match found, return that index
-    if ( result >= 0 )
-      return result;
-
-    // convert insertion point to index of largest element <= value
-    // insertion point is -(result + 1), so largest element <= value is at insertion point - 1
-    int insertionPoint = -result - 1;
-    return insertionPoint - 1;
+    // if exact match or insertion point, adjust to get largest index <= value
+    return result >= 0 ? result : -result - 2;
   }
 
   /****************************************** isEmpty ********************************************/

@@ -24,7 +24,7 @@ import java.util.Map;
 import rjc.table.HashSetInt;
 
 /*************************************************************************************************/
-/********************* Compact storage for axis index sizes and hidden state *********************/
+/***************** Compact storage for axis index nominal sizes and hidden state *****************/
 /*************************************************************************************************/
 
 public class IndexSize
@@ -50,8 +50,8 @@ public class IndexSize
     m_sizes = new short[0];
   }
 
-  /***************************************** ensureSize ******************************************/
-  private void ensureSize( int index )
+  /*************************************** ensureCapacity ****************************************/
+  private void ensureCapacity( int index )
   {
     // expand array if needed to accommodate index
     if ( index >= m_sizes.length )
@@ -79,7 +79,7 @@ public class IndexSize
   public void setSize( int index, short size )
   {
     // ensure array is large enough
-    ensureSize( index );
+    ensureCapacity( index );
 
     // preserve hidden state if currently hidden
     if ( m_sizes[index] < 0 )
@@ -106,7 +106,7 @@ public class IndexSize
     return m_sizes[index];
   }
 
-  /***************************************** clearSize *******************************************/
+  /***************************************** resetSizeToDefault *******************************************/
   /**
    * Clears the size exception for the specified index, reverting to default.
    * 
@@ -114,7 +114,7 @@ public class IndexSize
    *          The cell index
    * @return true if the size was changed
    */
-  public boolean clearSize( int index )
+  public boolean resetSizeToDefault( int index )
   {
     // return false if index beyond array bounds or already default
     if ( index >= m_sizes.length || m_sizes[index] == DEFAULT )
@@ -165,7 +165,7 @@ public class IndexSize
   public boolean hide( int index )
   {
     // ensure array is large enough
-    ensureSize( index );
+    ensureCapacity( index );
 
     // return false if already hidden
     if ( m_sizes[index] < 0 )
@@ -267,14 +267,14 @@ public class IndexSize
         m_sizes[i] = DEFAULT;
   }
 
-  /**************************************** truncateSize *****************************************/
+  /****************************************** truncate *******************************************/
   /**
    * Truncates the internal array to the specified size, removing data beyond the new size.
    * 
    * @param newSize
    *          The new maximum index + 1
    */
-  public void truncateSize( int newSize )
+  public void truncate( int newSize )
   {
     // only truncate if new size is smaller than current
     if ( newSize < m_sizes.length )
@@ -352,40 +352,6 @@ public class IndexSize
       return exceptionIndex - before;
 
     return exceptionIndex - before + movedSorted.length;
-  }
-
-  /*************************************** visibleCount ******************************************/
-  /**
-   * Counts the number of visible (non-hidden) indexes with non-default sizes.
-   * 
-   * @return Count of visible indexes with size exceptions
-   */
-  public int visibleExceptionCount()
-  {
-    // count visible indexes with non-default sizes
-    int count = 0;
-    for ( short size : m_sizes )
-      if ( size > 0 && size != DEFAULT )
-        count++;
-
-    return count;
-  }
-
-  /************************************** hiddenDefaultCount *************************************/
-  /**
-   * Counts the number of hidden indexes using default size.
-   * 
-   * @return Count of hidden indexes with default size
-   */
-  public int hiddenDefaultCount()
-  {
-    // count hidden indexes with default size
-    int count = 0;
-    for ( short size : m_sizes )
-      if ( size == -DEFAULT )
-        count++;
-
-    return count;
   }
 
   /************************************* calculateTotalPixels ************************************/

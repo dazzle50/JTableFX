@@ -84,7 +84,7 @@ public class AxisLayout implements IListener
 
       // truncate exceptions if count reduced
       if ( newCount < oldCount )
-        m_indexSize.truncateSize( newCount );
+        m_indexSize.truncate( newCount );
 
       // invalidate total pixels and start pixel cache
       m_totalPixelsCache.set( TableAxis.INVALID );
@@ -338,7 +338,7 @@ public class AxisLayout implements IListener
       throw new IndexOutOfBoundsException( "cell index=" + viewIndex + " but count=" + m_countProperty.get() );
 
     // clear specific size and invalidate if changed
-    if ( m_indexSize.clearSize( viewIndex ) )
+    if ( m_indexSize.resetSizeToDefault( viewIndex ) )
     {
       m_totalPixelsCache.set( TableAxis.INVALID );
       m_startPixelCache.clear();

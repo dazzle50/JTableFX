@@ -26,7 +26,7 @@ import rjc.table.signal.ObservableDouble.ReadOnlyDouble;
 import rjc.table.signal.ObservableInteger.ReadOnlyInteger;
 
 /*************************************************************************************************/
-/**************************** Table X or Y axis with movement support ****************************/
+/********* View-table axis functionality including index mapping, sizing and visibility **********/
 /*************************************************************************************************/
 
 public class TableAxis
@@ -40,7 +40,7 @@ public class TableAxis
 
   // axis components
   private final ReadOnlyInteger m_countProperty;
-  private final IndexMapper     m_mapper;
+  private final IndexMapping    m_mapping;
   private final AxisLayout      m_layout;
 
   /**************************************** constructor ******************************************/
@@ -52,7 +52,7 @@ public class TableAxis
 
     // initialise components
     m_countProperty = countProperty;
-    m_mapper = new IndexMapper( countProperty );
+    m_mapping = new IndexMapping();
     m_layout = new AxisLayout( countProperty );
   }
 
@@ -60,7 +60,7 @@ public class TableAxis
   public void reset()
   {
     // reset all components
-    m_mapper.reset();
+    m_mapping.clear();
     m_layout.reset();
   }
 
@@ -147,31 +147,33 @@ public class TableAxis
   }
 
   // ==============================================================================================
-  // Index Mapping Methods (Delegated to IndexMapper)
+  // Index Mapping Methods (Direct access to IndexMapping)
   // ==============================================================================================
 
   /**************************************** getDataIndex *****************************************/
   public int getDataIndex( int viewIndex )
   {
-    // delegate to mapper
-    return m_mapper.getDataIndex( viewIndex );
+    // delegate to index mapping with boundary checking against count
+    return m_mapping.getDataIndexWithBounds( viewIndex, m_countProperty.get() );
   }
 
   /**************************************** getViewIndex *****************************************/
   public int getViewIndex( int dataIndex )
   {
-    // delegate to mapper
-    return m_mapper.getViewIndex( dataIndex );
+    // delegate to index mapping with boundary checking against count
+    return m_mapping.getViewIndexWithBounds( dataIndex, m_countProperty.get() );
   }
 
   /******************************************* reorder *******************************************/
   public void reorder( HashSetInt toBeMovedIndexes, int insertIndex )
   {
+    // convert set to sorted array once for both operations
+    var sortedMoved = toBeMovedIndexes.toSortedArray();
+
     // perform mapping reorder and capture affected index
-    int minAffectedIndex = m_mapper.reorder( toBeMovedIndexes, insertIndex );
+    int minAffectedIndex = m_mapping.reorderIndices( sortedMoved, insertIndex );
 
     // update layout components with reorder data
-    var sortedMoved = toBeMovedIndexes.toSortedArray();
     m_layout.reorderExceptions( sortedMoved, insertIndex );
     m_layout.truncatePixelCaches( minAffectedIndex, 0 );
   }
@@ -179,8 +181,8 @@ public class TableAxis
   /************************************* getIndexMappingHash *************************************/
   public int getIndexMappingHash()
   {
-    // delegate to mapper
-    return m_mapper.getIndexMappingHash();
+    // delegate to mapping object
+    return m_mapping.hashCode();
   }
 
   // ==============================================================================================
