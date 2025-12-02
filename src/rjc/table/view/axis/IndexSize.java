@@ -356,7 +356,7 @@ public class IndexSize
 
   /************************************* calculateTotalPixels ************************************/
   /**
-   * Calculates the total pixels for all body cells based on default size, exceptions, and hidden state.
+   * Calculates the total pixels for all body cells based on default size, non-default, and hidden state.
    * 
    * @param count
    *          Total number of indexes
@@ -372,10 +372,10 @@ public class IndexSize
     int visibleDefaultCount = count;
     int exceptionPixels = 0;
 
-    // check zoom once outside loop for efficiency
-    if ( zoom == 1.0 )
+    // when no zoom factor, pixel size equals nominal size
+    if ( Math.abs( zoom - 1.0 ) < 0.001 )
     {
-      // no zoom - process all stored sizes in single pass
+      // process all stored sizes in single pass
       for ( int i = 0; i < m_sizes.length && i < count; i++ )
       {
         short size = m_sizes[i];
@@ -383,13 +383,11 @@ public class IndexSize
         if ( size == DEFAULT )
           continue; // uses default, already counted
 
-        if ( size == -DEFAULT )
-          visibleDefaultCount--; // hidden with default size
-        else if ( size < 0 )
-          visibleDefaultCount--; // hidden with exception size
+        if ( size < 0 )
+          visibleDefaultCount--; // hidden
         else
         {
-          // visible with exception size
+          // visible with non-default size
           visibleDefaultCount--;
           exceptionPixels += size;
         }
@@ -397,29 +395,26 @@ public class IndexSize
 
       return exceptionPixels + visibleDefaultCount * defaultSize;
     }
-    else
+
+    // when zoom, need to apply zoom factor to sizes
+    for ( int i = 0; i < m_sizes.length && i < count; i++ )
     {
-      // with zoom - process all stored sizes in single pass
-      for ( int i = 0; i < m_sizes.length && i < count; i++ )
+      short size = m_sizes[i];
+
+      if ( size == DEFAULT )
+        continue; // uses default, already counted
+
+      if ( size < 0 )
+        visibleDefaultCount--; // hidden
+      else
       {
-        short size = m_sizes[i];
-
-        if ( size == DEFAULT )
-          continue; // uses default, already counted
-
-        if ( size == -DEFAULT )
-          visibleDefaultCount--; // hidden with default size
-        else if ( size < 0 )
-          visibleDefaultCount--; // hidden with exception size
-        else
-        {
-          // visible with exception size
-          visibleDefaultCount--;
-          exceptionPixels += (int) ( size * zoom );
-        }
+        // visible with non-default size
+        visibleDefaultCount--;
+        exceptionPixels += (int) ( size * zoom );
       }
-
-      return exceptionPixels + visibleDefaultCount * (int) ( defaultSize * zoom );
     }
+
+    return exceptionPixels + visibleDefaultCount * (int) ( defaultSize * zoom );
   }
+
 }

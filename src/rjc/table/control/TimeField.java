@@ -139,7 +139,7 @@ public class TimeField extends AbstractDropDownField
   protected String statusText( Level level )
   {
     // return status text appropriate to the level
-    return level == Level.NORMAL ? "Time: " + formatStatus( m_time ) : "Time format is not recognised";
+    return level == Level.INFO ? "Time: " + formatStatus( m_time ) : "Time format is not recognised";
   }
 
   /***************************************** validText *******************************************/

@@ -186,7 +186,7 @@ public class DateField extends AbstractDropDownField
   protected String statusText( Level level )
   {
     // return status text appropriate to the level
-    return level == Level.NORMAL ? "Date: " + formatStatus( m_date ) : "Date format is not recognised";
+    return level == Level.INFO ? "Date: " + formatStatus( m_date ) : "Date format is not recognised";
   }
 
   /***************************************** validText *******************************************/

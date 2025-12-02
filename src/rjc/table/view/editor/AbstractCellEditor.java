@@ -80,12 +80,12 @@ abstract public class AbstractCellEditor
       // also when text changes, test value (but only if error not already detected)
       field.textProperty().addListener( ( property, oldText, newText ) ->
       {
-        if ( m_editorInProgress != null && field.getStatus().getSeverity() == Level.NORMAL )
+        if ( m_editorInProgress != null && field.getStatus().getSeverity() == Level.INFO )
         {
           var decline = m_editorInProgress.testValue( m_editorInProgress.getValue() );
           if ( decline == null )
           {
-            field.getStatus().setSeverity( Level.NORMAL );
+            field.getStatus().setSeverity( Level.INFO );
             field.setStyle( field.getStatus().getStyle() );
           }
           else

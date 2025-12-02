@@ -31,6 +31,8 @@ import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.paint.Paint;
 import rjc.table.view.action.Filter;
 import rjc.table.view.action.HideShow;
+import rjc.table.view.action.Sort;
+import rjc.table.view.action.Sort.SortedType;
 import rjc.table.view.axis.TableAxis;
 
 /*************************************************************************************************/
@@ -145,7 +147,7 @@ public class TableContextMenu extends ContextMenu
   private void buildColumnHeader()
   {
     // build context menu for table-view column header row - add relevant menu items
-    addFilterTextColumn().addHideColumn().addShowColumn();
+    addFilterTextColumn().addSortTextColumn().addHideColumn().addShowColumn();
   }
 
   /*************************************** buildRowHeader ****************************************/
@@ -249,13 +251,13 @@ public class TableContextMenu extends ContextMenu
     var filterText = new Menu( "Filter text" );
 
     var contains = new MenuItemTextField( "Contains" );
-    contains.setOnAction( ( event ) -> Filter.columnTextContains( m_view, m_mouseCol, contains.getFieldText() ) );
+    contains.setOnAction( ( event ) -> Filter.columnTextContains( m_view, m_mouseCol, contains.getFieldText(), true ) );
 
     var starts = new MenuItemTextField( "Starts with" );
-    starts.setOnAction( ( event ) -> Filter.columnTextStarts( m_view, m_mouseCol, starts.getFieldText() ) );
+    starts.setOnAction( ( event ) -> Filter.columnTextStarts( m_view, m_mouseCol, starts.getFieldText(), true ) );
 
     var regex = new MenuItemTextField( "Regex" );
-    regex.setOnAction( ( event ) -> Filter.columnTextRegex( m_view, m_mouseCol, regex.getFieldText() ) );
+    regex.setOnAction( ( event ) -> Filter.columnTextRegex( m_view, m_mouseCol, regex.getFieldText(), false ) );
 
     // ensure aligned when menu shown, and text-fill is correct (otherwise lost)
     filterText.setOnShown( event ->
@@ -281,13 +283,13 @@ public class TableContextMenu extends ContextMenu
     var filterText = new Menu( "Filter text" );
 
     var contains = new MenuItemTextField( "Contains" );
-    contains.setOnAction( ( event ) -> Filter.rowTextContains( m_view, m_mouseRow, contains.getFieldText() ) );
+    contains.setOnAction( ( event ) -> Filter.rowTextContains( m_view, m_mouseRow, contains.getFieldText(), true ) );
 
     var starts = new MenuItemTextField( "Starts with" );
-    starts.setOnAction( ( event ) -> Filter.rowTextStarts( m_view, m_mouseRow, starts.getFieldText() ) );
+    starts.setOnAction( ( event ) -> Filter.rowTextStarts( m_view, m_mouseRow, starts.getFieldText(), true ) );
 
     var regex = new MenuItemTextField( "Regex" );
-    regex.setOnAction( ( event ) -> Filter.rowTextRegex( m_view, m_mouseRow, regex.getFieldText() ) );
+    regex.setOnAction( ( event ) -> Filter.rowTextRegex( m_view, m_mouseRow, regex.getFieldText(), false ) );
 
     // ensure aligned when menu shown, and text-fill is correct (otherwise lost)
     filterText.setOnShown( event ->
@@ -301,4 +303,19 @@ public class TableContextMenu extends ContextMenu
     getItems().add( filterText );
     return this;
   }
+
+  /************************************* addSortTextColumn ***************************************/
+  protected TableContextMenu addSortTextColumn()
+  {
+    // exit without adding menu item if option is omitted for this table-view
+    if ( isOmitted( m_view, OptionalMenuItems.COLUMN_SORT ) )
+      return this;
+
+    // add a sort menu item
+    var item = new MenuItem( "Sort ↓" );
+    item.setOnAction( event -> Sort.columnTextSort( m_view, m_mouseRow, SortedType.ASCENDING ) );
+    getItems().add( item );
+    return this;
+  }
+
 }

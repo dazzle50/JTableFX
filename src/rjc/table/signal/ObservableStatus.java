@@ -38,15 +38,16 @@ public class ObservableStatus implements ISignal
   private String m_msg;                 // text message for status
   private Timer  m_timer = new Timer(); // timer to clear temporary status
 
-  // enumeration of status severity levels from normal through fatal.
+  // enumeration of status severity levels from info through fatal.
   public static enum Level // status types
   {
-    NORMAL, WARNING, ERROR, FATAL
+    INFO, WARNING, ERROR, FATAL
   }
 
-  private static final String STYLE_NORMAL  = "-fx-text-fill: black;";
-  private static final String STYLE_WARNING = "-fx-text-fill: orange;";
+  private static final String STYLE_INFO    = "-fx-text-fill: black;";
+  private static final String STYLE_WARNING = "-fx-text-fill: maroon;";
   private static final String STYLE_ERROR   = "-fx-text-fill: red;";
+  private static final String STYLE_FATAL   = "-fx-text-fill: white; -fx-font-weight: bold; -fx-background-color: red";
 
   /**************************************** constructor ******************************************/
   /**
@@ -55,7 +56,7 @@ public class ObservableStatus implements ISignal
   public ObservableStatus()
   {
     // create empty status
-    m_severity = Level.NORMAL;
+    m_severity = Level.INFO;
     m_msg = null;
   }
 
@@ -101,7 +102,7 @@ public class ObservableStatus implements ISignal
   public void clear()
   {
     // clear status to normal severity and no message
-    update( Level.NORMAL, null );
+    update( Level.INFO, null );
   }
 
   /******************************************* isError *******************************************/
@@ -201,13 +202,14 @@ public class ObservableStatus implements ISignal
     // return suitable style css for specified severity
     switch ( severity )
     {
-      case NORMAL:
-        return STYLE_NORMAL;
+      case INFO:
+        return STYLE_INFO;
       case WARNING:
         return STYLE_WARNING;
       case ERROR:
-      case FATAL:
         return STYLE_ERROR;
+      case FATAL:
+        return STYLE_FATAL;
       default:
         throw new UnsupportedOperationException( severity.toString() );
     }

@@ -148,7 +148,7 @@ public class DateTimeField extends DateField
   protected String statusText( Level level )
   {
     // return status text appropriate to the level
-    return level == Level.NORMAL ? "Date-time: " + formatStatus( m_datetime ) : "Date-time format is not recognised";
+    return level == Level.INFO ? "Date-time: " + formatStatus( m_datetime ) : "Date-time format is not recognised";
   }
 
   /***************************************** validText *******************************************/

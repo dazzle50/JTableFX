@@ -123,7 +123,7 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
     {
       if ( newFocus )
         // gained focus
-        updateStatus( Level.NORMAL );
+        updateStatus( Level.INFO );
       else
       {
         // lost focus
@@ -237,7 +237,7 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
 
       // collect the new valid time from widgets
       m_time = Time.of( hrs, mins, secs, ms );
-      updateStatus( Level.NORMAL );
+      updateStatus( Level.INFO );
     }
 
     return m_time;
@@ -274,7 +274,7 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
       int value = Integer.parseInt( field.getText() );
       if ( value >= min && value <= max )
       {
-        field.setStyle( ObservableStatus.getStyle( Level.NORMAL ) );
+        field.setStyle( ObservableStatus.getStyle( Level.INFO ) );
         return true;
       }
 
@@ -307,7 +307,7 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
       if ( getScene().getWindow() instanceof Popup )
         return;
 
-      String msg = level == Level.NORMAL ? "Time: " + formatStatus( m_time ) : "Time format is not recognised";
+      String msg = level == Level.INFO ? "Time: " + formatStatus( m_time ) : "Time format is not recognised";
       getStatus().update( level, msg );
     }
   }

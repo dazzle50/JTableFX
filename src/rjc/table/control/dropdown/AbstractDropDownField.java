@@ -52,7 +52,7 @@ abstract public class AbstractDropDownField extends ButtonField implements ISign
     focusedProperty().addListener( ( property, oldFocus, newFocus ) ->
     {
       if ( newFocus )
-        updateStatus( Level.NORMAL ); // gained focus
+        updateStatus( Level.INFO ); // gained focus
       else
         validText(); // lost focus
     } );
@@ -133,7 +133,7 @@ abstract public class AbstractDropDownField extends ButtonField implements ISign
     try
     {
       parseText( Utils.clean( text ) );
-      updateStatus( Level.NORMAL );
+      updateStatus( Level.INFO );
     }
     catch ( Exception exception )
     {

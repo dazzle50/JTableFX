@@ -154,14 +154,23 @@ public class TableAxis
   public int getDataIndex( int viewIndex )
   {
     // delegate to index mapping with boundary checking against count
-    return m_mapping.getDataIndexWithBounds( viewIndex, m_countProperty.get() );
+    if ( viewIndex < HEADER || viewIndex >= m_countProperty.get() )
+      return INVALID;
+    if ( viewIndex == HEADER )
+      return HEADER;
+    return m_mapping.getDataIndex( viewIndex );
   }
 
   /**************************************** getViewIndex *****************************************/
   public int getViewIndex( int dataIndex )
   {
     // delegate to index mapping with boundary checking against count
-    return m_mapping.getViewIndexWithBounds( dataIndex, m_countProperty.get() );
+    if ( dataIndex < HEADER || dataIndex >= m_countProperty.get() )
+      return INVALID;
+    if ( dataIndex == HEADER )
+      return HEADER;
+
+    return m_mapping.getViewIndex( dataIndex );
   }
 
   /******************************************* reorder *******************************************/

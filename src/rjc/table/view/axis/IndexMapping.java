@@ -19,11 +19,11 @@
 package rjc.table.view.axis;
 
 /*************************************************************************************************/
-/********************** Efficient mapping from view indices to data indices **********************/
+/****************** Bidirectional mapping between view-indexes and data-indexes ******************/
 /*************************************************************************************************/
 
 /**
- * Provides efficient bidirectional mapping between view indices and data indices for table axes.
+ * Provides bidirectional mapping between view indices and data indices for table axes.
  * <p>
  * This class maintains a mapping where view indices (positions in the displayed table) map to data
  * indices (positions in the underlying data model). The mapping uses a dynamically-sized array that
@@ -35,9 +35,9 @@ package rjc.table.view.axis;
  * <p>
  * The mapping supports:
  * <ul>
- * <li>Bulk reordering operations for efficient row/column drag-and-drop</li>
  * <li>Bidirectional lookups (view→data and data→view)</li>
- * <li>Automatic trimming of trailing identity mappings to minimise memory</li>
+ * <li>Bulk reordering operations for efficient row/column drag-and-drop</li>
+ * <li>Trimming of trailing identity mappings to minimise memory</li>
  * </ul>
  * <p>
  * The internal array grows dynamically with a 25% growth factor to balance memory efficiency
@@ -61,8 +61,7 @@ public class IndexMapping
   public IndexMapping()
   {
     // initialise with empty mapping
-    m_dataIndices = new int[8];
-    m_mappedCount = 0;
+    clear();
   }
 
   /******************************************** clear ********************************************/
@@ -71,20 +70,9 @@ public class IndexMapping
    */
   public void clear()
   {
-    // reset to empty state
+    // reset to empty state with no stored mappings
+    m_dataIndices = new int[0];
     m_mappedCount = 0;
-  }
-
-  /****************************************** isEmpty ********************************************/
-  /**
-   * Returns whether the mapping is empty.
-   * 
-   * @return true if no mappings are stored
-   */
-  public boolean isEmpty()
-  {
-    // check if mapped count is zero
-    return m_mappedCount == 0;
   }
 
   /****************************************** getDataIndex ***************************************/
@@ -99,96 +87,36 @@ public class IndexMapping
    */
   public int getDataIndex( int viewIndex )
   {
-    // return mapped value if within stored range, otherwise identity mapping
+    // return stored mapping if within range, otherwise assume identity mapping
     if ( viewIndex < m_dataIndices.length )
       return m_dataIndices[viewIndex];
 
     return viewIndex;
   }
 
-  /******************************************* append ********************************************/
-  /**
-   * Appends a data index to the end of the mapping.
-   * <p>
-   * This extends the logical size of the mapping by one and stores the specified data index at
-   * the new position. The internal array is automatically expanded if necessary.
-   * 
-   * @param dataIndex the data index to append
-   */
-  public void append( int dataIndex )
-  {
-    // ensure capacity and store value
-    ensureCapacity( m_mappedCount + 1 );
-    m_dataIndices[m_mappedCount++] = dataIndex;
-  }
-
-  /******************************************* remove ********************************************/
-  /**
-   * Removes and returns the data index at the specified position.
-   * <p>
-   * All mappings after the removal position are shifted left by one to fill the gap, and the
-   * logical size is decremented.
-   * 
-   * @param position the position to remove from
-   * @return the data index that was removed
-   */
-  public int remove( int position )
-  {
-    // get value to return
-    int removed = m_dataIndices[position];
-
-    // shift elements left to fill gap
-    System.arraycopy( m_dataIndices, position + 1, m_dataIndices, position, m_mappedCount - position - 1 );
-
-    // decrement mapped count
-    m_mappedCount--;
-
-    return removed;
-  }
-
-  /**************************************** getViewIndex *****************************************/
-  /**
-   * Finds the view index for a given data index within a search limit.
-   * <p>
-   * This searches the stored mappings up to the specified limit. If the data index is not found
-   * in stored mappings but falls within the valid range, the identity mapping is assumed and the
-   * data index itself is returned. This optimises lookups for unmapped indices.
-   * 
-   * @param dataIndex the data index to search for
-   * @param searchLimit the maximum view index to search (typically the count boundary)
-   * @return the view index, or INVALID if not found in stored mappings and outside valid range
-   */
-  public int getViewIndex( int dataIndex, int searchLimit )
-  {
-    // search stored mappings for data index up to mapped count limit
-    int limit = Math.min( m_mappedCount, searchLimit );
-
-    // early exit if data index is beyond what we could possibly have stored
-    if ( dataIndex >= limit && dataIndex < searchLimit )
-      return dataIndex; // identity mapping
-
-    for ( int i = 0; i < limit; i++ )
-      if ( m_dataIndices[i] == dataIndex )
-        return i;
-
-    // not found in stored mappings
-    return INVALID;
-  }
-
   /**************************************** getViewIndex *****************************************/
   /**
    * Finds the view index for a given data index.
    * <p>
-   * This searches all stored mappings. Unlike the two-parameter variant, this does not assume
-   * identity mapping for values beyond the stored range.
+   * For data indices beyond the mapped count, identity mapping is assumed. For indices within
+   * the mapped range, the stored mappings are searched.
    * 
    * @param dataIndex the data index to search for
    * @return the view index, or INVALID if not found in stored mappings
    */
   public int getViewIndex( int dataIndex )
   {
-    // search all stored mappings for data index
-    return getViewIndex( dataIndex, m_mappedCount );
+    // assume identity mapping for indices beyond stored range
+    if ( dataIndex >= m_mappedCount )
+      return dataIndex;
+
+    // search stored mappings up to mapped count
+    for ( int i = 0; i < m_mappedCount; i++ )
+      if ( m_dataIndices[i] == dataIndex )
+        return i;
+
+    // not found in stored mappings
+    return INVALID;
   }
 
   /****************************************** hashCode *******************************************/
@@ -203,10 +131,10 @@ public class IndexMapping
   @Override
   public int hashCode()
   {
-    // trim identity mappings first
+    // trim trailing identity mappings to ensure consistent hashing
     trimIdentityTail();
 
-    // compute hash from remaining stored values
+    // compute hash from active stored values only
     int hash = 1;
     for ( int i = 0; i < m_mappedCount; i++ )
       hash = 31 * hash + m_dataIndices[i];
@@ -226,14 +154,14 @@ public class IndexMapping
    */
   public boolean trimIdentityTail()
   {
-    // track original mapped count
+    // record original count to detect changes
     int originalCount = m_mappedCount;
 
-    // remove trailing entries where mapping[i] == i
+    // reduce mapped count for trailing identity mappings where data[i] == i
     while ( m_mappedCount > 0 && m_dataIndices[m_mappedCount - 1] == m_mappedCount - 1 )
       m_mappedCount--;
 
-    // return whether any trimming occurred
+    // return whether mapped count trimming occurred
     return m_mappedCount < originalCount;
   }
 
@@ -242,29 +170,30 @@ public class IndexMapping
    * Efficiently reorders multiple indices in a single operation.
    * <p>
    * This method handles the complex mapping updates required when multiple rows or columns are
-   * moved together (e.g., during drag-and-drop reordering). The source indices are removed from
+   * moved together (e.g. during drag-and-drop reordering). The source indices are removed from
    * their current positions and reinserted at the target position, with all other mappings
    * adjusted accordingly.
    * <p>
    * The operation is optimised to perform a single bulk shift for insertion rather than repeated
    * single insertions.
-   * * @param sortedSourceIndexes sorted array of view indices to move (must be in ascending order)
+   * 
+   * @param sortedSourceIndexes sorted array of view indices to move (must be in ascending order)
    * @param targetIndex the position where moved indices should be inserted
    * @return the minimum index affected by the reordering (useful for cache invalidation)
    */
   public int reorderIndices( int[] sortedSourceIndexes, int targetIndex )
   {
-    // ensure mapping array covers all affected indices
+    // ensure capacity for all affected indices
     int maxRequiredIndex = Math.max( targetIndex, sortedSourceIndexes[sortedSourceIndexes.length - 1] );
-    while ( m_mappedCount <= maxRequiredIndex )
-      append( m_mappedCount );
+    ensureCapacity( maxRequiredIndex + 1 );
+    m_mappedCount = maxRequiredIndex + 1;
 
-    // extract data indices in reverse to preserve positions
+    // extract data values in reverse order to preserve original positions during removal
     int[] extractedData = new int[sortedSourceIndexes.length];
     for ( int i = sortedSourceIndexes.length - 1; i >= 0; i-- )
       extractedData[i] = remove( sortedSourceIndexes[i] );
 
-    // calculate adjusted insert position
+    // calculate final insert position accounting for removed elements before target
     int adjustedTarget = targetIndex;
     for ( int sourceIndex : sortedSourceIndexes )
       if ( sourceIndex < targetIndex )
@@ -272,95 +201,51 @@ public class IndexMapping
       else
         break;
 
-    // insert extracted data back at adjusted position
+    // shift existing elements right to create space for moved elements
     int count = extractedData.length;
-
-    // ensure capacity to add items back
-    ensureCapacity( m_mappedCount + count );
-
-    // shift existing elements right to make space
     System.arraycopy( m_dataIndices, adjustedTarget, m_dataIndices, adjustedTarget + count,
         m_mappedCount - adjustedTarget );
 
-    // copy extracted data into the gap
+    // insert extracted data into created gap
     System.arraycopy( extractedData, 0, m_dataIndices, adjustedTarget, count );
 
-    // update mapped count
+    // update mapped count to include reinserted elements
     m_mappedCount += count;
 
-    // return minimum affected index for cache invalidation
+    // return earliest affected index for cache invalidation
     return Math.min( adjustedTarget, sortedSourceIndexes[0] );
   }
 
-  /*********************************** getDataIndexWithBounds ************************************/
-  /**
-   * Gets the data index with boundary checking against count.
-   * <p>
-   * This variant provides additional safety by checking that both the view index and resulting
-   * data index are within valid bounds. This is used by {@link TableAxis#getDataIndex} to ensure
-   * returned indices are always valid.
-   * 
-   * @param viewIndex the view index to look up
-   * @param maxValidIndex the maximum valid index (exclusive, typically the table count)
-   * @return the data index, viewIndex if not mapped and within bounds, or INVALID if out of bounds
-   */
-  public int getDataIndexWithBounds( int viewIndex, int maxValidIndex )
+  /******************************************* remove ********************************************/
+  private int remove( int position )
   {
-    // check if within stored mappings
-    if ( viewIndex >= FIRSTCELL && viewIndex < m_mappedCount )
-      return m_dataIndices[viewIndex];
+    // extract value at position for return
+    int removed = m_dataIndices[position];
 
-    // check if within valid range but not explicitly mapped
-    if ( viewIndex >= INVALID && viewIndex < maxValidIndex )
-      return viewIndex;
+    // shift subsequent elements left to fill gap
+    System.arraycopy( m_dataIndices, position + 1, m_dataIndices, position, m_mappedCount - position - 1 );
 
-    // out of bounds
-    return INVALID;
-  }
+    // reduce mapped count by one
+    m_mappedCount--;
 
-  /*********************************** getViewIndexWithBounds ************************************/
-  /**
-   * Finds the view index with boundary checking against count.
-   * <p>
-   * This variant provides additional safety by checking that both the data index and resulting
-   * view index are within valid bounds. This is used by {@link TableAxis#getViewIndex} to ensure
-   * returned indices are always valid.
-   * 
-   * @param dataIndex the data index to search for
-   * @param count the maximum valid index (exclusive, typically the table count)
-   * @return the view index, dataIndex if not mapped and within bounds, or INVALID if out of bounds
-   */
-  public int getViewIndexWithBounds( int dataIndex, int count )
-  {
-    // check if within stored mappings
-    if ( dataIndex >= FIRSTCELL && dataIndex < m_mappedCount )
-    {
-      int viewIndex = getViewIndex( dataIndex, m_mappedCount );
-      if ( viewIndex >= 0 )
-        return viewIndex;
-    }
-
-    // check if within valid range but not explicitly mapped
-    if ( dataIndex >= INVALID && dataIndex < count )
-      return dataIndex;
-
-    // out of bounds
-    return INVALID;
+    return removed;
   }
 
   /************************************** ensureCapacity *****************************************/
   private void ensureCapacity( int requiredCapacity )
   {
-    // return early if capacity is already sufficient
+    // early return if current capacity is sufficient
     if ( requiredCapacity <= m_dataIndices.length )
       return;
 
-    // grow by 25% or to required capacity, whichever is larger
+    // calculate new capacity with 25% growth factor, minimum of required capacity
     int newCapacity = Math.max( requiredCapacity + 4, m_dataIndices.length + ( m_dataIndices.length >> 2 ) + 4 );
 
-    // allocate new array with identity mapping initialisation
+    // create new array and copy existing mappings
     int[] newDataIndices = new int[newCapacity];
     System.arraycopy( m_dataIndices, 0, newDataIndices, 0, m_mappedCount );
+
+    // initialise new slots with identity mapping values
     for ( int i = m_mappedCount; i < newCapacity; i++ )
       newDataIndices[i] = i;
 

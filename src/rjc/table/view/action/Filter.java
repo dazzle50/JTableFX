@@ -19,11 +19,14 @@
 package rjc.table.view.action;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 import rjc.table.HashSetInt;
+import rjc.table.Utils;
 import rjc.table.signal.ObservableStatus.Level;
 import rjc.table.undo.commands.CommandHideIndexes;
 import rjc.table.view.TableView;
@@ -40,95 +43,120 @@ public class Filter
   private static final Map<TableView, Map<Integer, Integer>> ROW_FILTERS    = new WeakHashMap<>();
 
   /************************************* columnTextContains **************************************/
-  public static void columnTextContains( TableView view, int mouseCol, String text )
+  public static void columnTextContains( TableView view, int viewIndex, String text, boolean caseSensitive )
   {
-    // filter rows where column text contains the specified text
-    filterAxis( view, view.getRowsAxis(), view.getColumnsAxis().getDataIndex( mouseCol ),
-        valueText -> valueText.contains( text ) );
+    // filter rows where column text contains the specified text (hide those that don't)
+    Predicate<String> predicate = caseSensitive ? valueText -> valueText.contains( text )
+        : valueText -> ( valueText.toLowerCase( Locale.ROOT ) ).contains( text.toLowerCase( Locale.ROOT ) );
+
+    filterAxis( view, view.getRowsAxis(), view.getColumnsAxis().getDataIndex( viewIndex ), predicate );
   }
 
   /************************************** columnTextStarts ***************************************/
-  public static void columnTextStarts( TableView view, int mouseCol, String text )
+  public static void columnTextStarts( TableView view, int viewIndex, String text, boolean caseSensitive )
   {
-    // filter rows where column text starts with the specified text
-    filterAxis( view, view.getRowsAxis(), view.getColumnsAxis().getDataIndex( mouseCol ),
-        valueText -> valueText.startsWith( text ) );
+    // filter rows where column text starts with the specified text (hide those that don't)
+    Predicate<String> predicate = caseSensitive ? valueText -> valueText.startsWith( text )
+        : valueText -> ( valueText.toLowerCase( Locale.ROOT ) ).startsWith( text.toLowerCase( Locale.ROOT ) );
+
+    filterAxis( view, view.getRowsAxis(), view.getColumnsAxis().getDataIndex( viewIndex ), predicate );
   }
 
   /************************************** columnTextRegex ****************************************/
-  public static void columnTextRegex( TableView view, int mouseCol, String regex )
+  public static void columnTextRegex( TableView view, int viewIndex, String regex, boolean caseSensitive )
   {
-    // filter rows where column text matches the regex pattern
-    var pattern = java.util.regex.Pattern.compile( regex );
-    filterAxis( view, view.getRowsAxis(), view.getColumnsAxis().getDataIndex( mouseCol ),
-        valueText -> pattern.matcher( valueText ).find() );
+    // filter rows where column text matches the regex pattern (hide those that don't)
+    try
+    {
+      var pattern = caseSensitive ? Pattern.compile( regex ) : Pattern.compile( regex, Pattern.CASE_INSENSITIVE );
+
+      filterAxis( view, view.getRowsAxis(), view.getColumnsAxis().getDataIndex( viewIndex ),
+          valueText -> pattern.matcher( valueText ).find() );
+    }
+    catch ( Exception exception )
+    {
+      Utils.trace( view, viewIndex, regex, caseSensitive, exception );
+      view.getStatus().update( Level.ERROR, "Invalid regex pattern: " + regex );
+      return;
+    }
   }
 
   /*************************************** rowTextContains ***************************************/
-  public static void rowTextContains( TableView view, int mouseRow, String text )
+  public static void rowTextContains( TableView view, int viewIndex, String text, boolean caseSensitive )
   {
-    // filter columns where row text contains the specified text
-    filterAxis( view, view.getColumnsAxis(), view.getRowsAxis().getDataIndex( mouseRow ),
-        valueText -> valueText.contains( text ) );
+    // filter columns where row text contains the specified text (hide those that don't)
+    Predicate<String> predicate = caseSensitive ? valueText -> valueText.contains( text )
+        : valueText -> ( valueText.toLowerCase( Locale.ROOT ) ).contains( text.toLowerCase( Locale.ROOT ) );
+
+    filterAxis( view, view.getColumnsAxis(), view.getRowsAxis().getDataIndex( viewIndex ), predicate );
   }
 
   /**************************************** rowTextStarts ****************************************/
-  public static void rowTextStarts( TableView view, int mouseRow, String text )
+  public static void rowTextStarts( TableView view, int viewIndex, String text, boolean caseSensitive )
   {
-    // filter columns where row text starts with the specified text
-    filterAxis( view, view.getColumnsAxis(), view.getRowsAxis().getDataIndex( mouseRow ),
-        valueText -> valueText.startsWith( text ) );
+    // filter columns where row text starts with the specified text (hide those that don't)
+    Predicate<String> predicate = caseSensitive ? valueText -> valueText.startsWith( text )
+        : valueText -> ( valueText.toLowerCase( Locale.ROOT ) ).startsWith( text.toLowerCase( Locale.ROOT ) );
+
+    filterAxis( view, view.getColumnsAxis(), view.getRowsAxis().getDataIndex( viewIndex ), predicate );
   }
 
   /**************************************** rowTextRegex *****************************************/
-  public static void rowTextRegex( TableView view, int mouseRow, String regex )
+  public static void rowTextRegex( TableView view, int viewIndex, String regex, boolean caseSensitive )
   {
-    // filter columns where row text matches the regex pattern
-    var pattern = java.util.regex.Pattern.compile( regex );
-    filterAxis( view, view.getColumnsAxis(), view.getRowsAxis().getDataIndex( mouseRow ),
-        valueText -> pattern.matcher( valueText ).find() );
+    // filter columns where row text matches the regex pattern (hide those that don't)
+    try
+    {
+      var pattern = caseSensitive ? Pattern.compile( regex ) : Pattern.compile( regex, Pattern.CASE_INSENSITIVE );
+
+      filterAxis( view, view.getColumnsAxis(), view.getRowsAxis().getDataIndex( viewIndex ),
+          valueText -> pattern.matcher( valueText ).find() );
+    }
+    catch ( Exception exception )
+    {
+      Utils.trace( view, viewIndex, regex, caseSensitive, exception );
+      view.getStatus().update( Level.ERROR, "Invalid regex pattern: " + regex );
+      return;
+    }
   }
 
   /****************************************** filterAxis *****************************************/
-  private static void filterAxis( TableView view, TableAxis axisToFilter, int fixedDataIndex,
-      Predicate<String> textPredicate )
+  private static void filterAxis( TableView view, TableAxis filterAxis, int filterDataIndex, Predicate<String> filter )
   {
     // collect indexes that don't match the filter predicate
     var indexesToHide = new HashSetInt();
-    boolean isFilteringRows = axisToFilter == view.getRowsAxis();
+    boolean isFilteringRows = filterAxis == view.getRowsAxis();
     int valuesChecked = 0;
 
     // iterate through all visible indexes to check for text match
-    int currentVisibleIndex = axisToFilter.getFirstVisible();
-    int previousVisibleIndex;
+    int checkViewIndex = filterAxis.getFirstVisible();
+    int previousViewIndex;
 
     do
     {
-      // get data index for current visible position
-      int currentDataIndex = axisToFilter.getDataIndex( currentVisibleIndex );
-
       // get cell value based on whether filtering rows or columns
-      Object cellValue = isFilteringRows ? view.getData().getValue( fixedDataIndex, currentDataIndex )
-          : view.getData().getValue( currentDataIndex, fixedDataIndex );
+      int checkDataIndex = filterAxis.getDataIndex( checkViewIndex );
+      Object cellValue = isFilteringRows ? view.getData().getValue( filterDataIndex, checkDataIndex )
+          : view.getData().getValue( checkDataIndex, filterDataIndex );
       String cellText = cellValue == null ? "" : cellValue.toString();
 
-      // add index to hide set if predicate test fails
-      if ( !textPredicate.test( cellText ) )
-        indexesToHide.add( currentVisibleIndex );
+      // add index to hide set if filter test fails
+      if ( !filter.test( cellText ) )
+        indexesToHide.add( checkViewIndex );
 
       // advance to next visible index
       valuesChecked++;
-      previousVisibleIndex = currentVisibleIndex;
-      currentVisibleIndex = axisToFilter.getNextVisible( currentVisibleIndex );
+      previousViewIndex = checkViewIndex;
+      checkViewIndex = filterAxis.getNextVisible( checkViewIndex );
     }
-    while ( currentVisibleIndex != previousVisibleIndex );
+    while ( checkViewIndex != previousViewIndex );
 
     // update status with number of records found
     int found = valuesChecked - indexesToHide.size();
-    view.getStatus().update( Level.NORMAL, found + " of " + valuesChecked + " records found" );
+    view.getStatus().update( Level.INFO, found + " of " + valuesChecked + " records found" );
 
     // execute hide command via undo stack
-    var hideCommand = new CommandHideIndexes( view, axisToFilter, indexesToHide );
+    var hideCommand = new CommandHideIndexes( view, filterAxis, indexesToHide );
     view.getUndoStack().push( hideCommand );
   }
 

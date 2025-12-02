@@ -141,8 +141,7 @@ public class PixelCache
   /**
    * Performs a binary search to find the largest index whose cached pixel value is less than or
    * equal to the specified target value. This is used to determine which cell corresponds to a
-   * given pixel coordinate. The cache must be sorted in ascending order for this method to work
-   * correctly.
+   * given pixel coordinate.
    * 
    * @param value
    *          The pixel value to search for

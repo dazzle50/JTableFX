@@ -54,7 +54,7 @@ public class NumberSpinField extends ButtonField implements ISignal
       double num = getDouble();
       if ( num != m_lastSignal )
       {
-        setStyle( ObservableStatus.getStyle( Level.NORMAL ) );
+        setStyle( ObservableStatus.getStyle( Level.INFO ) );
         if ( getStatus() != null )
           getStatus().clear();
         signal( num );

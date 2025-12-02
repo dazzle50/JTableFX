@@ -226,6 +226,10 @@ public class TableOverlay extends Canvas
       // draw line to indicate hidden row(s)
       if ( row <= maxRow && y >= m_view.getHeaderHeight() )
         m_gc.fillRect( x, y - 1.5, w, 2 );
+
+      // find next visible row
+      while ( y == m_view.getRowStartY( row ) && row <= maxRow )
+        row++;
     }
   }
 
@@ -261,6 +265,10 @@ public class TableOverlay extends Canvas
       // draw line to indicate hidden column(s)
       if ( column <= maxColumn && x >= m_view.getHeaderWidth() )
         m_gc.fillRect( x - 1.5, y, 2, h );
+
+      // find next visible column
+      while ( x == m_view.getColumnStartX( column ) && column <= maxColumn )
+        column++;
     }
   }
 
