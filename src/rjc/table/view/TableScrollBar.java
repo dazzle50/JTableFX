@@ -236,7 +236,7 @@ public class TableScrollBar extends ScrollBar
   {
     // increase scroll bar value to next table cell boundary
     int headerSize = m_axis.getHeaderPixels();
-    int index = m_axis.getIndexFromCoordinate( headerSize, (int) getValue() );
+    int index = m_axis.getViewIndexAtPixel( headerSize, (int) getValue() );
     int nextIndex = m_axis.getNextVisible( index );
     int start = m_axis.getStartPixel( nextIndex, 0 ) - headerSize;
 
@@ -249,7 +249,7 @@ public class TableScrollBar extends ScrollBar
   {
     // decrease scroll bar value to next table cell boundary
     int headerSize = m_axis.getHeaderPixels();
-    int index = m_axis.getIndexFromCoordinate( headerSize, (int) getValue() );
+    int index = m_axis.getViewIndexAtPixel( headerSize, (int) getValue() );
     int start = m_axis.getStartPixel( index, 0 ) - headerSize;
 
     if ( start < getValue() )

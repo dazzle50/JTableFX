@@ -126,13 +126,13 @@ public class PixelCache
   }
 
   /*************************************** ensureCapacity ****************************************/
-  private void ensureCapacity( int minCapacity )
+  private void ensureCapacity( int requiredCapacity )
   {
     // ensure array has at least the minimum capacity
-    if ( minCapacity > m_cache.length )
+    if ( requiredCapacity > m_cache.length )
     {
       // grow by 25% or to minimum capacity, whichever is larger
-      int newCapacity = Math.max( minCapacity, m_cache.length + ( m_cache.length >> 2 ) + 5 );
+      int newCapacity = Math.max( requiredCapacity, m_cache.length + ( m_cache.length >> 2 ) + 5 );
       m_cache = Arrays.copyOf( m_cache, newCapacity );
     }
   }

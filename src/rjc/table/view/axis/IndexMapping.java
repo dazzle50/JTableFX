@@ -77,7 +77,7 @@ public class IndexMapping
 
   /****************************************** getDataIndex ***************************************/
   /**
-   * Gets the data index for a given view index.
+   * Gets the data index for a given view index (fast direct lookup).
    * <p>
    * If no explicit mapping exists for the specified view index, the identity mapping is assumed
    * and the view index itself is returned. This optimises memory usage for unmapped indices.
@@ -96,7 +96,7 @@ public class IndexMapping
 
   /**************************************** getViewIndex *****************************************/
   /**
-   * Finds the view index for a given data index.
+   * Finds the view index for a given data index (slow as needs to search).
    * <p>
    * For data indices beyond the mapped count, identity mapping is assumed. For indices within
    * the mapped range, the stored mappings are searched.
@@ -165,7 +165,7 @@ public class IndexMapping
     return m_mappedCount < originalCount;
   }
 
-  /*************************************** reorderIndices ****************************************/
+  /***************************************** moveIndices *****************************************/
   /**
    * Efficiently reorders multiple indices in a single operation.
    * <p>
@@ -178,42 +178,42 @@ public class IndexMapping
    * single insertions.
    * 
    * @param sortedSourceIndexes sorted array of view indices to move (must be in ascending order)
-   * @param targetIndex the position where moved indices should be inserted
+   * @param insertAtViewIndex the position where moved indices should be inserted
    * @return the minimum index affected by the reordering (useful for cache invalidation)
    */
-  public int reorderIndices( int[] sortedSourceIndexes, int targetIndex )
+  public int moveIndices( int[] sortedSourceIndexes, int insertAtViewIndex )
   {
     // ensure capacity for all affected indices
-    int maxRequiredIndex = Math.max( targetIndex, sortedSourceIndexes[sortedSourceIndexes.length - 1] );
+    int maxRequiredIndex = Math.max( insertAtViewIndex, sortedSourceIndexes[sortedSourceIndexes.length - 1] );
     ensureCapacity( maxRequiredIndex + 1 );
     m_mappedCount = maxRequiredIndex + 1;
 
     // extract data values in reverse order to preserve original positions during removal
-    int[] extractedData = new int[sortedSourceIndexes.length];
+    int[] movedDataIndexes = new int[sortedSourceIndexes.length];
     for ( int i = sortedSourceIndexes.length - 1; i >= 0; i-- )
-      extractedData[i] = remove( sortedSourceIndexes[i] );
+      movedDataIndexes[i] = remove( sortedSourceIndexes[i] );
 
     // calculate final insert position accounting for removed elements before target
-    int adjustedTarget = targetIndex;
+    int insertPosition = insertAtViewIndex;
     for ( int sourceIndex : sortedSourceIndexes )
-      if ( sourceIndex < targetIndex )
-        adjustedTarget--;
+      if ( sourceIndex < insertAtViewIndex )
+        insertPosition--;
       else
         break;
 
     // shift existing elements right to create space for moved elements
-    int count = extractedData.length;
-    System.arraycopy( m_dataIndices, adjustedTarget, m_dataIndices, adjustedTarget + count,
-        m_mappedCount - adjustedTarget );
+    int count = movedDataIndexes.length;
+    System.arraycopy( m_dataIndices, insertPosition, m_dataIndices, insertPosition + count,
+        m_mappedCount - insertPosition );
 
     // insert extracted data into created gap
-    System.arraycopy( extractedData, 0, m_dataIndices, adjustedTarget, count );
+    System.arraycopy( movedDataIndexes, 0, m_dataIndices, insertPosition, count );
 
     // update mapped count to include reinserted elements
     m_mappedCount += count;
 
     // return earliest affected index for cache invalidation
-    return Math.min( adjustedTarget, sortedSourceIndexes[0] );
+    return Math.min( insertPosition, sortedSourceIndexes[0] );
   }
 
   /******************************************* remove ********************************************/
@@ -242,14 +242,14 @@ public class IndexMapping
     int newCapacity = Math.max( requiredCapacity + 4, m_dataIndices.length + ( m_dataIndices.length >> 2 ) + 4 );
 
     // create new array and copy existing mappings
-    int[] newDataIndices = new int[newCapacity];
-    System.arraycopy( m_dataIndices, 0, newDataIndices, 0, m_mappedCount );
+    int[] expandedArray = new int[newCapacity];
+    System.arraycopy( m_dataIndices, 0, expandedArray, 0, m_mappedCount );
 
     // initialise new slots with identity mapping values
     for ( int i = m_mappedCount; i < newCapacity; i++ )
-      newDataIndices[i] = i;
+      expandedArray[i] = i;
 
-    m_dataIndices = newDataIndices;
+    m_dataIndices = expandedArray;
   }
 
 }

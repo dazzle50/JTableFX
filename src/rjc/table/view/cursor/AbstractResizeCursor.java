@@ -116,7 +116,7 @@ abstract public class AbstractResizeCursor extends AbstractCursor
   {
     // determine resize index from mouse coordinate
     int scroll = (int) m_scrollbar.getValue();
-    int index = m_axis.getIndexFromCoordinate( coordinate, scroll );
+    int index = m_axis.getViewIndexAtPixel( coordinate, scroll );
     int indexStart = m_axis.getStartPixel( index, scroll );
     int indexEnd = m_axis.getStartPixel( index + 1, scroll );
     if ( coordinate - indexStart < indexEnd - coordinate )

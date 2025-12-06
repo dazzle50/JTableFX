@@ -274,14 +274,14 @@ public class TableViewComponents extends TableViewParent implements IObservableS
   public int getColumnIndex( int xCoordinate )
   {
     // return column index at specified x coordinate
-    return m_columnsAxis.getIndexFromCoordinate( xCoordinate, (int) getHorizontalScrollBar().getValue() );
+    return m_columnsAxis.getViewIndexAtPixel( xCoordinate, (int) getHorizontalScrollBar().getValue() );
   }
 
   /***************************************** getRowIndex *****************************************/
   public int getRowIndex( int yCoordinate )
   {
     // return row index at specified y coordinate
-    return m_rowsAxis.getIndexFromCoordinate( yCoordinate, (int) getVerticalScrollBar().getValue() );
+    return m_rowsAxis.getViewIndexAtPixel( yCoordinate, (int) getVerticalScrollBar().getValue() );
   }
 
   /*************************************** getHeaderHeight ***************************************/

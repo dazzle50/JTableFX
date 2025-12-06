@@ -27,23 +27,44 @@ import rjc.table.HashSetInt;
 /***************** Compact storage for axis index nominal sizes and hidden state *****************/
 /*************************************************************************************************/
 
+/**
+ * Compact storage for axis data-index nominal sizes and hidden state using signed short values.
+ * <p>
+ * This class provides memory-efficient storage for per-index sizing information in table axes.
+ * Rather than storing size information for full axis, it uses array that grows dynamically as
+ * needed to cover last non-default entry.
+ * Each entry is stored as a short (2 bytes) rather than an int  * (4 bytes) to minimise memory usage.
+ * <p>
+ * The storage scheme uses signed short values with special semantics:
+ * <ul>
+ * <li>{@link #DEFAULT} (Short.MAX_VALUE) - index uses default size</li>
+ * <li>Positive value - index has explicit nominal size and is visible</li>
+ * <li>Negative value - index is hidden (absolute value is the size)</li>
+ * </ul>
+ * <p>
+ * This encoding allows both size and visibility to be stored in a single value, reducing memory
+ * overhead and simplifying operations that need to preserve hidden state whilst changing sizes.
+ * 
+ * @see AxisLayout
+ */
 public class IndexSize
 {
-  // constant indicating default size should be used
+  // constant indicating index should use default size
   public static final short DEFAULT = Short.MAX_VALUE;
 
-  // short array storing size exceptions and hidden state
-  // DEFAULT = use default size
-  // negative value = hidden (absolute value is size)
+  // compact storage: positive = visible size, negative = hidden (abs is size), DEFAULT = use default
   private short[]           m_sizes = new short[0];
 
   /**************************************** constructor ******************************************/
   public IndexSize()
   {
-    // empty constructor
+    // empty constructor - starts with no stored values
   }
 
   /******************************************** clear ********************************************/
+  /**
+   * Clears all stored size and visibility information, resetting to empty state.
+   */
   public void clear()
   {
     // reset to empty array
@@ -51,16 +72,22 @@ public class IndexSize
   }
 
   /*************************************** ensureCapacity ****************************************/
-  private void ensureCapacity( int index )
+  /**
+   * Expands internal array capacity to accommodate the specified index if needed.
+   * 
+   * @param requiredCapacity
+   *          minimum required index capacity
+   */
+  private void ensureCapacity( int requiredCapacity )
   {
-    // expand array if needed to accommodate index
-    if ( index >= m_sizes.length )
+    // expand array if index exceeds current capacity
+    if ( requiredCapacity >= m_sizes.length )
     {
-      // calculate new capacity with growth factor of 1.25x minimum
-      int newCapacity = Math.max( index + 4, m_sizes.length + ( m_sizes.length >> 2 ) + 4 );
+      // calculate new capacity with 25% growth factor
+      int newCapacity = Math.max( requiredCapacity + 4, m_sizes.length + ( m_sizes.length >> 2 ) + 4 );
       short[] newSizes = new short[newCapacity];
       System.arraycopy( m_sizes, 0, newSizes, 0, m_sizes.length );
-      // initialise new elements to default
+      // initialise new slots to default
       for ( int i = m_sizes.length; i < newSizes.length; i++ )
         newSizes[i] = DEFAULT;
       m_sizes = newSizes;
@@ -69,80 +96,82 @@ public class IndexSize
 
   /****************************************** setSize ********************************************/
   /**
-   * Sets the size for the specified index.
+   * Sets the nominal size for the specified index, preserving hidden state if already hidden.
    * 
-   * @param index
-   *          The cell index
+   * @param dataIndex
+   *          the cell index (data index, not view index)
    * @param size
-   *          The size value (use DEFAULT for default)
+   *          the size value (use DEFAULT for default size)
    */
-  public void setSize( int index, short size )
+  public void setSize( int dataIndex, short size )
   {
-    // ensure array is large enough
-    ensureCapacity( index );
+    // expand array capacity if needed
+    ensureCapacity( dataIndex );
 
-    // preserve hidden state if currently hidden
-    if ( m_sizes[index] < 0 )
-      m_sizes[index] = (short) -size;
+    // preserve hidden state by negating size if currently hidden
+    if ( m_sizes[dataIndex] < 0 )
+      m_sizes[dataIndex] = (short) -size;
     else
-      m_sizes[index] = size;
+      m_sizes[dataIndex] = size;
   }
 
   /****************************************** getSize ********************************************/
   /**
-   * Gets the size for the specified index, negative if hidden.
+   * Gets the size for the specified index.
    * 
-   * @param index
-   *          The cell index
-   * @return The size value (DEFAULT if default)
+   * @param dataIndex
+   *          the cell index (data index, not view index)
+   * @return the size value (DEFAULT if default, negative if hidden)
    */
-  public short getSize( int index )
+  public short getSize( int dataIndex )
   {
-    // return default if index beyond array bounds
-    if ( index >= m_sizes.length )
+    // return default if index beyond stored range
+    if ( dataIndex >= m_sizes.length )
       return DEFAULT;
 
-    // return size, negative if hidden
-    return m_sizes[index];
+    // return stored value (negative indicates hidden)
+    return m_sizes[dataIndex];
   }
 
-  /***************************************** resetSizeToDefault *******************************************/
+  /*************************************** clearIndexSize ****************************************/
   /**
-   * Clears the size exception for the specified index, reverting to default.
+   * Clears the size exception for the specified index, reverting to default whilst preserving
+   * hidden state.
    * 
-   * @param index
-   *          The cell index
-   * @return true if the size was changed
+   * @param dataIndex
+   *          the cell index to clear
+   * @return true if the size was changed, false if already default or out of bounds
    */
-  public boolean resetSizeToDefault( int index )
+  public boolean clearIndexSize( int dataIndex )
   {
-    // return false if index beyond array bounds or already default
-    if ( index >= m_sizes.length || m_sizes[index] == DEFAULT )
+    // no change needed if beyond array or already default
+    if ( dataIndex >= m_sizes.length || m_sizes[dataIndex] == DEFAULT )
       return false;
 
-    // preserve hidden state when clearing size
-    if ( m_sizes[index] < 0 )
-      m_sizes[index] = (short) -DEFAULT;
+    // revert to default whilst preserving hidden state
+    if ( m_sizes[dataIndex] < 0 )
+      m_sizes[dataIndex] = (short) -DEFAULT;
     else
-      m_sizes[index] = DEFAULT;
+      m_sizes[dataIndex] = DEFAULT;
 
     return true;
   }
 
-  /************************************** enforceMinimumSize *************************************/
+  /************************************** applyMinimumSize ***************************************/
   /**
-   * Ensures all size exceptions meet the specified minimum size.
+   * Ensures all size exceptions meet the specified minimum size, preserving hidden state.
    * 
    * @param minSize
-   *          The minimum size to enforce
+   *          the minimum size to enforce
    */
-  public void enforceMinimumSize( short minSize )
+  public void applyMinimumSize( short minSize )
   {
-    // iterate through all stored sizes and enforce minimum
+    // scan all stored sizes and enforce minimum
     for ( int i = 0; i < m_sizes.length; i++ )
     {
       short size = m_sizes[i];
       short absSize = size < 0 ? (short) -size : size;
+      // only adjust non-default sizes below minimum
       if ( absSize != DEFAULT && absSize < minSize )
       {
         // preserve hidden state whilst enforcing minimum
@@ -156,74 +185,74 @@ public class IndexSize
 
   /******************************************* hide **********************************************/
   /**
-   * Hides the specified index.
+   * Hides the specified index by negating its size value.
    * 
-   * @param index
-   *          The cell index
-   * @return true if the hidden state was changed
+   * @param dataIndex
+   *          the cell index to hide
+   * @return true if hidden state was changed, false if already hidden
    */
-  public boolean hide( int index )
+  public boolean hide( int dataIndex )
   {
-    // ensure array is large enough
-    ensureCapacity( index );
+    // expand array capacity if needed
+    ensureCapacity( dataIndex );
 
-    // return false if already hidden
-    if ( m_sizes[index] < 0 )
+    // no change if already hidden (negative)
+    if ( m_sizes[dataIndex] < 0 )
       return false;
 
-    // make negative to indicate hidden
-    m_sizes[index] = (short) -m_sizes[index];
+    // negate to mark as hidden
+    m_sizes[dataIndex] = (short) -m_sizes[dataIndex];
     return true;
   }
 
   /****************************************** unhide *********************************************/
   /**
-   * Unhides the specified index.
+   * Unhides the specified index by making its size value positive.
    * 
-   * @param index
-   *          The cell index
-   * @return true if the hidden state was changed
+   * @param dataIndex
+   *          the cell index to unhide
+   * @return true if hidden state was changed, false if already visible or out of bounds
    */
-  public boolean unhide( int index )
+  public boolean unhide( int dataIndex )
   {
-    // return false if index beyond array bounds or not hidden
-    if ( index >= m_sizes.length || m_sizes[index] >= 0 )
+    // no change if beyond array or already visible (non-negative)
+    if ( dataIndex >= m_sizes.length || m_sizes[dataIndex] >= 0 )
       return false;
 
-    // make positive to indicate visible
-    m_sizes[index] = (short) -m_sizes[index];
+    // negate to mark as visible
+    m_sizes[dataIndex] = (short) -m_sizes[dataIndex];
     return true;
   }
 
   /***************************************** unhideAll *******************************************/
   /**
-   * Unhides all hidden indexes.
+   * Unhides all currently hidden indices.
    * 
-   * @return Set of indexes that were unhidden
+   * @return set of data-indices that were unhidden (null if none were hidden)
    */
   public HashSetInt unhideAll()
   {
-    // find all hidden indexes and unhide them
-    var shown = new HashSetInt();
+    // find and unhide all negative (hidden) values
+    var unhidden = new HashSetInt();
     for ( int i = 0; i < m_sizes.length; i++ )
       if ( m_sizes[i] < 0 )
       {
         m_sizes[i] = (short) -m_sizes[i];
-        shown.add( i );
+        unhidden.add( i );
       }
 
-    return shown.isEmpty() ? null : shown;
+    return unhidden.isEmpty() ? null : unhidden;
   }
 
   /************************************** getHiddenIndexes ***************************************/
   /**
-   * Returns a set containing all hidden cell indexes.
+   * Returns a set containing all currently hidden cell indices.
    * 
-   * @return HashSetInt containing all hidden cell indexes
+   * @return set of hidden cell data-indices (empty if none hidden)
    */
   public HashSetInt getHiddenIndexes()
   {
-    // collect all hidden indexes
+    // collect all indices with negative (hidden) values
     var hidden = new HashSetInt();
     for ( int i = 0; i < m_sizes.length; i++ )
       if ( m_sizes[i] < 0 )
@@ -234,13 +263,13 @@ public class IndexSize
 
   /************************************** getSizeExceptions **************************************/
   /**
-   * Returns a map of all size exceptions (excluding default sizes).
+   * Returns a map of all size exceptions (excluding DEFAULT values).
    * 
-   * @return Map of index to size for all non-default sizes
+   * @return map of data-index to absolute size for all non-default sizes
    */
   public Map<Integer, Short> getSizeExceptions()
   {
-    // collect all non-default size exceptions
+    // collect all non-default sizes (return absolute values)
     var exceptions = new HashMap<Integer, Short>();
     for ( int i = 0; i < m_sizes.length; i++ )
     {
@@ -255,11 +284,11 @@ public class IndexSize
 
   /*************************************** clearExceptions ***************************************/
   /**
-   * Clears all size exceptions while preserving hidden state.
+   * Clears all size exceptions whilst preserving hidden state for all indices.
    */
   public void clearExceptions()
   {
-    // reset all sizes to default while preserving hidden state
+    // reset all to DEFAULT whilst preserving hidden state
     for ( int i = 0; i < m_sizes.length; i++ )
       if ( m_sizes[i] < 0 )
         m_sizes[i] = (short) -DEFAULT;
@@ -269,14 +298,14 @@ public class IndexSize
 
   /****************************************** truncate *******************************************/
   /**
-   * Truncates the internal array to the specified size, removing data beyond the new size.
+   * Truncates the internal array to the specified size, discarding data beyond the new size.
    * 
    * @param newSize
-   *          The new maximum index + 1
+   *          the new maximum index + 1
    */
   public void truncate( int newSize )
   {
-    // only truncate if new size is smaller than current
+    // only truncate if new size is smaller
     if ( newSize < m_sizes.length )
     {
       short[] newSizes = new short[newSize];
@@ -287,52 +316,55 @@ public class IndexSize
 
   /**************************************** reorderIndexes ***************************************/
   /**
-   * Reorders the size and hidden data based on moved indexes.
+   * Reorders the size and hidden data when indices are moved in the view.
+   * <p>
+   * This handles the complex case where multiple indices are moved together to a new position,
+   * requiring all other indices to shift accordingly.
    * 
-   * @param movedSorted
-   *          Sorted array of source indexes being moved
+   * @param sortedIndexes
+   *          sorted array of source data-indices being moved
    * @param insertIndex
-   *          Target position for insertion
+   *          target position for insertion in data space
    */
-  public void reorderIndexes( int[] movedSorted, int insertIndex )
+  public void reorderIndexes( int[] sortedIndexes, int insertIndex )
   {
-    // calculate adjusted insert position
-    int adjustedTarget = insertIndex;
-    for ( int sourceIndex : movedSorted )
+    // calculate actual insert position accounting for removed elements
+    int insertPosition = insertIndex;
+    for ( int sourceIndex : sortedIndexes )
     {
       if ( sourceIndex < insertIndex )
-        adjustedTarget--;
+        insertPosition--;
       else
         break;
     }
 
-    // find maximum index we need to handle
-    int maxIndex = Math.max( m_sizes.length - 1, adjustedTarget + movedSorted.length - 1 );
+    // determine required array size after reordering
+    int maxIndex = Math.max( m_sizes.length - 1, insertPosition + sortedIndexes.length - 1 );
     if ( maxIndex < 0 )
       return;
 
-    // create new array for reordered data
+    // create new array with default values
     short[] newSizes = new short[maxIndex + 1];
     for ( int i = 0; i < newSizes.length; i++ )
       newSizes[i] = DEFAULT;
 
-    // copy moved indexes to their new positions
-    for ( int i = 0; i < movedSorted.length; i++ )
+    // copy moved indices to their new positions
+    for ( int i = 0; i < sortedIndexes.length; i++ )
     {
-      int sourceIndex = movedSorted[i];
+      int sourceIndex = sortedIndexes[i];
       if ( sourceIndex < m_sizes.length )
-        newSizes[adjustedTarget + i] = m_sizes[sourceIndex];
+        newSizes[insertPosition + i] = m_sizes[sourceIndex];
     }
 
-    // copy non-moved indexes to their adjusted positions
+    // copy non-moved indices to adjusted positions
     for ( int sourceIndex = 0; sourceIndex < m_sizes.length; sourceIndex++ )
     {
-      // skip if this index was moved
-      if ( java.util.Arrays.binarySearch( movedSorted, sourceIndex ) >= 0 )
+      // skip moved indices
+      if ( java.util.Arrays.binarySearch( sortedIndexes, sourceIndex ) >= 0 )
         continue;
 
-      // calculate adjusted target position
-      int targetIndex = adjustedIndex( sourceIndex, adjustedTarget, movedSorted );
+      // calculate where this index moves to after reordering
+      int targetIndex = adjustedIndex( sourceIndex, insertPosition, sortedIndexes );
       if ( targetIndex <= maxIndex )
         newSizes[targetIndex] = m_sizes[sourceIndex];
     }
@@ -341,41 +373,54 @@ public class IndexSize
   }
 
   /**************************************** adjustedIndex ****************************************/
-  private int adjustedIndex( int exceptionIndex, int insertIndex, int[] movedSorted )
+  /**
+   * Calculates the new index position for a non-moved index after reordering.
+   * 
+   * @param originalIndex
+   *          the original index position
+   * @param insertIndex
+   *          where moved indices were inserted
+   * @param movedSorted
+   *          sorted array of indices that were moved
+   * @return adjusted index position after reordering
+   */
+  private int adjustedIndex( int originalIndex, int insertIndex, int[] movedSorted )
   {
-    // count of moved before exception index
+    // count how many moved indices were before this index
     int before = 0;
-    while ( before < movedSorted.length && movedSorted[before] < exceptionIndex )
+    while ( before < movedSorted.length && movedSorted[before] < originalIndex )
       before++;
 
-    if ( exceptionIndex < insertIndex + before )
-      return exceptionIndex - before;
+    // adjust position based on insertion point
+    if ( originalIndex < insertIndex + before )
+      return originalIndex - before;
 
-    return exceptionIndex - before + movedSorted.length;
+    return originalIndex - before + movedSorted.length;
   }
 
   /************************************* calculateTotalPixels ************************************/
   /**
-   * Calculates the total pixels for all body cells based on default size, non-default, and hidden state.
+   * Calculates the total pixels for all body cells based on default size, zoom factor, size 
+   * exceptions, and hidden state.
    * 
    * @param count
-   *          Total number of indexes
+   *          total number of indices in the axis
    * @param defaultSize
-   *          Default size for indexes without exceptions
+   *          default size for indices without exceptions
    * @param zoom
-   *          Zoom factor for pixel scaling
-   * @return Total pixels for all visible body cells
+   *          zoom factor for pixel scaling
+   * @return total pixels for all visible body cells
    */
   public int calculateTotalPixels( int count, int defaultSize, double zoom )
   {
-    // start with count of all indexes using default size
-    int visibleDefaultCount = count;
-    int exceptionPixels = 0;
+    // start assuming all indices use default size
+    int defaultSizeCount = count;
+    int customSizePixels = 0;
 
-    // when no zoom factor, pixel size equals nominal size
+    // optimised path when zoom is effectively 1.0
     if ( Math.abs( zoom - 1.0 ) < 0.001 )
     {
-      // process all stored sizes in single pass
+      // process stored sizes in single pass without zoom multiplication
       for ( int i = 0; i < m_sizes.length && i < count; i++ )
       {
         short size = m_sizes[i];
@@ -384,19 +429,19 @@ public class IndexSize
           continue; // uses default, already counted
 
         if ( size < 0 )
-          visibleDefaultCount--; // hidden
+          defaultSizeCount--; // hidden, exclude from total
         else
         {
-          // visible with non-default size
-          visibleDefaultCount--;
-          exceptionPixels += size;
+          // visible with custom size
+          defaultSizeCount--;
+          customSizePixels += size;
         }
       }
 
-      return exceptionPixels + visibleDefaultCount * defaultSize;
+      return customSizePixels + defaultSizeCount * defaultSize;
     }
 
-    // when zoom, need to apply zoom factor to sizes
+    // apply zoom factor to all sizes
     for ( int i = 0; i < m_sizes.length && i < count; i++ )
     {
       short size = m_sizes[i];
@@ -405,16 +450,16 @@ public class IndexSize
         continue; // uses default, already counted
 
       if ( size < 0 )
-        visibleDefaultCount--; // hidden
+        defaultSizeCount--; // hidden, exclude from total
       else
       {
-        // visible with non-default size
-        visibleDefaultCount--;
-        exceptionPixels += (int) ( size * zoom );
+        // visible with custom size - apply zoom
+        defaultSizeCount--;
+        customSizePixels += (int) ( size * zoom );
       }
     }
 
-    return exceptionPixels + visibleDefaultCount * (int) ( defaultSize * zoom );
+    return customSizePixels + defaultSizeCount * (int) ( defaultSize * zoom );
   }
 
 }
