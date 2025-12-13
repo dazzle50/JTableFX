@@ -19,6 +19,7 @@
 package rjc.table.undo.commands;
 
 import java.util.HashMap;
+import java.util.Map;
 
 import rjc.table.HashSetInt;
 import rjc.table.view.TableView;
@@ -30,41 +31,36 @@ import rjc.table.view.axis.TableAxis;
 
 public class CommandResize implements ICommandResize
 {
-  private TableView                 m_view;                 // table view
-  private TableAxis                 m_axis;                 // columns or rows being resized
-  private HashSetInt                m_indexes;              // indexes being resized
-  private String                    m_text;                 // text describing command
-
-  private HashMap<Integer, Integer> m_oldExceptions;        // old size exceptions before resize
-  private int                       m_newSize;              // new size
-
-  final static private int          NO_EXCEPTION = -999999; // no size exception
+  private TableView               m_view;     // table view
+  private TableAxis               m_axis;     // columns or rows being resized
+  private HashMap<Integer, Short> m_oldSizes; // data-index to old size map
+  private int                     m_newSize;  // new size
+  private String                  m_text;     // text describing command
 
   /**************************************** constructor ******************************************/
-  public CommandResize( TableView view, TableAxis axis, HashSetInt selected )
+  public CommandResize( TableView view, TableAxis axis, HashSetInt viewIndexes )
   {
     // prepare resize command
     m_view = view;
     m_axis = axis;
-    m_indexes = selected;
 
-    // get any exceptions for selected before resizing starts
-    m_oldExceptions = new HashMap<>();
-    HashSetInt.IntIterator iter = selected.iterator();
+    // populate map of data indexes being resized to their old sizes
+    m_oldSizes = new HashMap<>();
+    HashSetInt.IntIterator iter = viewIndexes.iterator();
     while ( iter.hasNext() )
     {
-      int index = iter.next();
-      int size = axis.getSizeExceptions().getOrDefault( index, NO_EXCEPTION );
-      m_oldExceptions.put( index, size );
+      int dataIndex = m_axis.getDataIndex( iter.next() );
+      short size = m_axis.getNominalSize( dataIndex );
+      m_oldSizes.put( dataIndex, size );
     }
   }
 
   /***************************************** setNewSize ******************************************/
   @Override
-  public void setNewSize( int size )
+  public void setNewSize( int nominalSize )
   {
     // set command new size
-    m_newSize = size;
+    m_newSize = nominalSize;
   }
 
   /******************************************* redo **********************************************/
@@ -72,9 +68,8 @@ public class CommandResize implements ICommandResize
   public void redo()
   {
     // action command
-    HashSetInt.IntIterator iter = m_indexes.iterator();
-    while ( iter.hasNext() )
-      m_axis.setIndexSize( iter.next(), m_newSize );
+    for ( Integer index : m_oldSizes.keySet() )
+      m_axis.setNominalSize( index, m_newSize );
 
     m_view.redraw();
   }
@@ -83,14 +78,9 @@ public class CommandResize implements ICommandResize
   @Override
   public void undo()
   {
-    // revert command - restore old exceptions
-    m_oldExceptions.forEach( ( index, size ) ->
-    {
-      if ( size == NO_EXCEPTION )
-        m_axis.clearIndexSize( index );
-      else
-        m_axis.setIndexSize( index, size );
-    } );
+    // revert command - restore old size
+    for ( Map.Entry<Integer, Short> entry : m_oldSizes.entrySet() )
+      m_axis.setNominalSize( entry.getKey(), entry.getValue() );
 
     m_view.redraw();
   }
@@ -102,9 +92,9 @@ public class CommandResize implements ICommandResize
     // command description
     if ( m_text == null )
     {
-      m_text = "Resized " + m_indexes.size();
+      m_text = "Resized " + m_oldSizes.size();
       m_text += m_axis == m_view.getColumnsAxis() ? " column" : " row";
-      m_text += m_indexes.size() > 1 ? "s" : "";
+      m_text += m_oldSizes.size() > 1 ? "s" : "";
 
       if ( m_view.getId() != null )
         m_text = m_view.getId() + " - " + m_text;

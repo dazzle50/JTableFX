@@ -31,16 +31,23 @@ public class CommandHideIndexes implements IUndoCommand
 {
   private TableView  m_view;    // table view
   private TableAxis  m_axis;    // axis for hiding
-  private HashSetInt m_indexes; // view-indexes being hidden
+  private HashSetInt m_indexes; // data-indexes being hidden
   private String     m_text;    // text describing command
 
   /**************************************** constructor ******************************************/
-  public CommandHideIndexes( TableView view, TableAxis axis, HashSetInt indexes )
+  public CommandHideIndexes( TableView view, TableAxis axis, HashSetInt viewIndexes )
   {
     // prepare hide command and hide the requested indexes
     m_view = view;
     m_axis = axis;
-    m_indexes = m_axis.hideIndexes( indexes );
+
+    // convert view indexes to data indexes and hide them
+    HashSetInt dataIndexes = new HashSetInt( viewIndexes.size() );
+    var it = viewIndexes.iterator();
+    while ( it.hasNext() )
+      dataIndexes.add( m_axis.getDataIndex( it.next() ) );
+
+    m_indexes = m_axis.hideDataIndexes( dataIndexes );
     m_view.redraw();
   }
 
@@ -49,7 +56,7 @@ public class CommandHideIndexes implements IUndoCommand
   public void redo()
   {
     // hide the indexes
-    m_axis.hideIndexes( m_indexes );
+    m_axis.hideDataIndexes( m_indexes );
     m_view.redraw();
   }
 
@@ -58,7 +65,7 @@ public class CommandHideIndexes implements IUndoCommand
   public void undo()
   {
     // unhide the indexes
-    m_axis.unhideIndexes( m_indexes );
+    m_axis.unhideDataIndexes( m_indexes );
     m_view.redraw();
   }
 

@@ -32,8 +32,8 @@ import rjc.table.HashSetInt;
  * <p>
  * This class provides memory-efficient storage for per-index sizing information in table axes.
  * Rather than storing size information for full axis, it uses array that grows dynamically as
- * needed to cover last non-default entry.
- * Each entry is stored as a short (2 bytes) rather than an int  * (4 bytes) to minimise memory usage.
+ * needed to cover last non-defaulted sized entry.
+ * Each entry is stored as a short (2 bytes) rather than an int (4 bytes) to minimise memory usage.
  * <p>
  * The storage scheme uses signed short values with special semantics:
  * <ul>
@@ -53,19 +53,23 @@ public class IndexSize
   public static final short DEFAULT = Short.MAX_VALUE;
 
   // compact storage: positive = visible size, negative = hidden (abs is size), DEFAULT = use default
-  private short[]           m_sizes = new short[0];
+  private short[] m_sizes;
 
   /**************************************** constructor ******************************************/
+  /**
+   * Creates with no stored size or visibility information. 
+   */
   public IndexSize()
   {
-    // empty constructor - starts with no stored values
+    // initialise with no stored values
+    reset();
   }
 
-  /******************************************** clear ********************************************/
+  /******************************************** reset ********************************************/
   /**
    * Clears all stored size and visibility information, resetting to empty state.
    */
-  public void clear()
+  public void reset()
   {
     // reset to empty array
     m_sizes = new short[0];
@@ -84,7 +88,7 @@ public class IndexSize
     if ( requiredCapacity >= m_sizes.length )
     {
       // calculate new capacity with 25% growth factor
-      int newCapacity = Math.max( requiredCapacity + 4, m_sizes.length + ( m_sizes.length >> 2 ) + 4 );
+      int newCapacity = Math.max( requiredCapacity + 4, m_sizes.length + ( m_sizes.length >> 2 ) );
       short[] newSizes = new short[newCapacity];
       System.arraycopy( m_sizes, 0, newSizes, 0, m_sizes.length );
       // initialise new slots to default
@@ -94,7 +98,7 @@ public class IndexSize
     }
   }
 
-  /****************************************** setSize ********************************************/
+  /*************************************** setNominalSize ****************************************/
   /**
    * Sets the nominal size for the specified index, preserving hidden state if already hidden.
    * 
@@ -103,7 +107,7 @@ public class IndexSize
    * @param size
    *          the size value (use DEFAULT for default size)
    */
-  public void setSize( int dataIndex, short size )
+  public void setNominalSize( int dataIndex, short size )
   {
     // expand array capacity if needed
     ensureCapacity( dataIndex );
@@ -115,15 +119,15 @@ public class IndexSize
       m_sizes[dataIndex] = size;
   }
 
-  /****************************************** getSize ********************************************/
+  /*************************************** getNominalSize ****************************************/
   /**
-   * Gets the size for the specified index.
+   * Gets the nominal size (DEFAULT if default, negative if hidden) for the specified index.
    * 
    * @param dataIndex
    *          the cell index (data index, not view index)
    * @return the size value (DEFAULT if default, negative if hidden)
    */
-  public short getSize( int dataIndex )
+  public short getNominalSize( int dataIndex )
   {
     // return default if index beyond stored range
     if ( dataIndex >= m_sizes.length )
@@ -142,10 +146,10 @@ public class IndexSize
    *          the cell index to clear
    * @return true if the size was changed, false if already default or out of bounds
    */
-  public boolean clearIndexSize( int dataIndex )
+  public boolean resetNominalSize( int dataIndex )
   {
     // no change needed if beyond array or already default
-    if ( dataIndex >= m_sizes.length || m_sizes[dataIndex] == DEFAULT )
+    if ( dataIndex >= m_sizes.length || m_sizes[dataIndex] == DEFAULT || m_sizes[dataIndex] == -DEFAULT )
       return false;
 
     // revert to default whilst preserving hidden state
@@ -159,7 +163,7 @@ public class IndexSize
 
   /************************************** applyMinimumSize ***************************************/
   /**
-   * Ensures all size exceptions meet the specified minimum size, preserving hidden state.
+   * Ensures all size exceptions meet the specified minimum nominal size, preserving hidden state.
    * 
    * @param minSize
    *          the minimum size to enforce

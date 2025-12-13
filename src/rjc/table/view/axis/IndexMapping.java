@@ -48,27 +48,24 @@ package rjc.table.view.axis;
  */
 public class IndexMapping
 {
-  private int[]           m_dataIndices;                  // array of data indices mapped from view indices
-  private int             m_mappedCount;                  // count of indices with explicit mappings stored
-
-  public static final int FIRSTCELL = TableAxis.FIRSTCELL;
-  public static final int INVALID   = TableAxis.INVALID;
+  private int[] m_dataIndices; // array of data indices mapped from view indices
+  private int   m_mappedCount; // count of indices with explicit mappings stored
 
   /**************************************** constructor ******************************************/
   /**
-   * Creates a new empty index mapping with minimal initial capacity.
+   * Creates a new empty index mapping.
    */
   public IndexMapping()
   {
     // initialise with empty mapping
-    clear();
+    reset();
   }
 
-  /******************************************** clear ********************************************/
+  /******************************************** reset ********************************************/
   /**
-   * Clears all stored mappings, resetting to identity mapping.
+   * Resets all stored mappings, clearing to identity mapping.
    */
-  public void clear()
+  public void reset()
   {
     // reset to empty state with no stored mappings
     m_dataIndices = new int[0];
@@ -116,7 +113,7 @@ public class IndexMapping
         return i;
 
     // not found in stored mappings
-    return INVALID;
+    return TableAxis.INVALID;
   }
 
   /****************************************** hashCode *******************************************/
@@ -239,7 +236,7 @@ public class IndexMapping
       return;
 
     // calculate new capacity with 25% growth factor, minimum of required capacity
-    int newCapacity = Math.max( requiredCapacity + 4, m_dataIndices.length + ( m_dataIndices.length >> 2 ) + 4 );
+    int newCapacity = Math.max( requiredCapacity + 4, m_dataIndices.length + ( m_dataIndices.length >> 2 ) );
 
     // create new array and copy existing mappings
     int[] expandedArray = new int[newCapacity];

@@ -47,10 +47,16 @@ public class CommandReorderData implements IUndoCommand
     m_indexes = selected;
     m_insert = insertIndex;
 
-    // action the reorder - if not successful invalid the command
+    // action the reorder in data-model - if not successful invalid the command
     boolean success = m_orientation == Orientation.HORIZONTAL
         ? ( (IDataReorderColumns) m_data ).reorderColumns( m_indexes, m_insert )
         : ( (IDataReorderRows) m_data ).reorderRows( m_indexes, m_insert );
+
+    if ( success )
+    {
+      // TODO reorder the index sizes
+    }
+
     if ( !success )
       m_data = null;
   }

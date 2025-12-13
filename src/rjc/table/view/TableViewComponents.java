@@ -83,8 +83,8 @@ public class TableViewComponents extends TableViewParent implements IObservableS
     // reset table view to default settings
     getColumnsAxis().reset();
     getRowsAxis().reset();
-    getRowsAxis().setDefaultSize( 20 );
-    getRowsAxis().setHeaderSize( 20 );
+    getRowsAxis().setDefaultNominalSize( 20 );
+    getRowsAxis().setHeaderNominalSize( 20 );
   }
 
   /**************************************** updateLayout *****************************************/
@@ -260,14 +260,14 @@ public class TableViewComponents extends TableViewParent implements IObservableS
   public int getColumnStartX( int viewColumn )
   {
     // return x coordinate of cell start for specified column position
-    return m_columnsAxis.getStartPixel( viewColumn, (int) getHorizontalScrollBar().getValue() );
+    return m_columnsAxis.getPixelStart( viewColumn, (int) getHorizontalScrollBar().getValue() );
   }
 
   /**************************************** getRowStartY *****************************************/
   public int getRowStartY( int viewRow )
   {
     // return y coordinate of cell start for specified row position
-    return m_rowsAxis.getStartPixel( viewRow, (int) getVerticalScrollBar().getValue() );
+    return m_rowsAxis.getPixelStart( viewRow, (int) getVerticalScrollBar().getValue() );
   }
 
   /*************************************** getColumnIndex ****************************************/

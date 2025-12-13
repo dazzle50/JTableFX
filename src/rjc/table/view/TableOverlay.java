@@ -95,6 +95,10 @@ public class TableOverlay extends Canvas
     int lastColumn = m_view.getColumnIndex( (int) getWidth() );
     int viewColumn = m_view.getColumnIndex( m_view.getHeaderWidth() );
 
+    // exit if no visible columns
+    if ( viewColumn == TableAxis.AFTER )
+      return;
+
     while ( viewColumn <= lastColumn )
     {
       // check if this visible column is filtered
@@ -117,6 +121,10 @@ public class TableOverlay extends Canvas
     int lastRow = m_view.getRowIndex( (int) getHeight() );
     int viewRow = m_view.getRowIndex( m_view.getHeaderHeight() );
 
+    // exit if no visible rows
+    if ( viewRow == TableAxis.AFTER )
+      return;
+
     while ( viewRow <= lastRow )
     {
       // check if this visible row is filtered
@@ -138,6 +146,10 @@ public class TableOverlay extends Canvas
     // check each visible column between visible min and max columns inclusive
     int lastColumn = m_view.getColumnIndex( (int) getWidth() );
     int viewColumn = m_view.getColumnIndex( m_view.getHeaderWidth() );
+
+    // exit if no visible columns
+    if ( viewColumn == TableAxis.AFTER )
+      return;
 
     while ( viewColumn <= lastColumn )
     {
@@ -169,6 +181,10 @@ public class TableOverlay extends Canvas
     // check each visible row between visible min and max rows inclusive
     int lastRow = m_view.getRowIndex( (int) getHeight() );
     int viewRow = m_view.getRowIndex( m_view.getHeaderHeight() );
+
+    // exit if no visible rows
+    if ( viewRow == TableAxis.AFTER )
+      return;
 
     while ( viewRow <= lastRow )
     {

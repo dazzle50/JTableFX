@@ -19,7 +19,7 @@
 
 package rjc.table.undo.commands;
 
-import java.util.HashMap;
+import java.util.Map;
 
 import rjc.table.view.TableView;
 import rjc.table.view.axis.TableAxis;
@@ -30,13 +30,13 @@ import rjc.table.view.axis.TableAxis;
 
 public class CommandResizeAll implements ICommandResize
 {
-  private TableView                 m_view;          // table view
-  private TableAxis                 m_axis;          // columns or rows being resized
-  private String                    m_text;          // text describing command
+  private TableView           m_view;          // table view
+  private TableAxis           m_axis;          // columns or rows being resized
+  private String              m_text;          // text describing command
 
-  private HashMap<Integer, Integer> m_oldExceptions; // old size exceptions before resize
-  private int                       m_oldDefault;    // old default before resize
-  private int                       m_newDefault;    // new default
+  private Map<Integer, Short> m_oldExceptions; // old size exceptions before resize
+  private int                 m_oldDefault;    // old default before resize
+  private int                 m_newDefault;    // new default
 
   /**************************************** constructor ******************************************/
   public CommandResizeAll( TableView view, TableAxis axis )
@@ -46,9 +46,8 @@ public class CommandResizeAll implements ICommandResize
     m_axis = axis;
 
     // get old default size and exceptions before resizing starts
-    m_oldDefault = axis.getDefaultSize();
-    m_oldExceptions = new HashMap<>();
-    axis.getSizeExceptions().forEach( ( index, size ) -> m_oldExceptions.put( index, size ) );
+    m_oldDefault = axis.getDefaultNominalSize();
+    m_oldExceptions = axis.getSizeExceptions();
   }
 
   /***************************************** setNewSize ******************************************/
@@ -64,7 +63,7 @@ public class CommandResizeAll implements ICommandResize
   public void redo()
   {
     // action command
-    m_axis.setDefaultSize( m_newDefault );
+    m_axis.setDefaultNominalSize( m_newDefault );
     m_axis.clearSizeExceptions();
     m_view.redraw();
   }
@@ -74,8 +73,8 @@ public class CommandResizeAll implements ICommandResize
   public void undo()
   {
     // revert command
-    m_axis.setDefaultSize( m_oldDefault );
-    m_oldExceptions.forEach( ( index, size ) -> m_axis.setIndexSize( index, size ) );
+    m_axis.setDefaultNominalSize( m_oldDefault );
+    m_oldExceptions.forEach( ( index, size ) -> m_axis.setNominalSize( index, size ) );
     m_view.redraw();
   }
 

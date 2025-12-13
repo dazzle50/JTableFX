@@ -194,7 +194,7 @@ public class CellSelection implements ISignal
     int bottom = axis.getLastVisible();
 
     for ( int rowIndex = top; rowIndex <= bottom; rowIndex++ )
-      rows: if ( axis.isIndexVisible( rowIndex ) )
+      rows: if ( axis.isVisible( rowIndex ) )
       {
         for ( var area : m_selected )
           if ( area.isCellSelected( columnIndex, rowIndex ) )
@@ -220,7 +220,7 @@ public class CellSelection implements ISignal
     int right = axis.getLastVisible();
 
     for ( int columnIndex = left; columnIndex <= right; columnIndex++ )
-      columns: if ( axis.isIndexVisible( columnIndex ) )
+      columns: if ( axis.isVisible( columnIndex ) )
       {
         for ( var area : m_selected )
           if ( area.isCellSelected( columnIndex, rowIndex ) )
@@ -348,7 +348,7 @@ public class CellSelection implements ISignal
 
     // check each visible row, return false as soon as one is not selected
     for ( int row = top; row <= bottom; row++ )
-      if ( m_view.getRowsAxis().isIndexVisible( row ) && !isRowSelected( row ) )
+      if ( m_view.getRowsAxis().isVisible( row ) && !isRowSelected( row ) )
         return false;
 
     // all visible rows are selected
@@ -369,7 +369,7 @@ public class CellSelection implements ISignal
 
     // check each visible column, return false as soon as one is not selected
     for ( int col = left; col <= right; col++ )
-      if ( m_view.getColumnsAxis().isIndexVisible( col ) && !isColumnSelected( col ) )
+      if ( m_view.getColumnsAxis().isVisible( col ) && !isColumnSelected( col ) )
         return false;
 
     // all visible columns are selected

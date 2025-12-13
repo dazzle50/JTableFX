@@ -49,7 +49,7 @@ public class ViewPosition extends ObservablePosition
   public boolean isVisible()
   {
     // return true if position is visible
-    return m_view.getColumnsAxis().isIndexVisible( getColumn() ) && m_view.getRowsAxis().isIndexVisible( getRow() );
+    return m_view.getColumnsAxis().isVisible( getColumn() ) && m_view.getRowsAxis().isVisible( getRow() );
   }
 
   /**************************************** moveToVisible ****************************************/

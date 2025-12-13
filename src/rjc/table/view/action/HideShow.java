@@ -19,6 +19,7 @@
 package rjc.table.view.action;
 
 import rjc.table.HashSetInt;
+import rjc.table.signal.ObservableStatus.Level;
 import rjc.table.undo.commands.CommandHideIndexes;
 import rjc.table.undo.commands.CommandUnhideIndexes;
 import rjc.table.view.TableView;
@@ -35,26 +36,30 @@ public class HideShow
    * Cannot hide all rows (at least one row must remain visible).
    * 
    * @param view TableView to operate on
-   * @param row  row index to hide (or all selected rows if that row is selected)
+   * @param viewRow  row index to hide (or all selected rows if that row is selected)
    * @return true if undo-command successfully pushed to undo-stack, else false
    */
-  public static boolean hideRows( TableView view, int row )
+  public static boolean hideRows( TableView view, int viewRow )
   {
     // if mouse row is selected, hide all selected rows, else just hide mouse row
-    var indexes = view.getSelection().isRowSelected( row ) ? view.getSelection().getSelectedRows()
+    var viewRows = view.getSelection().isRowSelected( viewRow ) ? view.getSelection().getSelectedRows()
         : new HashSetInt( 1 );
 
-    if ( indexes == null || view.getSelection().areAllVisibleRowsSelected() )
-      return false; // cannot hide all rows
+    // prevent hiding all rows
+    if ( viewRows == null || view.getSelection().areAllVisibleRowsSelected()
+        || view.getRowsAxis().getFirstVisible() == view.getRowsAxis().getLastVisible() )
+    {
+      view.getStatus().update( Level.INFO, "Cannot hide all rows" );
+      view.getStatus().clearAfterMillisecs( 2500 );
+      return false;
+    }
 
-    if ( view.getRowsAxis().getFirstVisible() == view.getRowsAxis().getLastVisible() )
-      return false; // cannot hide last remaining row
-
-    if ( indexes.isEmpty() )
-      indexes.add( row );
+    // if no rows selected, hide specified row (usually mouse row)
+    if ( viewRows.isEmpty() )
+      viewRows.add( viewRow );
 
     // hide the rows via undo-command and add to undostack
-    var command = new CommandHideIndexes( view, view.getRowsAxis(), indexes );
+    var command = new CommandHideIndexes( view, view.getRowsAxis(), viewRows );
     return view.getUndoStack().push( command );
   }
 
@@ -64,26 +69,30 @@ public class HideShow
    * Cannot hide all columns (at least one column must remain visible).
    *
    * @param view TableView to operate on
-   * @param column column index to hide (or all selected columns if that column is selected)
+   * @param viewColumn column index to hide (or all selected columns if that column is selected)
    * @return true if undo-command successfully pushed to undo-stack, else false
    */
-  public static boolean hideColumns( TableView view, int column )
+  public static boolean hideColumns( TableView view, int viewColumn )
   {
     // if mouse column is selected, hide all selected columns, else just hide mouse column
-    var indexes = view.getSelection().isColumnSelected( column ) ? view.getSelection().getSelectedColumns()
+    var viewColumns = view.getSelection().isColumnSelected( viewColumn ) ? view.getSelection().getSelectedColumns()
         : new HashSetInt( 1 );
 
-    if ( indexes == null || view.getSelection().areAllVisibleColumnsSelected() )
-      return false; // cannot hide all columns
+    // prevent hiding all columns
+    if ( viewColumns == null || view.getSelection().areAllVisibleColumnsSelected()
+        || view.getColumnsAxis().getFirstVisible() == view.getColumnsAxis().getLastVisible() )
+    {
+      view.getStatus().update( Level.INFO, "Cannot hide all columns" );
+      view.getStatus().clearAfterMillisecs( 2500 );
+      return false;
+    }
 
-    if ( view.getColumnsAxis().getFirstVisible() == view.getColumnsAxis().getLastVisible() )
-      return false; // cannot hide last remaining column
-
-    if ( indexes.isEmpty() )
-      indexes.add( column );
+    // if no columns selected, hide specified column (usually mouse column)
+    if ( viewColumns.isEmpty() )
+      viewColumns.add( viewColumn );
 
     // hide the columns via undo-command and add to undostack
-    var command = new CommandHideIndexes( view, view.getColumnsAxis(), indexes );
+    var command = new CommandHideIndexes( view, view.getColumnsAxis(), viewColumns );
     return view.getUndoStack().push( command );
   }
 
@@ -97,12 +106,12 @@ public class HideShow
   public static boolean showColumns( TableView view )
   {
     // get currently selected columns
-    var indexes = view.getSelection().getSelectedColumns();
-    if ( indexes == null ) // all visible columns are selected so unhide all
-      indexes = view.getColumnsAxis().getHiddenDataIndexes();
+    var viewColumns = view.getSelection().getSelectedColumns();
+    if ( viewColumns == null ) // all visible columns are selected so unhide all
+      viewColumns = view.getColumnsAxis().getHiddenDataIndexes();
 
     // unhide the columns via undo-command and add to undostack
-    var command = new CommandUnhideIndexes( view, view.getColumnsAxis(), indexes );
+    var command = new CommandUnhideIndexes( view, view.getColumnsAxis(), viewColumns );
     return view.getUndoStack().push( command );
   }
 
@@ -116,12 +125,12 @@ public class HideShow
   public static boolean showRows( TableView view )
   {
     // get currently selected rows
-    var indexes = view.getSelection().getSelectedRows();
-    if ( indexes == null ) // all visible rows are selected so unhide all
-      indexes = view.getRowsAxis().getHiddenDataIndexes();
+    var viewRows = view.getSelection().getSelectedRows();
+    if ( viewRows == null ) // all visible rows are selected so unhide all
+      viewRows = view.getRowsAxis().getHiddenDataIndexes();
 
     // unhide the rows via undo-command and add to undostack
-    var command = new CommandUnhideIndexes( view, view.getRowsAxis(), indexes );
+    var command = new CommandUnhideIndexes( view, view.getRowsAxis(), viewRows );
     return view.getUndoStack().push( command );
   }
 }

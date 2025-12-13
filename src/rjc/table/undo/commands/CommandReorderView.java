@@ -30,20 +30,20 @@ import rjc.table.view.cursor.AbstractReorderCursor;
 
 public class CommandReorderView implements IUndoCommand
 {
-  private TableView  m_view;    // table view
-  private TableAxis  m_axis;    // axis being reordered
-  private HashSetInt m_indexes; // view-indexes being moved
-  private int        m_insert;  // insert position
-  private String     m_text;    // text describing command
+  private TableView  m_view;        // table view
+  private TableAxis  m_axis;        // axis being reordered
+  private HashSetInt m_viewIndexes; // view-indices being moved
+  private int        m_insertIndex; // insert position (view index)
+  private String     m_text;        // text describing command
 
   /**************************************** constructor ******************************************/
-  public CommandReorderView( TableView view, TableAxis axis, HashSetInt selected, int insertIndex )
+  public CommandReorderView( TableView view, TableAxis axis, HashSetInt viewIndexes, int targetViewIndex )
   {
     // prepare reorder command
     m_view = view;
     m_axis = axis;
-    m_indexes = selected;
-    m_insert = insertIndex;
+    m_viewIndexes = viewIndexes;
+    m_insertIndex = targetViewIndex;
 
     // test if reorder changes mapping, if not make command invalid
     var hash = m_axis.getIndexMappingHash();
@@ -57,7 +57,7 @@ public class CommandReorderView implements IUndoCommand
   public void redo()
   {
     // action command and redraw view
-    m_axis.reorder( m_indexes, m_insert );
+    m_axis.reorderView( m_viewIndexes, m_insertIndex );
     m_view.redraw();
   }
 
@@ -66,28 +66,28 @@ public class CommandReorderView implements IUndoCommand
   public void undo()
   {
     // revert command
-    int newOffset = AbstractReorderCursor.countBefore( m_indexes, m_insert );
-    int oldOffset = m_indexes.size() - newOffset;
+    int countBeforeMoves = AbstractReorderCursor.countBefore( m_viewIndexes, m_insertIndex );
+    int countAfterMoves = m_viewIndexes.size() - countBeforeMoves;
 
     // create ordered list to process moves in predictable order
-    var list = m_indexes.toSortedArray();
+    var sortedMovedViewIndices = m_viewIndexes.toSortedArray();
 
     // move columns or rows back to their prior positions
-    HashSetInt index = new HashSetInt();
-    for ( int oldPos : list )
-      if ( m_insert > oldPos )
+    HashSetInt singleIndexSet = new HashSetInt();
+    for ( int originalViewPos : sortedMovedViewIndices )
+      if ( m_insertIndex > originalViewPos )
       {
-        index.clear();
-        index.add( m_insert - newOffset );
-        m_axis.reorder( index, oldPos );
-        newOffset--;
+        singleIndexSet.clear();
+        singleIndexSet.add( m_insertIndex - countBeforeMoves );
+        m_axis.reorderView( singleIndexSet, originalViewPos );
+        countBeforeMoves--;
       }
       else
       {
-        index.clear();
-        index.add( m_insert );
-        m_axis.reorder( index, oldPos + oldOffset );
-        oldOffset--;
+        singleIndexSet.clear();
+        singleIndexSet.add( m_insertIndex );
+        m_axis.reorderView( singleIndexSet, originalViewPos + countAfterMoves );
+        countAfterMoves--;
       }
 
     // redraw table in this view only
@@ -101,8 +101,8 @@ public class CommandReorderView implements IUndoCommand
     // command description
     if ( m_text == null )
     {
-      m_text = "Moved " + m_indexes.size() + ( m_axis == m_view.getColumnsAxis() ? " column" : " row" )
-          + ( m_indexes.size() > 1 ? "s" : "" );
+      m_text = "Moved " + m_viewIndexes.size() + ( m_axis == m_view.getColumnsAxis() ? " column" : " row" )
+          + ( m_viewIndexes.size() > 1 ? "s" : "" );
 
       if ( m_view.getId() != null )
         m_text = m_view.getId() + " - " + m_text;

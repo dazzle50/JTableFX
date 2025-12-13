@@ -40,7 +40,7 @@ public class CommandUnhideIndexes implements IUndoCommand
     // prepare unhide command to show specified hidden indexes
     m_view = view;
     m_axis = axis;
-    m_indexes = axis.unhideIndexes( indexes );
+    m_indexes = axis.unhideDataIndexes( indexes );
     m_view.redraw();
   }
 
@@ -49,7 +49,7 @@ public class CommandUnhideIndexes implements IUndoCommand
   public void redo()
   {
     // unhide the indexes
-    m_axis.unhideIndexes( m_indexes );
+    m_axis.unhideDataIndexes( m_indexes );
     m_view.redraw();
   }
 
@@ -58,7 +58,7 @@ public class CommandUnhideIndexes implements IUndoCommand
   public void undo()
   {
     // re-hide the indexes
-    m_axis.hideIndexes( m_indexes );
+    m_axis.hideDataIndexes( m_indexes );
     m_view.redraw();
   }
 

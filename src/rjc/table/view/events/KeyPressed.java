@@ -248,7 +248,7 @@ public class KeyPressed implements EventHandler<KeyEvent>
       // ensure scroll down at least one row
       if ( newTopRow == m_view.getRowIndex( header ) )
         newTopRow = axis.getNextVisible( newTopRow );
-      int newValue = newTopRow < TableAxis.AFTER ? axis.getStartPixel( newTopRow, 0 ) - header
+      int newValue = newTopRow < TableAxis.AFTER ? axis.getPixelStart( newTopRow, 0 ) - header
           : (int) scrollbar.getMax();
 
       // determine new position for select cell
@@ -301,7 +301,7 @@ public class KeyPressed implements EventHandler<KeyEvent>
       // ensure scroll up at least one row
       if ( oldTop == newTop )
         newTop = axis.getPreviousVisible( newTop );
-      newValue = axis.getStartPixel( newTop, 0 ) - header;
+      newValue = axis.getPixelStart( newTop, 0 ) - header;
 
       // determine new position for select cell
       int newRow = m_view.getRowIndex( selectY );

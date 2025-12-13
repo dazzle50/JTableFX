@@ -54,11 +54,11 @@ public class TableViewEditable extends TableView
     super.reset();
 
     var axis = getColumnsAxis();
-    axis.setIndexSize( Column.ReadOnly.ordinal(), 120 );
-    axis.setIndexSize( Column.Text.ordinal(), 120 );
-    axis.setIndexSize( Column.Integer.ordinal(), 80 );
-    axis.setIndexSize( Column.Double.ordinal(), 80 );
-    axis.setIndexSize( Column.DateTime.ordinal(), 180 );
+    axis.setNominalSize( Column.ReadOnly.ordinal(), 120 );
+    axis.setNominalSize( Column.Text.ordinal(), 120 );
+    axis.setNominalSize( Column.Integer.ordinal(), 80 );
+    axis.setNominalSize( Column.Double.ordinal(), 80 );
+    axis.setNominalSize( Column.DateTime.ordinal(), 180 );
   }
 
   /**************************************** getCellEditor ****************************************/

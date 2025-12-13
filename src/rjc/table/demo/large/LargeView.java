@@ -34,7 +34,7 @@ public class LargeView extends TableView
   {
     // construct customised table view
     super( data, name );
-    getColumnsAxis().setHeaderSize( 60 );
+    getColumnsAxis().setHeaderNominalSize( 60 );
 
     // when mouse moved to new cell, redraw table to move shading
     getMouseCell().addListener( ( sender, msg ) -> redraw() );

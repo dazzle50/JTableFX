@@ -88,7 +88,7 @@ public class TableScrollBar extends ScrollBar
       return;
 
     // check if need to scroll towards start to show cell start
-    int start = m_axis.getStartPixel( index, (int) getValue() ) - m_axis.getHeaderPixels();
+    int start = m_axis.getPixelStart( index, (int) getValue() ) - m_axis.getHeaderPixels();
     if ( start < 0 )
     {
       scrollToValue( (int) getValue() + start, SCROLL_TO_DURATION );
@@ -97,7 +97,7 @@ public class TableScrollBar extends ScrollBar
 
     // check if need to scroll towards end to show cell end, without hiding start
     int size = getOrientation() == Orientation.VERTICAL ? (int) getPrefHeight() : (int) getPrefWidth();
-    int end = size - m_axis.getStartPixel( index + 1, (int) getValue() );
+    int end = size - m_axis.getPixelStart( index + 1, (int) getValue() );
     if ( -end > start )
       end = -start;
     if ( end < 0 )
@@ -238,7 +238,7 @@ public class TableScrollBar extends ScrollBar
     int headerSize = m_axis.getHeaderPixels();
     int index = m_axis.getViewIndexAtPixel( headerSize, (int) getValue() );
     int nextIndex = m_axis.getNextVisible( index );
-    int start = m_axis.getStartPixel( nextIndex, 0 ) - headerSize;
+    int start = m_axis.getPixelStart( nextIndex, 0 ) - headerSize;
 
     scrollToValue( start, SCROLL_TO_DURATION );
   }
@@ -250,14 +250,14 @@ public class TableScrollBar extends ScrollBar
     // decrease scroll bar value to next table cell boundary
     int headerSize = m_axis.getHeaderPixels();
     int index = m_axis.getViewIndexAtPixel( headerSize, (int) getValue() );
-    int start = m_axis.getStartPixel( index, 0 ) - headerSize;
+    int start = m_axis.getPixelStart( index, 0 ) - headerSize;
 
     if ( start < getValue() )
       scrollToValue( start, SCROLL_TO_DURATION );
     else
     {
       int previousIndex = m_axis.getPreviousVisible( index );
-      start = m_axis.getStartPixel( previousIndex, 0 ) - headerSize;
+      start = m_axis.getPixelStart( previousIndex, 0 ) - headerSize;
       scrollToValue( start, SCROLL_TO_DURATION );
     }
   }

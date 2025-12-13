@@ -73,16 +73,16 @@ abstract public class AbstractResizeCursor extends AbstractCursor
       selected.add( index );
 
     // count visible selected sections before and adjust offset
-    m_offset = m_axis.getStartPixel( index + 1, 0 );
+    m_offset = m_axis.getPixelStart( index + 1, 0 );
     m_before = 0;
     var iterator = selected.iterator();
     while ( iterator.hasNext() )
     {
       int section = iterator.next();
-      if ( section <= index && m_axis.isIndexVisible( section ) )
+      if ( section <= index && m_axis.isVisible( section ) )
       {
         m_before++;
-        m_offset -= m_axis.getIndexPixels( section );
+        m_offset -= m_axis.getPixelSize( section );
       }
     }
 
@@ -98,10 +98,10 @@ abstract public class AbstractResizeCursor extends AbstractCursor
   {
     // resizing all indexes, count visible sections before and including resize index
     int index = getSelectedIndex( coordinate );
-    m_offset = m_axis.getIndexPixels( TableAxis.HEADER );
+    m_offset = m_axis.getPixelSize( TableAxis.HEADER );
     m_before = 0;
     for ( int section = 0; section <= index; section++ )
-      if ( m_axis.isIndexVisible( index ) )
+      if ( m_axis.isVisible( index ) )
         m_before++;
 
     // prepare resize command (if selected is null = all)
@@ -117,8 +117,8 @@ abstract public class AbstractResizeCursor extends AbstractCursor
     // determine resize index from mouse coordinate
     int scroll = (int) m_scrollbar.getValue();
     int index = m_axis.getViewIndexAtPixel( coordinate, scroll );
-    int indexStart = m_axis.getStartPixel( index, scroll );
-    int indexEnd = m_axis.getStartPixel( index + 1, scroll );
+    int indexStart = m_axis.getPixelStart( index, scroll );
+    int indexEnd = m_axis.getPixelStart( index + 1, scroll );
     if ( coordinate - indexStart < indexEnd - coordinate )
     {
       index = m_axis.getPreviousVisible( index );

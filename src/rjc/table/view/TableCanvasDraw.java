@@ -209,7 +209,7 @@ public class TableCanvasDraw extends Canvas
   protected void redrawColumnNow( int viewColumn )
   {
     // redraw visible bit of column including column header if column is not hidden
-    int columnWidth = m_view.getColumnsAxis().getIndexPixels( viewColumn );
+    int columnWidth = m_view.getColumnsAxis().getPixelSize( viewColumn );
     if ( columnWidth <= 0 )
       return;
 
@@ -253,7 +253,7 @@ public class TableCanvasDraw extends Canvas
   protected void redrawRowNow( int viewRow )
   {
     // redraw visible bit of row including row header if row is not hidden
-    int rowHeight = m_view.getRowsAxis().getIndexPixels( viewRow );
+    int rowHeight = m_view.getRowsAxis().getPixelSize( viewRow );
     if ( rowHeight <= 0 )
       return;
 
