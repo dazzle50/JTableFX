@@ -220,32 +220,27 @@ public class TableOverlay extends Canvas
     Color stroke = m_view.isFocused() ? Colours.SELECTED_BORDER : Colours.SELECTED_BORDER.desaturate();
     m_gc.setFill( stroke );
 
-    // check between visible min and max rows inclusive
-    int row = m_view.getRowIndex( m_view.getHeaderHeight() ) - 1;
-    int maxRow = m_view.getRowIndex( (int) getHeight() );
-    maxRow = Math.min( maxRow, m_view.getData().getRowCount() );
+    // determine visible row range
+    int firstVisible = m_view.getRowIndex( m_view.getHeaderHeight() );
+    int lastVisible = Math.min( m_view.getRowIndex( (int) getHeight() ), m_view.getData().getRowCount() );
 
+    int previousStartY = Integer.MIN_VALUE; // initialise to impossible y value
+    boolean previousWasHidden = false;
     double x = 0;
     double w = m_view.getHeaderWidth() - 1;
-    int y = m_view.getRowStartY( row );
 
-    while ( row <= maxRow )
+    for ( int row = firstVisible; row <= lastVisible; row++ )
     {
-      // find next hidden row, by skipping contiguous visible rows
-      int nextY = m_view.getRowStartY( ++row );
-      while ( nextY > y && row <= maxRow )
-      {
-        y = nextY;
-        nextY = m_view.getRowStartY( ++row );
-      }
+      // row is hidden if it has same start y as previous row
+      int startY = m_view.getRowStartY( row );
+      boolean isHidden = startY == previousStartY;
 
-      // draw line to indicate hidden row(s)
-      if ( row <= maxRow && y >= m_view.getHeaderHeight() )
-        m_gc.fillRect( x, y - 1.5, w, 2 );
+      // indicate hidden row(s) if this is first hidden row in a new block
+      if ( isHidden && !previousWasHidden )
+        m_gc.fillRect( x, startY - 1.5, w, 2 );
 
-      // find next visible row
-      while ( y == m_view.getRowStartY( row ) && row <= maxRow )
-        row++;
+      previousStartY = startY;
+      previousWasHidden = isHidden;
     }
   }
 
@@ -259,32 +254,27 @@ public class TableOverlay extends Canvas
     Color stroke = m_view.isFocused() ? Colours.SELECTED_BORDER : Colours.SELECTED_BORDER.desaturate();
     m_gc.setFill( stroke );
 
-    // check between visible min and max columns inclusive
-    int column = m_view.getColumnIndex( m_view.getHeaderWidth() ) - 1;
-    int maxColumn = m_view.getColumnIndex( (int) getWidth() );
-    maxColumn = Math.min( maxColumn, m_view.getData().getColumnCount() );
+    // determine visible column range
+    int firstVisible = m_view.getColumnIndex( m_view.getHeaderWidth() );
+    int lastVisible = Math.min( m_view.getColumnIndex( (int) getWidth() ), m_view.getData().getColumnCount() );
 
+    int previousStartX = Integer.MIN_VALUE; // initialise to impossible x value
+    boolean previousWasHidden = false;
     double y = 0;
     double h = m_view.getHeaderHeight() - 1;
-    int x = m_view.getColumnStartX( column );
 
-    while ( column <= maxColumn )
+    for ( int column = firstVisible; column <= lastVisible; column++ )
     {
-      // find next hidden column, by skipping contiguous visible columns
-      int nextX = m_view.getColumnStartX( ++column );
-      while ( nextX > x && column <= maxColumn )
-      {
-        x = nextX;
-        nextX = m_view.getColumnStartX( ++column );
-      }
+      // column is hidden if it has same start x as previous column
+      int startX = m_view.getColumnStartX( column );
+      boolean isHidden = startX == previousStartX;
 
-      // draw line to indicate hidden column(s)
-      if ( column <= maxColumn && x >= m_view.getHeaderWidth() )
-        m_gc.fillRect( x - 1.5, y, 2, h );
+      // indicate hidden column(s) if this is first hidden column in a new block
+      if ( isHidden && !previousWasHidden )
+        m_gc.fillRect( startX - 1.5, y, 2, h );
 
-      // find next visible column
-      while ( x == m_view.getColumnStartX( column ) && column <= maxColumn )
-        column++;
+      previousStartX = startX;
+      previousWasHidden = isHidden;
     }
   }
 

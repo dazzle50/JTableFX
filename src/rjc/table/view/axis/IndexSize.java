@@ -39,7 +39,7 @@ import rjc.table.HashSetInt;
  * <ul>
  * <li>{@link #DEFAULT} (Short.MAX_VALUE) - index uses default size</li>
  * <li>Positive value - index has explicit nominal size and is visible</li>
- * <li>Negative value - index is hidden (absolute value is the size)</li>
+ * <li>Negative value - index is hidden (absolute value is the nominal size)</li>
  * </ul>
  * <p>
  * This encoding allows both size and visibility to be stored in a single value, reducing memory
@@ -57,7 +57,7 @@ public class IndexSize
 
   /**************************************** constructor ******************************************/
   /**
-   * Creates with no stored size or visibility information. 
+   * Creates with no stored size or visibility information (every cell is default size and visible).
    */
   public IndexSize()
   {
@@ -98,36 +98,31 @@ public class IndexSize
     }
   }
 
-  /*************************************** setNominalSize ****************************************/
+  /******************************************* setSize *******************************************/
   /**
-   * Sets the nominal size for the specified index, preserving hidden state if already hidden.
+   * Sets the size for the specified index, DEFAULT for default and negative for hidden.
    * 
    * @param dataIndex
    *          the cell index (data index, not view index)
    * @param size
-   *          the size value (use DEFAULT for default size)
+   *          the size value (use DEFAULT for default size, negative to mark as hidden)
    */
-  public void setNominalSize( int dataIndex, short size )
+  public void setSize( int dataIndex, short size )
   {
     // expand array capacity if needed
     ensureCapacity( dataIndex );
-
-    // preserve hidden state by negating size if currently hidden
-    if ( m_sizes[dataIndex] < 0 )
-      m_sizes[dataIndex] = (short) -size;
-    else
-      m_sizes[dataIndex] = size;
+    m_sizes[dataIndex] = size;
   }
 
-  /*************************************** getNominalSize ****************************************/
+  /******************************************* getSize *******************************************/
   /**
-   * Gets the nominal size (DEFAULT if default, negative if hidden) for the specified index.
+   * Gets the size (DEFAULT if default, negative if hidden) for the specified index.
    * 
    * @param dataIndex
    *          the cell index (data index, not view index)
    * @return the size value (DEFAULT if default, negative if hidden)
    */
-  public short getNominalSize( int dataIndex )
+  public short getSize( int dataIndex )
   {
     // return default if index beyond stored range
     if ( dataIndex >= m_sizes.length )
@@ -137,16 +132,15 @@ public class IndexSize
     return m_sizes[dataIndex];
   }
 
-  /*************************************** clearIndexSize ****************************************/
+  /****************************************** resetSize ******************************************/
   /**
-   * Clears the size exception for the specified index, reverting to default whilst preserving
-   * hidden state.
+   * Resets the size for specified index to default size, preserving hidden state. 
    * 
    * @param dataIndex
    *          the cell index to clear
    * @return true if the size was changed, false if already default or out of bounds
    */
-  public boolean resetNominalSize( int dataIndex )
+  public boolean resetSize( int dataIndex )
   {
     // no change needed if beyond array or already default
     if ( dataIndex >= m_sizes.length || m_sizes[dataIndex] == DEFAULT || m_sizes[dataIndex] == -DEFAULT )
@@ -161,9 +155,23 @@ public class IndexSize
     return true;
   }
 
+  /*************************************** resetSizeOfAll ****************************************/
+  /**
+   * Resets sizes of all indices to default size preserving hidden state.
+   */
+  public void resetSizeOfAll()
+  {
+    // reset all to DEFAULT whilst preserving hidden state
+    for ( int i = 0; i < m_sizes.length; i++ )
+      if ( m_sizes[i] < 0 )
+        m_sizes[i] = (short) -DEFAULT;
+      else
+        m_sizes[i] = DEFAULT;
+  }
+
   /************************************** applyMinimumSize ***************************************/
   /**
-   * Ensures all size exceptions meet the specified minimum nominal size, preserving hidden state.
+   * Enforces a minimum size on all stored sizes, preserving hidden state.
    * 
    * @param minSize
    *          the minimum size to enforce
@@ -189,7 +197,7 @@ public class IndexSize
 
   /******************************************* hide **********************************************/
   /**
-   * Hides the specified index by negating its size value.
+   * Hides the specified index by negating its size value if not already hidden.
    * 
    * @param dataIndex
    *          the cell index to hide
@@ -232,7 +240,7 @@ public class IndexSize
   /**
    * Unhides all currently hidden indices.
    * 
-   * @return set of data-indices that were unhidden (null if none were hidden)
+   * @return set of indexes that were unhidden (null if none were hidden)
    */
   public HashSetInt unhideAll()
   {
@@ -265,39 +273,23 @@ public class IndexSize
     return hidden;
   }
 
-  /************************************** getSizeExceptions **************************************/
+  /************************************ getNonDefaultIndexes *************************************/
   /**
-   * Returns a map of all size exceptions (excluding DEFAULT values).
-   * 
-   * @return map of data-index to absolute size for all non-default sizes
+   * Returns a map of all cell indexes with non-default size or hidden.
+   *    
+   * @return map of data-index to size (negative if hidden)
    */
-  public Map<Integer, Short> getSizeExceptions()
+  public Map<Integer, Short> getNonDefaultIndexes()
   {
-    // collect all non-default sizes (return absolute values)
-    var exceptions = new HashMap<Integer, Short>();
+    // collect all indices with non-default sizes
+    var nonDefaults = new HashMap<Integer, Short>();
     for ( int i = 0; i < m_sizes.length; i++ )
     {
       short size = m_sizes[i];
-      short absSize = size < 0 ? (short) -size : size;
-      if ( absSize != DEFAULT )
-        exceptions.put( i, absSize );
+      if ( size != DEFAULT )
+        nonDefaults.put( i, size );
     }
-
-    return exceptions;
-  }
-
-  /*************************************** clearExceptions ***************************************/
-  /**
-   * Clears all size exceptions whilst preserving hidden state for all indices.
-   */
-  public void clearExceptions()
-  {
-    // reset all to DEFAULT whilst preserving hidden state
-    for ( int i = 0; i < m_sizes.length; i++ )
-      if ( m_sizes[i] < 0 )
-        m_sizes[i] = (short) -DEFAULT;
-      else
-        m_sizes[i] = DEFAULT;
+    return nonDefaults;
   }
 
   /****************************************** truncate *******************************************/
@@ -320,7 +312,7 @@ public class IndexSize
 
   /**************************************** reorderIndexes ***************************************/
   /**
-   * Reorders the size and hidden data when indices are moved in the view.
+   * Reorders the size and hidden data when indices are moved in the data-model.
    * <p>
    * This handles the complex case where multiple indices are moved together to a new position,
    * requiring all other indices to shift accordingly.
@@ -404,13 +396,13 @@ public class IndexSize
 
   /************************************* calculateTotalPixels ************************************/
   /**
-   * Calculates the total pixels for all body cells based on default size, zoom factor, size 
-   * exceptions, and hidden state.
+   * Calculates the total pixels for all body cells based on nominal size, default size, hidden 
+   * state and zoom factor.
    * 
    * @param count
    *          total number of indices in the axis
    * @param defaultSize
-   *          default size for indices without exceptions
+   *          default size for indices without explicit size
    * @param zoom
    *          zoom factor for pixel scaling
    * @return total pixels for all visible body cells
@@ -421,31 +413,7 @@ public class IndexSize
     int defaultSizeCount = count;
     int customSizePixels = 0;
 
-    // optimised path when zoom is effectively 1.0
-    if ( Math.abs( zoom - 1.0 ) < 0.001 )
-    {
-      // process stored sizes in single pass without zoom multiplication
-      for ( int i = 0; i < m_sizes.length && i < count; i++ )
-      {
-        short size = m_sizes[i];
-
-        if ( size == DEFAULT )
-          continue; // uses default, already counted
-
-        if ( size < 0 )
-          defaultSizeCount--; // hidden, exclude from total
-        else
-        {
-          // visible with custom size
-          defaultSizeCount--;
-          customSizePixels += size;
-        }
-      }
-
-      return customSizePixels + defaultSizeCount * defaultSize;
-    }
-
-    // apply zoom factor to all sizes
+    // scan stored sizes and adjust total for hidden and non-default sizes
     for ( int i = 0; i < m_sizes.length && i < count; i++ )
     {
       short size = m_sizes[i];

@@ -74,7 +74,7 @@ public class TableAxis implements IListener
   // axis components
   private final ReadOnlyInteger   m_countProperty;
   private final IndexMapping      m_viewDatamapping;
-  private final IndexSize         m_dataIndexSize;
+  private final IndexSize         m_dataNominalSize;
   private final PixelCache        m_startPixelCache;
   private final ObservableInteger m_totalPixelsCache;
 
@@ -102,7 +102,7 @@ public class TableAxis implements IListener
     // initialise components
     m_countProperty = countProperty;
     m_viewDatamapping = new IndexMapping();
-    m_dataIndexSize = new IndexSize();
+    m_dataNominalSize = new IndexSize();
     m_startPixelCache = new PixelCache();
     m_totalPixelsCache = new ObservableInteger( INVALID );
 
@@ -121,7 +121,7 @@ public class TableAxis implements IListener
   {
     // reset mapping and sizing components
     m_viewDatamapping.reset();
-    m_dataIndexSize.reset();
+    m_dataNominalSize.reset();
     m_startPixelCache.clear();
     m_totalPixelsCache.set( INVALID );
 
@@ -143,7 +143,7 @@ public class TableAxis implements IListener
 
       // remove size data beyond new count if reduced
       if ( newCount < oldCount )
-        m_dataIndexSize.truncate( newCount );
+        m_dataNominalSize.truncate( newCount );
 
       // invalidate caches affected by count change
       m_totalPixelsCache.set( INVALID );
@@ -200,7 +200,7 @@ public class TableAxis implements IListener
       return false;
 
     int dataIndex = m_viewDatamapping.getDataIndex( viewIndex );
-    return m_dataIndexSize.getNominalSize( dataIndex ) > 0;
+    return m_dataNominalSize.getSize( dataIndex ) > 0;
   }
 
   /***************************************** getVisible ******************************************/
@@ -267,13 +267,19 @@ public class TableAxis implements IListener
 
     // search forward from viewIndex + 1
     for ( int candidate = viewIndex + 1; candidate < max; candidate++ )
-      if ( isVisible( candidate ) )
+    {
+      int dataIndex = m_viewDatamapping.getDataIndex( candidate );
+      if ( m_dataNominalSize.getSize( dataIndex ) > 0 )
         return candidate;
+    }
 
     // if nothing found forward, search backward from viewIndex
     for ( int candidate = viewIndex; candidate > HEADER; candidate-- )
-      if ( isVisible( candidate ) )
+    {
+      int dataIndex = m_viewDatamapping.getDataIndex( candidate );
+      if ( m_dataNominalSize.getSize( dataIndex ) > 0 )
         return candidate;
+    }
 
     return INVALID;
   }
@@ -294,13 +300,19 @@ public class TableAxis implements IListener
 
     // search backward from viewIndex - 1
     for ( int candidate = viewIndex - 1; candidate > HEADER; candidate-- )
-      if ( isVisible( candidate ) )
+    {
+      int dataIndex = m_viewDatamapping.getDataIndex( candidate );
+      if ( m_dataNominalSize.getSize( dataIndex ) > 0 )
         return candidate;
+    }
 
     // if nothing found backward, search forward from viewIndex
     for ( int candidate = viewIndex; candidate < max; candidate++ )
-      if ( isVisible( candidate ) )
+    {
+      int dataIndex = m_viewDatamapping.getDataIndex( candidate );
+      if ( m_dataNominalSize.getSize( dataIndex ) > 0 )
         return candidate;
+    }
 
     return INVALID;
   }
@@ -475,7 +487,7 @@ public class TableAxis implements IListener
 
       // enforce new minimum on all existing size exceptions
       if ( minSize > m_minimumSize )
-        m_dataIndexSize.applyMinimumSize( (short) minSize );
+        m_dataNominalSize.applyMinimumSize( (short) minSize );
 
       // invalidate caches as sizes may have changed
       m_totalPixelsCache.set( INVALID );
@@ -511,35 +523,40 @@ public class TableAxis implements IListener
 
   /**************************************** setNominalSize ***************************************/
   /**
-   * Sets nominal size for an individual view-index, overriding the default.
+   * Sets nominal size for an individual data-index, overriding the default.
    * 
-   * @param viewIndex  view index to set size for
+   * @param dataIndex  data index to set size for
    * @param newSize    new size in nominal pixels (enforced to be >= minimum size)
    */
-  public void setNominalSize( int viewIndex, int newSize )
+  public void setNominalSize( int dataIndex, int newSize )
   {
     // validate index is within valid body cell range
-    if ( viewIndex < FIRSTCELL || viewIndex >= getCount() )
-      throw new IndexOutOfBoundsException( "Index=" + viewIndex + " but count=" + getCount() );
+    if ( dataIndex < FIRSTCELL || dataIndex >= getCount() )
+      throw new IndexOutOfBoundsException( "Index=" + dataIndex + " but count=" + getCount() );
 
-    // enforce minimum size constraint
-    if ( newSize < m_minimumSize )
-      newSize = m_minimumSize;
+    // enforce minimum size constraint, being aware negative sizes indicates hidden
+    if ( newSize < 0 )
+      newSize = -newSize < m_minimumSize ? -m_minimumSize : newSize;
+    else
+      newSize = newSize < m_minimumSize ? m_minimumSize : newSize;
 
     // calculate current zoomed size for comparison
-    int dataIndex = m_viewDatamapping.getDataIndex( viewIndex );
-    short oldNominal = m_dataIndexSize.getNominalSize( dataIndex );
+    short oldNominal = m_dataNominalSize.getSize( dataIndex );
     int zoomOld = 0;
     if ( oldNominal > 0 )
       zoomOld = oldNominal == IndexSize.DEFAULT ? zoom( m_defaultSize ) : zoom( oldNominal );
 
     // store new nominal size
-    m_dataIndexSize.setNominalSize( dataIndex, (short) newSize );
+    m_dataNominalSize.setSize( dataIndex, (short) newSize );
 
     // update caches only if zoomed pixel size actually changed
-    int zoomNew = zoom( newSize );
+    int zoomNew = newSize < 0 ? 0 : ( newSize == IndexSize.DEFAULT ? zoom( m_defaultSize ) : zoom( newSize ) );
+
     if ( zoomNew != zoomOld )
+    {
+      int viewIndex = m_viewDatamapping.getViewIndex( dataIndex );
       truncatePixelCaches( viewIndex, zoomNew - zoomOld );
+    }
   }
 
   /*************************************** getTotalPixels ****************************************/
@@ -554,7 +571,7 @@ public class TableAxis implements IListener
     if ( m_totalPixelsCache.get() == INVALID )
     {
       // sum header pixels plus all body cell pixels
-      int pixels = getHeaderPixels() + m_dataIndexSize.calculateTotalPixels( getCount(), m_defaultSize,
+      int pixels = getHeaderPixels() + m_dataNominalSize.calculateTotalPixels( getCount(), m_defaultSize,
           m_zoomProperty != null ? m_zoomProperty.get() : 1.0 );
       m_totalPixelsCache.set( pixels );
     }
@@ -588,7 +605,7 @@ public class TableAxis implements IListener
 
     // convert to data index and check for hidden or sized state
     int dataIndex = m_viewDatamapping.getDataIndex( viewIndex );
-    short nominalSize = m_dataIndexSize.getNominalSize( dataIndex );
+    short nominalSize = m_dataNominalSize.getSize( dataIndex );
     if ( nominalSize <= 0 )
       return 0; // hidden
 
@@ -606,7 +623,7 @@ public class TableAxis implements IListener
   public short getNominalSize( int dataIndex )
   {
     // return nominal size for specified data index
-    return m_dataIndexSize.getNominalSize( dataIndex );
+    return m_dataNominalSize.getSize( dataIndex );
   }
 
   /**************************************** getPixelStart ****************************************/
@@ -695,45 +712,44 @@ public class TableAxis implements IListener
     return m_startPixelCache.getIndex( coordinate );
   }
 
-  /************************************* getSizeExceptions ***************************************/
+  /************************************ getNonDefaultIndexes *************************************/
   /**
-   * Returns a map of all per-index size exceptions (excluding default and hidden sizes).
+   * Returns a map of all cell data-indexes with non-default size or hidden.
    * 
-   * @return map of data index to nominal size (excludes default and hidden sizes)
+   * @return map of data-index to size (negative if hidden)
    */
-  public Map<Integer, Short> getSizeExceptions()
+  public Map<Integer, Short> getNonDefaultIndexes()
   {
     // delegate to internal storage
-    return m_dataIndexSize.getSizeExceptions();
+    return m_dataNominalSize.getNonDefaultIndexes();
   }
 
-  /************************************ clearSizeExceptions **************************************/
+  /*************************************** resetSizeOfAll ****************************************/
   /**
-   * Removes all per-index size exceptions, reverting all to default size.
+   * Resets sizes of all indices to default size preserving hidden state.
    */
-  public void clearSizeExceptions()
+  public void resetSizeOfAll()
   {
     // clear all size exceptions and invalidate all caches
-    m_dataIndexSize.clearExceptions();
+    m_dataNominalSize.resetSizeOfAll();
     m_startPixelCache.clear();
     m_totalPixelsCache.set( INVALID );
   }
 
-  /************************************** clearIndexSize *****************************************/
+  /****************************************** resetSize ******************************************/
   /**
-   * Clears the size exception for a specific index, reverting it to default.
+   * Resets sizes of specified index to default size preserving hidden state.
    * 
-   * @param viewIndex   view index to clear
+   * @param dataIndex   data index to clear size for
    */
-  public void clearIndexSize( int viewIndex )
+  public void resetSize( int dataIndex )
   {
     // validate index is within valid body cell range
-    if ( viewIndex < FIRSTCELL || viewIndex >= getCount() )
-      throw new IndexOutOfBoundsException( "cell index=" + viewIndex + " but count=" + getCount() );
+    if ( dataIndex < FIRSTCELL || dataIndex >= getCount() )
+      throw new IndexOutOfBoundsException( "cell index=" + dataIndex + " but count=" + getCount() );
 
     // clear size exception and invalidate caches if changed
-    int dataIndex = m_viewDatamapping.getDataIndex( viewIndex );
-    if ( m_dataIndexSize.resetNominalSize( dataIndex ) )
+    if ( m_dataNominalSize.resetSize( dataIndex ) )
     {
       m_totalPixelsCache.set( INVALID );
       m_startPixelCache.clear();
@@ -762,19 +778,19 @@ public class TableAxis implements IListener
     m_totalPixelsCache.set( INVALID );
   }
 
-  /*************************************** hideDataIndexes ***************************************/
+  /******************************************** hide *********************************************/
   /**
    * Hides the specified data indices, making them invisible in the view.
    * 
    * @param dataIndexes  set of data indices to hide
    * @return set of indices actually hidden (null if none changed)
    */
-  public HashSetInt hideDataIndexes( HashSetInt dataIndexes )
+  public HashSetInt hide( HashSetInt dataIndexes )
   {
     // attempt to hide each index and track which actually changed
     var hidden = new HashSetInt();
     for ( int index : dataIndexes.toArray() )
-      if ( m_dataIndexSize.hide( index ) )
+      if ( m_dataNominalSize.hide( index ) )
         hidden.add( index );
 
     // return null if no changes occurred
@@ -787,19 +803,19 @@ public class TableAxis implements IListener
     return hidden;
   }
 
-  /************************************** unhideDataIndexes **************************************/
+  /******************************************* unhide ********************************************/
   /**
    * Unhides the specified data indices, making them visible in the view.
    * 
    * @param dataIndexes  set of data indices to unhide
    * @return set of indices actually unhidden (null if none changed)
    */
-  public HashSetInt unhideDataIndexes( HashSetInt dataIndexes )
+  public HashSetInt unhide( HashSetInt dataIndexes )
   {
     // attempt to unhide each index and track which actually changed
     var shown = new HashSetInt();
     for ( int index : dataIndexes.toArray() )
-      if ( m_dataIndexSize.unhide( index ) )
+      if ( m_dataNominalSize.unhide( index ) )
         shown.add( index );
 
     // return null if no changes occurred
@@ -821,7 +837,7 @@ public class TableAxis implements IListener
   public HashSetInt unhideAll()
   {
     // delegate to data index size handler
-    var shown = m_dataIndexSize.unhideAll();
+    var shown = m_dataNominalSize.unhideAll();
 
     // return null if no changes occurred
     if ( shown.isEmpty() )
@@ -842,7 +858,7 @@ public class TableAxis implements IListener
   public HashSetInt getHiddenDataIndexes()
   {
     // delegate to data index size storage
-    return m_dataIndexSize.getHiddenIndexes();
+    return m_dataNominalSize.getHiddenIndexes();
   }
 
   /******************************************** zoom *********************************************/

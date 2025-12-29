@@ -31,16 +31,23 @@ public class CommandUnhideIndexes implements IUndoCommand
 {
   private TableView  m_view;    // table view
   private TableAxis  m_axis;    // axis for unhiding
-  private HashSetInt m_indexes; // view-indexes being shown
+  private HashSetInt m_indexes; // data-indexes being shown
   private String     m_text;    // text describing command
 
   /**************************************** constructor ******************************************/
-  public CommandUnhideIndexes( TableView view, TableAxis axis, HashSetInt indexes )
+  public CommandUnhideIndexes( TableView view, TableAxis axis, HashSetInt viewIndexes )
   {
     // prepare unhide command to show specified hidden indexes
     m_view = view;
     m_axis = axis;
-    m_indexes = axis.unhideDataIndexes( indexes );
+
+    // convert view indexes to data indexes and hide them
+    HashSetInt dataIndexes = new HashSetInt( viewIndexes.size() );
+    var it = viewIndexes.iterator();
+    while ( it.hasNext() )
+      dataIndexes.add( m_axis.getDataIndex( it.next() ) );
+
+    m_indexes = axis.unhide( dataIndexes );
     m_view.redraw();
   }
 
@@ -49,7 +56,7 @@ public class CommandUnhideIndexes implements IUndoCommand
   public void redo()
   {
     // unhide the indexes
-    m_axis.unhideDataIndexes( m_indexes );
+    m_axis.unhide( m_indexes );
     m_view.redraw();
   }
 
@@ -58,7 +65,7 @@ public class CommandUnhideIndexes implements IUndoCommand
   public void undo()
   {
     // re-hide the indexes
-    m_axis.hideDataIndexes( m_indexes );
+    m_axis.hide( m_indexes );
     m_view.redraw();
   }
 
@@ -69,7 +76,8 @@ public class CommandUnhideIndexes implements IUndoCommand
     // construct command description
     if ( m_text == null )
     {
-      m_text = "Unhide " + ( m_axis == m_view.getColumnsAxis() ? "columns" : "rows" );
+      m_text = "Unhide " + m_indexes.size() + ( m_axis == m_view.getColumnsAxis() ? " column" : " row" )
+          + ( m_indexes.size() > 1 ? "s" : "" );
 
       if ( m_view.getId() != null )
         m_text = m_view.getId() + " - " + m_text;

@@ -47,7 +47,7 @@ public class CommandHideIndexes implements IUndoCommand
     while ( it.hasNext() )
       dataIndexes.add( m_axis.getDataIndex( it.next() ) );
 
-    m_indexes = m_axis.hideDataIndexes( dataIndexes );
+    m_indexes = m_axis.hide( dataIndexes );
     m_view.redraw();
   }
 
@@ -56,7 +56,7 @@ public class CommandHideIndexes implements IUndoCommand
   public void redo()
   {
     // hide the indexes
-    m_axis.hideDataIndexes( m_indexes );
+    m_axis.hide( m_indexes );
     m_view.redraw();
   }
 
@@ -65,7 +65,7 @@ public class CommandHideIndexes implements IUndoCommand
   public void undo()
   {
     // unhide the indexes
-    m_axis.unhideDataIndexes( m_indexes );
+    m_axis.unhide( m_indexes );
     m_view.redraw();
   }
 

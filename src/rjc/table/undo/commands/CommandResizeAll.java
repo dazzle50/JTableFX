@@ -30,13 +30,13 @@ import rjc.table.view.axis.TableAxis;
 
 public class CommandResizeAll implements ICommandResize
 {
-  private TableView           m_view;          // table view
-  private TableAxis           m_axis;          // columns or rows being resized
-  private String              m_text;          // text describing command
+  private TableView           m_view;        // table view
+  private TableAxis           m_axis;        // columns or rows being resized
+  private String              m_text;        // text describing command
 
-  private Map<Integer, Short> m_oldExceptions; // old size exceptions before resize
-  private int                 m_oldDefault;    // old default before resize
-  private int                 m_newDefault;    // new default
+  private Map<Integer, Short> m_nonDefaults; // map of data-indexes with not-default size
+  private int                 m_oldDefault;  // old default size
+  private int                 m_newDefault;  // new default size
 
   /**************************************** constructor ******************************************/
   public CommandResizeAll( TableView view, TableAxis axis )
@@ -47,7 +47,7 @@ public class CommandResizeAll implements ICommandResize
 
     // get old default size and exceptions before resizing starts
     m_oldDefault = axis.getDefaultNominalSize();
-    m_oldExceptions = axis.getSizeExceptions();
+    m_nonDefaults = axis.getNonDefaultIndexes();
   }
 
   /***************************************** setNewSize ******************************************/
@@ -64,7 +64,7 @@ public class CommandResizeAll implements ICommandResize
   {
     // action command
     m_axis.setDefaultNominalSize( m_newDefault );
-    m_axis.clearSizeExceptions();
+    m_axis.resetSizeOfAll();
     m_view.redraw();
   }
 
@@ -74,7 +74,7 @@ public class CommandResizeAll implements ICommandResize
   {
     // revert command
     m_axis.setDefaultNominalSize( m_oldDefault );
-    m_oldExceptions.forEach( ( index, size ) -> m_axis.setNominalSize( index, size ) );
+    m_nonDefaults.forEach( ( index, size ) -> m_axis.setNominalSize( index, size ) );
     m_view.redraw();
   }
 

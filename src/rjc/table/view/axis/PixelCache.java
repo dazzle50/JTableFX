@@ -132,7 +132,7 @@ public class PixelCache
     if ( requiredCapacity > m_cache.length )
     {
       // grow by 25% or to minimum capacity, whichever is larger
-      int newCapacity = Math.max( requiredCapacity, m_cache.length + ( m_cache.length >> 2 ) + 5 );
+      int newCapacity = Math.max( requiredCapacity + 4, m_cache.length + ( m_cache.length >> 2 ) );
       m_cache = Arrays.copyOf( m_cache, newCapacity );
     }
   }
