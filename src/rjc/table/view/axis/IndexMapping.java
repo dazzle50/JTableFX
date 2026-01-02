@@ -139,6 +139,36 @@ public class IndexMapping
     return hash;
   }
 
+  /***************************************** setMapping ******************************************/
+  /**
+   * Sets a new mapping from view indices to data indices based on provided mapping array.
+   * <p>
+   * The newMapping array contains data indices for non-hidden view indices only, in order.
+   * This method updates the internal mapping to reflect the new ordering while preserving
+   * hidden indices.
+   * 
+   * @param newMapping array of data indices for non-hidden view indices
+   * @param size IndexSize object to determine hidden/non-hidden status
+   * @param max maximum view index to consider for mapping
+   */
+  public void setMapping( int[] newMapping, IndexSize size, int max )
+  {
+    // ensure capacity for all view indices up to max
+    ensureCapacity( max );
+
+    // update mapping for non-hidden view indices from new mapping (used to apply new sorting)
+    int count = 0;
+    for ( int viewIndex = 0; viewIndex < max; viewIndex++ )
+    {
+      int oldDataIndex = getDataIndex( viewIndex );
+      if ( size.getSize( oldDataIndex ) > 0 )
+      {
+        int newDataIndex = newMapping[count++];
+        m_dataIndices[viewIndex] = newDataIndex;
+      }
+    }
+  }
+
   /************************************** trimIdentityTail ***************************************/
   /**
    * Removes trailing entries that match identity mapping (value equals index).

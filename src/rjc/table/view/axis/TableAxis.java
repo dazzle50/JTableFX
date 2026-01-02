@@ -861,6 +861,19 @@ public class TableAxis implements IListener
     return m_dataNominalSize.getHiddenIndexes();
   }
 
+  /***************************************** setMapping ******************************************/
+  /**
+   * Sets a new view-to-data index mapping for this axis (used when sorting).
+   * 
+   * @param newMapping  array mapping view indices to data indices
+   */
+  public void setMapping( int[] newMapping )
+  {
+    // apply the index mapping to only-visible indices
+    m_viewDatamapping.setMapping( newMapping, m_dataNominalSize, getCount() );
+    m_startPixelCache.clear();
+  }
+
   /******************************************** zoom *********************************************/
   /**
    * Applies current zoom factor to a nominal size value.

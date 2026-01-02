@@ -55,7 +55,7 @@ public class EditableData
     // populate the private variables with some contents
     m_readonly = "Read-only text " + ( id + 1 );
     m_text = "Editable text " + ( id + 1 );
-    m_integer = id + 100;
+    m_integer = 100 + (int) ( Math.random() * 100 );
     m_double = id + 10.0;
     m_date = Date.now().plusDays( id * 5 - 20 );
     m_time = Time.now().plusMilliseconds( id * 12345678 );

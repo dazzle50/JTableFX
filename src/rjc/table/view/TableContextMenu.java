@@ -32,7 +32,7 @@ import javafx.scene.paint.Paint;
 import rjc.table.view.action.Filter;
 import rjc.table.view.action.HideShow;
 import rjc.table.view.action.Sort;
-import rjc.table.view.action.Sort.SortedType;
+import rjc.table.view.action.Sort.SortType;
 import rjc.table.view.axis.TableAxis;
 
 /*************************************************************************************************/
@@ -147,14 +147,14 @@ public class TableContextMenu extends ContextMenu
   private void buildColumnHeader()
   {
     // build context menu for table-view column header row - add relevant menu items
-    addFilterTextColumn().addSortTextColumn().addHideColumn().addShowColumn();
+    addFilterTextColumn().addSortColumn().addHideColumn().addShowColumn();
   }
 
   /*************************************** buildRowHeader ****************************************/
   private void buildRowHeader()
   {
     // build context menu for table-view row header column - add relevant menu items
-    addFilterTextRow().addHideRow().addShowRow();
+    addFilterTextRow().addSortRow().addHideRow().addShowRow();
   }
 
   /****************************************** buildBody ******************************************/
@@ -304,17 +304,39 @@ public class TableContextMenu extends ContextMenu
     return this;
   }
 
-  /************************************* addSortTextColumn ***************************************/
-  protected TableContextMenu addSortTextColumn()
+  /*************************************** addSortColumn *****************************************/
+  protected TableContextMenu addSortColumn()
   {
     // exit without adding menu item if option is omitted for this table-view
     if ( isOmitted( m_view, OptionalMenuItems.COLUMN_SORT ) )
       return this;
 
     // add a sort menu item
-    var item = new MenuItem( "Sort ↓" );
-    item.setOnAction( event -> Sort.columnTextSort( m_view, m_mouseRow, SortedType.ASCENDING ) );
-    getItems().add( item );
+    var ascend = new MenuItem( "Sort ↓" );
+    ascend.setOnAction( event -> Sort.columnSort( m_view, m_mouseCol, SortType.ASCENDING ) );
+
+    var descend = new MenuItem( "Sort ↑" );
+    descend.setOnAction( event -> Sort.columnSort( m_view, m_mouseCol, SortType.DESCENDING ) );
+
+    getItems().addAll( ascend, descend );
+    return this;
+  }
+
+  /***************************************** addSortRow ******************************************/
+  protected TableContextMenu addSortRow()
+  {
+    // exit without adding menu item if option is omitted for this table-view
+    if ( isOmitted( m_view, OptionalMenuItems.ROW_SORT ) )
+      return this;
+
+    // add a sort menu item
+    var ascend = new MenuItem( "Sort →" );
+    ascend.setOnAction( event -> Sort.rowSort( m_view, m_mouseRow, SortType.ASCENDING ) );
+
+    var descend = new MenuItem( "Sort ←" );
+    descend.setOnAction( event -> Sort.rowSort( m_view, m_mouseRow, SortType.DESCENDING ) );
+
+    getItems().addAll( ascend, descend );
     return this;
   }
 

@@ -18,12 +18,11 @@
 
 package rjc.table.view.action;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+import rjc.table.undo.commands.CommandSortView;
 import rjc.table.view.TableView;
 
 /*************************************************************************************************/
@@ -33,61 +32,56 @@ import rjc.table.view.TableView;
 public class Sort
 {
   // maps to hold current index sort status for each TableView
-  private static final Map<TableView, Map<Integer, SortedType>> COLUMN_SORTS = new WeakHashMap<>();
-  private static final Map<TableView, Map<Integer, SortedType>> ROW_SORTS    = new WeakHashMap<>();
+  private static final Map<TableView, Map<Integer, SortType>> COLUMN_SORTS = new WeakHashMap<>();
+  private static final Map<TableView, Map<Integer, SortType>> ROW_SORTS    = new WeakHashMap<>();
 
-  public enum SortedType
+  public enum SortType
   {
     ASCENDING, DESCENDING, NOTSORTED
   }
 
-  /****************************************** IndexText ******************************************/
-  public record IndexText( int index, String text ) implements Comparable<IndexText>
-  {
-    @Override
-    public int compareTo( IndexText o )
-    {
-      return text.compareTo( o.text );
-    }
-  }
-
-  /*************************************** columnTextSort ****************************************/
-  public static boolean columnTextSort( TableView view, int column, SortedType status )
-  {
-    // TODO Auto-generated method stub
-    List<IndexText> list = new ArrayList<>();
-    list.add( new IndexText( 0, "A" ) );
-    list.sort( null );
-
-    return false;
-  }
-
   /*************************************** isColumnSorted ****************************************/
-  public static SortedType isColumnSorted( TableView view, int dataColumn )
+  public static SortType isColumnSorted( TableView view, int dataColumn )
   {
     // return sorted status of specified data column in specified view
-    return COLUMN_SORTS.getOrDefault( view, Map.of() ).getOrDefault( dataColumn, SortedType.NOTSORTED );
+    return COLUMN_SORTS.getOrDefault( view, Map.of() ).getOrDefault( dataColumn, SortType.NOTSORTED );
   }
 
   /***************************************** isRowSorted *****************************************/
-  public static SortedType isRowSorted( TableView view, int dataRow )
+  public static SortType isRowSorted( TableView view, int dataRow )
   {
     // return sorted status of specified data row in specified view
-    return ROW_SORTS.getOrDefault( view, Map.of() ).getOrDefault( dataRow, SortedType.NOTSORTED );
+    return ROW_SORTS.getOrDefault( view, Map.of() ).getOrDefault( dataRow, SortType.NOTSORTED );
   }
 
   /************************************** setColumnSorted ****************************************/
-  public static void setColumnSorted( TableView view, int dataColumn, SortedType status )
+  public static void setColumnSorted( TableView view, int dataColumn, SortType status )
   {
     // set sorted status of specified data column in specified view
     COLUMN_SORTS.computeIfAbsent( view, v -> new HashMap<>( 4 ) ).put( dataColumn, status );
   }
 
   /*************************************** setRowSorted ******************************************/
-  public static void setRowSorted( TableView view, int dataRow, SortedType status )
+  public static void setRowSorted( TableView view, int dataRow, SortType status )
   {
     // set sorted status of specified data row in specified view
     ROW_SORTS.computeIfAbsent( view, v -> new HashMap<>( 4 ) ).put( dataRow, status );
+  }
+
+  /*************************************** columnTextSort ****************************************/
+  public static boolean columnSort( TableView view, int viewColumn, SortType type )
+  {
+    // perform the sort via undo-command and add to undostack
+    var command = new CommandSortView( view, view.getColumnsAxis(), viewColumn, type );
+    return view.getUndoStack().push( command );
+  }
+
+  /***************************************** rowTextSort *****************************************/
+  public static boolean rowSort( TableView view, int viewRow, SortType type )
+  {
+    // perform the sort via undo-command and add to undostack
+    var command = new CommandSortView( view, view.getRowsAxis(), viewRow, type );
+    return view.getUndoStack().push( command );
   }
 
 }
