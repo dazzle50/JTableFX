@@ -1,5 +1,5 @@
 /**************************************************************************
- *  Copyright (C) 2025 by Richard Crook                                   *
+ *  Copyright (C) 2026 by Richard Crook                                   *
  *  https://github.com/dazzle50/JTableFX                                  *
  *                                                                        *
  *  This program is free software: you can redistribute it and/or modify  *
@@ -24,320 +24,148 @@ import java.util.Set;
 import java.util.WeakHashMap;
 
 import javafx.scene.control.ContextMenu;
-import javafx.scene.control.Label;
-import javafx.scene.control.Menu;
-import javafx.scene.control.MenuItem;
-import javafx.scene.control.SeparatorMenuItem;
-import javafx.scene.paint.Paint;
-import rjc.table.view.action.Filter;
-import rjc.table.view.action.HideShow;
-import rjc.table.view.action.Sort;
-import rjc.table.view.action.Sort.SortType;
-import rjc.table.view.axis.TableAxis;
 
 /*************************************************************************************************/
-/************************ Context menu for table-view header & body cells ************************/
+/****************************** Context menu manager for table-view ******************************/
 /*************************************************************************************************/
 
 /**
- * Custom context menu that provides contextual actions for table cells.
- * Displays different menu items based on whether the right-click occurred
- * on header cells or body cells, offering operations like insert, delete,
- * hide/unhide, filter, sort, and clipboard operations.
+ * Manages context menu configuration and display for table cells.
+ * Provides static methods to show context menus, configure which menu items
+ * should be enabled (defaults to all enabled if not configured for specific view),
+ * and determine the appropriate menu based on cell location.
+ * Delegates the actual menu construction to {@link TableContextMenuBuilder}.
  */
-public class TableContextMenu extends ContextMenu
+public class TableContextMenu
 {
-  private TableView        m_view;                          // the table view
-  private int              m_mouseRow;                      // row index where context menu triggered
-  private int              m_mouseCol;                      // column index where context menu triggered
-
-  private static final int FIRSTCELL = TableAxis.FIRSTCELL; // index of first body row/column
-  private static final int HEADER    = TableAxis.HEADER;    // index of header row/column
-  private static final int AFTER     = TableAxis.AFTER;     // index of after-last row/column
-
-  // optional context menu items that can be omitted from context menu
-  public enum OptionalMenuItems
+  // optional context menu items that can be enabled/disabled for context menu
+  public enum TableMenuItems
   {
     COLUMN_HIDE, ROW_HIDE, COLUMN_SHOW, ROW_SHOW, COLUMN_FILTER_TEXT, ROW_FILTER_TEXT, COLUMN_SORT, ROW_SORT, COLUMN_INSERT, ROW_INSERT, COLUMN_DELETE, ROW_DELETE
   }
 
-  private static final Map<TableView, Set<OptionalMenuItems>> OMIT = new WeakHashMap<>();
+  private static final Map<TableView, Set<TableMenuItems>> ENABLED = new WeakHashMap<>();
 
-  /******************************************** show *********************************************/
-  public static void show( TableView view, double x, double y )
+  /****************************************** constructor *****************************************/
+  private TableContextMenu()
   {
+    // private constructor to prevent instantiation of utility class
+  }
+
+  /********************************************* show ********************************************/
+  /**
+   * Shows the context menu for the specified table view at the given screen coordinates.
+   * Determines which menu items to display based on the current mouse cell position.
+   *
+   * @param view the table view to show the context menu for
+   * @param x the x screen coordinate where the menu should appear
+   * @param y the y screen coordinate where the menu should appear
+   */
+  public static ContextMenu show( TableView view, double x, double y )
+  {
+    // if no table-view provided, cannot show menu
+    if ( view == null )
+      return null;
+
     // get the cell coordinates where the context menu was triggered
     int mouseRow = view.getMouseCell().getRow();
     int mouseCol = view.getMouseCell().getColumn();
 
-    // generate the context-menu and show (if has any items)
-    var menu = new TableContextMenu( view, mouseRow, mouseCol );
-    if ( !menu.getItems().isEmpty() )
+    // use builder to construct the appropriate menu for the location
+    var menu = new TableContextMenuBuilder( view, mouseRow, mouseCol ).build();
+
+    // show the context menu if it has any items
+    if ( menu != null && !menu.getItems().isEmpty() )
       menu.show( view.getScene().getWindow(), x, y );
+
+    return menu;
   }
 
-  /******************************************* omit **********************************************/
-  public static void omit( TableView view, OptionalMenuItems... items )
+  /******************************************** enable *******************************************/
+  /**
+   * Adds specified optional menu items to the context menu for the specified table view.
+   * 
+   * @param view the table view to configure
+   * @param items the menu items to enable for the context menu
+   */
+  public static void enable( TableView view, TableMenuItems... items )
   {
-    // omit specified context menu items for this table-view
-    var set = OMIT.get( view );
+    // enable specified context menu items for this table-view
+    var set = ENABLED.get( view );
     if ( set == null )
     {
-      set = EnumSet.noneOf( OptionalMenuItems.class );
-      OMIT.put( view, set );
+      set = EnumSet.noneOf( TableMenuItems.class );
+      ENABLED.put( view, set );
     }
     for ( var item : items )
       set.add( item );
   }
 
-  /***************************************** clearOmit *******************************************/
-  public static void clearOmit( TableView view )
+  /****************************************** enableAll ******************************************/
+  /**
+   * Enables all optional menu items for the context menu for the specified table view.
+   * Relies on default behaviour of all enabled if no specific configuration exists.
+   *
+   * @param view the table view to configure
+   */
+  public static void enableAll( TableView view )
   {
-    // clear omitted context menu items for this table-view
-    OMIT.remove( view );
+    // enable all context menu items for specified table-view
+    ENABLED.remove( view );
   }
 
-  /***************************************** isOmitted *******************************************/
-  public static boolean isOmitted( TableView view, OptionalMenuItems item )
+  /******************************************* disable *******************************************/
+  /**
+   * Removes specified optional menu items from the context menu for the specified table view.
+   * If no configuration pre-exists, starts with all enabled and removes specified items.
+   *
+   * @param view the table view to configure
+   * @param items the menu items to disable for the context menu
+   */
+  public static void disable( TableView view, TableMenuItems... items )
   {
-    // return true if specified context menu item is omitted for this table-view
-    var set = OMIT.get( view );
-    return set != null && set.contains( item );
-  }
-
-  /**************************************** constructor ******************************************/
-  private TableContextMenu( TableView view, int mouseRow, int mouseCol )
-  {
-    // prepare initially empty context menu
-    m_view = view;
-    m_mouseRow = mouseRow;
-    m_mouseCol = mouseCol;
-
-    // add menu items depending on where context menu was triggered
-    if ( mouseRow == AFTER || mouseCol == AFTER )
-      buildAfter();
-    else if ( mouseRow == HEADER && mouseCol == HEADER )
-      buildCorner();
-    else if ( mouseRow == HEADER && mouseCol >= FIRSTCELL )
-      buildColumnHeader();
-    else if ( mouseCol == HEADER && mouseRow >= FIRSTCELL )
-      buildRowHeader();
-    else if ( mouseRow >= FIRSTCELL && mouseCol >= FIRSTCELL )
-      buildBody();
+    // disable specified context menu items for this table-view
+    var set = ENABLED.get( view );
+    if ( set != null )
+      for ( var item : items )
+        set.remove( item );
     else
-      throw new IllegalStateException( "Unexpected mouse cell for context menu " + mouseCol + "," + mouseRow );
-  }
-
-  // ####################################### Build Methods #######################################
-
-  /***************************************** buildAfter ******************************************/
-  private void buildAfter()
-  {
-    // build context menu for after last table-view body row/column - currently no context menu
-  }
-
-  /***************************************** buildCorner *****************************************/
-  private void buildCorner()
-  {
-    // build context menu for table-view corner cell - currently no context menu
-    addTODO( "corner" );
-  }
-
-  /************************************** buildColumnHeader **************************************/
-  private void buildColumnHeader()
-  {
-    // build context menu for table-view column header row - add relevant menu items
-    addFilterTextColumn().addSortColumn().addHideColumn().addShowColumn();
-  }
-
-  /*************************************** buildRowHeader ****************************************/
-  private void buildRowHeader()
-  {
-    // build context menu for table-view row header column - add relevant menu items
-    addFilterTextRow().addSortRow().addHideRow().addShowRow();
-  }
-
-  /****************************************** buildBody ******************************************/
-  private void buildBody()
-  {
-    // build context menu for table-view body cells - currently no context menu
-    addTODO( "body" );
-  }
-
-  // ######################################## Add Methods ########################################
-
-  /****************************************** addTODO ********************************************/
-  protected TableContextMenu addTODO( String name )
-  {
-    // add a disabled TODO menu item
-    var item = new MenuItem( "TODO " + name );
-    item.setDisable( true );
-    getItems().add( item );
-    return this;
-  }
-
-  /**************************************** addSeparator *****************************************/
-  protected TableContextMenu addSeparator()
-  {
-    // add a separator menu item
-    getItems().add( new SeparatorMenuItem() );
-    return this;
-  }
-
-  /*************************************** addShowColumn *****************************************/
-  protected TableContextMenu addShowColumn()
-  {
-    // exit without adding menu item if option is omitted for this table-view
-    if ( isOmitted( m_view, OptionalMenuItems.COLUMN_SHOW ) )
-      return this;
-
-    // add a show columns menu item
-    var item = new MenuItem( "Show" );
-    item.setOnAction( event -> HideShow.showColumns( m_view ) );
-    getItems().add( item );
-    return this;
-  }
-
-  /***************************************** addShowRow ******************************************/
-  protected TableContextMenu addShowRow()
-  {
-    // exit without adding menu item if option is omitted for this table-view
-    if ( isOmitted( m_view, OptionalMenuItems.ROW_SHOW ) )
-      return this;
-
-    // add a show rows menu item
-    var item = new MenuItem( "Show" );
-    item.setOnAction( event -> HideShow.showRows( m_view ) );
-    getItems().add( item );
-    return this;
-  }
-
-  /*************************************** addHideColumn *****************************************/
-  protected TableContextMenu addHideColumn()
-  {
-    // exit without adding menu item if option is omitted for this table-view
-    if ( isOmitted( m_view, OptionalMenuItems.COLUMN_HIDE ) )
-      return this;
-
-    // add a hide column(s) menu item
-    var item = new MenuItem( "Hide" );
-    item.setOnAction( event -> HideShow.hideColumns( m_view, m_mouseCol ) );
-    getItems().add( item );
-    return this;
-  }
-
-  /**************************************** addHideRow *******************************************/
-  protected TableContextMenu addHideRow()
-  {
-    // exit without adding menu item if option is omitted for this table-view
-    if ( isOmitted( m_view, OptionalMenuItems.ROW_HIDE ) )
-      return this;
-
-    // add a hide row(s) menu item
-    var item = new MenuItem( "Hide" );
-    item.setOnAction( event -> HideShow.hideRows( m_view, m_mouseRow ) );
-    getItems().add( item );
-    return this;
-  }
-
-  /************************************ addFilterTextColumn **************************************/
-  protected TableContextMenu addFilterTextColumn()
-  {
-    // exit without adding menu item if option is omitted for this table-view
-    if ( isOmitted( m_view, OptionalMenuItems.COLUMN_FILTER_TEXT ) )
-      return this;
-
-    // add a filter text sub-menu for column
-    var filterText = new Menu( "Filter text" );
-
-    var contains = new MenuItemTextField( "Contains" );
-    contains.setOnAction( ( event ) -> Filter.columnTextContains( m_view, m_mouseCol, contains.getFieldText(), true ) );
-
-    var starts = new MenuItemTextField( "Starts with" );
-    starts.setOnAction( ( event ) -> Filter.columnTextStarts( m_view, m_mouseCol, starts.getFieldText(), true ) );
-
-    var regex = new MenuItemTextField( "Regex" );
-    regex.setOnAction( ( event ) -> Filter.columnTextRegex( m_view, m_mouseCol, regex.getFieldText(), false ) );
-
-    // ensure aligned when menu shown, and text-fill is correct (otherwise lost)
-    filterText.setOnShown( event ->
     {
-      Paint textFill = ( (Label) getStyleableNode().lookup( ".label" ) ).getTextFill();
-      MenuItemTextField.align( textFill, contains, starts, regex );
-    } );
-
-    // add sub-menu items, and add sub-menu to context menu
-    filterText.getItems().addAll( contains, starts, regex );
-    getItems().add( filterText );
-    return this;
+      // start with all enabled, then remove specified items
+      set = EnumSet.allOf( TableMenuItems.class );
+      for ( var item : items )
+        set.remove( item );
+      ENABLED.put( view, set );
+    }
   }
 
-  /************************************** addFilterTextRow ***************************************/
-  protected TableContextMenu addFilterTextRow()
+  /****************************************** disableAll *****************************************/
+  /**
+   * Disables all optional menu items for the context menu for the specified table view.
+   *
+   * @param view the table view to configure
+   */
+  public static void disableAll( TableView view )
   {
-    // exit without adding menu item if option is omitted for this table-view
-    if ( isOmitted( m_view, OptionalMenuItems.ROW_FILTER_TEXT ) )
-      return this;
-
-    // add a filter text sub-menu for row
-    var filterText = new Menu( "Filter text" );
-
-    var contains = new MenuItemTextField( "Contains" );
-    contains.setOnAction( ( event ) -> Filter.rowTextContains( m_view, m_mouseRow, contains.getFieldText(), true ) );
-
-    var starts = new MenuItemTextField( "Starts with" );
-    starts.setOnAction( ( event ) -> Filter.rowTextStarts( m_view, m_mouseRow, starts.getFieldText(), true ) );
-
-    var regex = new MenuItemTextField( "Regex" );
-    regex.setOnAction( ( event ) -> Filter.rowTextRegex( m_view, m_mouseRow, regex.getFieldText(), false ) );
-
-    // ensure aligned when menu shown, and text-fill is correct (otherwise lost)
-    filterText.setOnShown( event ->
-    {
-      Paint textFill = ( (Label) getStyleableNode().lookup( ".label" ) ).getTextFill();
-      MenuItemTextField.align( textFill, contains, starts, regex );
-    } );
-
-    // add sub-menu items, and add sub-menu to context menu
-    filterText.getItems().addAll( contains, starts, regex );
-    getItems().add( filterText );
-    return this;
+    // disable all context menu items for this table-view
+    var set = EnumSet.noneOf( TableMenuItems.class );
+    ENABLED.put( view, set );
   }
 
-  /*************************************** addSortColumn *****************************************/
-  protected TableContextMenu addSortColumn()
+  /****************************************** isEnabled ******************************************/
+  /**
+   * Checks whether a specific optional menu item is enabled for the given table view.
+   * Defaults to true if no specific configuration exists for the view.
+   *
+   * @param view the table view to check
+   * @param item the menu item to check
+   * @return true if the item is enabled, false otherwise
+   */
+  public static boolean isEnabled( TableView view, TableMenuItems item )
   {
-    // exit without adding menu item if option is omitted for this table-view
-    if ( isOmitted( m_view, OptionalMenuItems.COLUMN_SORT ) )
-      return this;
-
-    // add a sort menu item
-    var ascend = new MenuItem( "Sort ↓" );
-    ascend.setOnAction( event -> Sort.columnSort( m_view, m_mouseCol, SortType.ASCENDING ) );
-
-    var descend = new MenuItem( "Sort ↑" );
-    descend.setOnAction( event -> Sort.columnSort( m_view, m_mouseCol, SortType.DESCENDING ) );
-
-    getItems().addAll( ascend, descend );
-    return this;
-  }
-
-  /***************************************** addSortRow ******************************************/
-  protected TableContextMenu addSortRow()
-  {
-    // exit without adding menu item if option is omitted for this table-view
-    if ( isOmitted( m_view, OptionalMenuItems.ROW_SORT ) )
-      return this;
-
-    // add a sort menu item
-    var ascend = new MenuItem( "Sort →" );
-    ascend.setOnAction( event -> Sort.rowSort( m_view, m_mouseRow, SortType.ASCENDING ) );
-
-    var descend = new MenuItem( "Sort ←" );
-    descend.setOnAction( event -> Sort.rowSort( m_view, m_mouseRow, SortType.DESCENDING ) );
-
-    getItems().addAll( ascend, descend );
-    return this;
+    // return true if specified context menu item is enabled for this table-view
+    var set = ENABLED.get( view );
+    return set == null || set.contains( item );
   }
 
 }
