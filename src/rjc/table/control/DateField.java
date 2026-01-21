@@ -173,7 +173,7 @@ public class DateField extends AbstractDropDownField
   protected void parseText( String text )
   {
     // convert text to date, and if different signal (any exception handled in abstract)
-    Date date = Date.parse( text, "uuuu-MM-dd" );
+    Date date = Date.parse( text );
     if ( !date.equals( m_date ) )
     {
       m_date = date;

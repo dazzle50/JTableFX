@@ -218,7 +218,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
         String timeStr = trimmedText.substring( sepIndex + 1 );
         try
         {
-          Date date = Date.parseIntelligent( dateStr );
+          Date date = Date.parse( dateStr );
           Time time = Time.parse( timeStr );
           return new DateTime( date, time );
         }

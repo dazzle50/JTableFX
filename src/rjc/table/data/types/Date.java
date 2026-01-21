@@ -25,9 +25,7 @@ import java.time.LocalDate;
 import java.time.Month;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 /*************************************************************************************************/
 /*********************************** Date (with no time-zone) ************************************/
@@ -40,13 +38,12 @@ import java.util.Optional;
  * as epoch days (days since 1970-01-01). Each instance uses only 4 bytes of memory while 
  * supporting an extensive date range of approximately +/-5.8 million years.
  * <p>
- * The class includes specialized features for business applications:
+ * The class includes specialised features for business applications:
  * <ul>
  * <li>Custom half-year formatting support for financial reporting</li>
- * <li>Intelligent parsing with automatic format detection and fallbacks</li>
+ * <li>Intelligent parsing with automatic format detection and fallbacks via {@link DateParser}</li>
  * <li>Complete immutability ensuring thread safety</li>
  * <li>Efficient comparison and arithmetic operations</li>
- * <li>Full compatibility with Java 21 time API</li>
  * </ul>
  * <p>
  * Example usage:
@@ -54,7 +51,8 @@ import java.util.Optional;
  * Date today = Date.now();
  * Date future = today.plusDays(30);
  * String formatted = today.format("dd/MM/yyyy");
- * Date parsed = Date.parseIntelligent("2026-12-25");
+ * Date parsed = Date.parse("2026-12-25");
+ * Date relative = Date.parse("next monday");
  * }</pre>
  */
 public final class Date implements Serializable, Comparable<Date>
@@ -304,7 +302,7 @@ public final class Date implements Serializable, Comparable<Date>
    */
   public Date plusDays( int days )
   {
-    // optimize for zero case to avoid object creation
+    // optimise for zero case to avoid object creation
     if ( days == 0 )
       return this;
     // perform efficient epoch day arithmetic
@@ -339,7 +337,7 @@ public final class Date implements Serializable, Comparable<Date>
    */
   public Date plusMonths( int months )
   {
-    // optimize for zero case to avoid object creation
+    // optimise for zero case to avoid object creation
     if ( months == 0 )
       return this;
     // use localdate for complex month arithmetic then convert back
@@ -358,7 +356,7 @@ public final class Date implements Serializable, Comparable<Date>
    */
   public Date plusYears( int years )
   {
-    // optimize for zero case to avoid object creation
+    // optimise for zero case to avoid object creation
     if ( years == 0 )
       return this;
     // use localdate for leap year handling then convert back
@@ -506,7 +504,7 @@ public final class Date implements Serializable, Comparable<Date>
     if ( !pattern.contains( String.valueOf( HALF_YEAR_CHAR ) ) )
       return toLocalDate().format( DateTimeFormatter.ofPattern( pattern ) );
 
-    // delegate to specialized half-year formatting
+    // delegate to specialised half-year formatting
     return formatWithHalfYear( pattern );
   }
 
@@ -605,70 +603,28 @@ public final class Date implements Serializable, Comparable<Date>
    * @param text    the date string to parse (must not be null)
    * @param pattern the pattern to use for parsing (must not be null)
    * @return a new Date instance representing the parsed date
-   * @throws DateTimeParseException if the text cannot be parsed using the pattern
+   * @throws DateTimeParseException if the text cannot be parsed with the pattern
    * @throws NullPointerException if text or pattern is null
    */
   public static Date parse( String text, String pattern )
   {
-    // validate input parameters
-    Objects.requireNonNull( text, "Text cannot be null" );
-    Objects.requireNonNull( pattern, "Pattern cannot be null" );
-
-    // attempt parsing with optional result
-    Optional<Date> result = tryParse( text, pattern );
-    if ( result.isPresent() )
-      return result.get();
-
-    // throw exception with clear error message
-    throw new DateTimeParseException( "Unable to parse date", text, 0 );
+    // delegate all parsing logic to DateParser
+    return DateParser.parse( text, pattern );
   }
 
-  /****************************************** tryParse *******************************************/
+  /******************************************** parse ********************************************/
   /**
-   * Attempts to parse a date string using the specified pattern.
-   * <p>
-   * This method provides a safe alternative to parse() that returns an empty Optional
-   * instead of throwing an exception when parsing fails. Useful for validation scenarios.
-   *
-   * @param text    the date string to parse (can be null)
-   * @param pattern the pattern to use for parsing (can be null)
-   * @return an Optional containing the parsed date, or empty if parsing failed
-   */
-  public static Optional<Date> tryParse( String text, String pattern )
-  {
-    // handle null inputs gracefully
-    if ( text == null || pattern == null )
-      return Optional.empty();
-
-    // delegate to intelligent parser with fallback handling
-    return IntelligentParser.parse( text.trim(), pattern );
-  }
-
-  /************************************** parseIntelligent ***************************************/
-  /**
-   * Parses a date string using intelligent pattern detection and multiple fallbacks.
-   * <p>
-   * This method automatically tries common date formats including ISO, European, and
-   * American conventions. It also handles cases where only day/month are provided by
-   * assuming the current year.
+   * Parses a date string using {@link DateParser} with automatic format detection.
    *
    * @param text the date string to parse (must not be null)
    * @return a new Date instance representing the parsed date
-   * @throws DateTimeParseException if the text cannot be parsed with any known format
+   * @throws DateTimeParseException if the text cannot be parsed with any supported format
    * @throws NullPointerException if text is null
    */
-  public static Date parseIntelligent( String text )
+  public static Date parse( String text )
   {
-    // validate input parameter
-    Objects.requireNonNull( text, "Text cannot be null" );
-
-    // attempt parsing with multiple format fallbacks
-    Optional<Date> result = IntelligentParser.parseWithFallbacks( text.trim() );
-    if ( result.isPresent() )
-      return result.get();
-
-    // provide informative error message about failed attempts
-    throw new DateTimeParseException( "Unable to parse date with any known format", text, 0 );
+    // delegate all parsing logic to DateParser
+    return DateParser.parse( text );
   }
 
   // ================================= Conversion Methods =================================
@@ -704,13 +660,8 @@ public final class Date implements Serializable, Comparable<Date>
   @Override
   public boolean equals( Object obj )
   {
-    // handle identity comparison for performance
-    if ( this == obj )
-      return true;
-    // check type compatibility and compare epoch days
-    if ( !( obj instanceof Date other ) )
-      return false;
-    return m_epochDay == other.m_epochDay;
+    // check if equal epoch day values
+    return obj instanceof Date other && m_epochDay == other.m_epochDay;
   }
 
   /****************************************** hashCode *******************************************/
@@ -727,133 +678,5 @@ public final class Date implements Serializable, Comparable<Date>
   {
     // use epoch day as hash code for simplicity and efficiency
     return m_epochDay;
-  }
-
-  // ================================= Inner Classes =================================
-
-  /**
-   * Intelligent parser that handles various date formats with automatic fallbacks.
-   * <p>
-   * This internal utility class provides robust date parsing capabilities by trying
-   * multiple common formats and handling edge cases like missing year components.
-   */
-  private static class IntelligentParser
-  {
-    // common date patterns ordered by likelihood and preference
-    private static final List<String> COMMON_PATTERNS = List.of( "yyyy-MM-dd", // iso format (preferred)
-        "yyyy/MM/dd", // alternative iso with slashes
-        "dd/MM/yyyy", // european format
-        "MM/dd/yyyy", // american format
-        "dd-MM-yyyy", // european with dashes
-        "MM-dd-yyyy", // american with dashes
-        "d/M/yyyy", // single digit variants
-        "d/M/yy", // two digit year
-        "dd/MM/yy", // european short year
-        "MM/dd/yy", // american short year
-        "yyyy-M-d", // iso with single digits
-        "yyyy/M/d" // alternative iso single digits
-    );
-
-    /******************************************* parse *******************************************/
-    /**
-     * attempts to parse text using the specified pattern with fallback to simplified patterns.
-     */
-    static Optional<Date> parse( String text, String pattern )
-    {
-      try
-      {
-        // attempt direct parsing with provided pattern
-        LocalDate localDate = LocalDate.parse( text, DateTimeFormatter.ofPattern( pattern ) );
-        return Optional.of( of( localDate ) );
-      }
-      catch ( Exception e )
-      {
-        // fallback to simplified pattern handling
-        return trySimplifiedPattern( text, pattern );
-      }
-    }
-
-    /************************************ parseWithFallbacks *************************************/
-    /**
-     * attempts parsing using multiple common patterns with intelligent fallbacks.
-     */
-    static Optional<Date> parseWithFallbacks( String text )
-    {
-      // try each common pattern in order of preference
-      for ( String pattern : COMMON_PATTERNS )
-      {
-        Optional<Date> result = parse( text, pattern );
-        if ( result.isPresent() )
-          return result;
-      }
-
-      // handle special case of missing year component
-      return tryWithCurrentYear( text );
-    }
-
-    /*********************************** trySimplifiedPattern ************************************/
-    /**
-     * attempts parsing with a simplified version of the pattern to handle format variations.
-     */
-    private static Optional<Date> trySimplifiedPattern( String text, String pattern )
-    {
-      try
-      {
-        // create simplified pattern by removing complex elements
-        String simplified = simplifyPattern( pattern );
-        LocalDate localDate = LocalDate.parse( text, DateTimeFormatter.ofPattern( simplified ) );
-        return Optional.of( of( localDate ) );
-      }
-      catch ( Exception e )
-      {
-        return Optional.empty();
-      }
-    }
-
-    /************************************ tryWithCurrentYear *************************************/
-    /**
-     * handles cases where only day and month are provided by adding current year.
-     */
-    private static Optional<Date> tryWithCurrentYear( String text )
-    {
-      String[] parts = text.split( "[/-]" );
-      if ( parts.length == 2 )
-      {
-        try
-        {
-          // append current year to partial date string
-          String withYear = text + "/" + LocalDate.now().getYear();
-          return parseWithFallbacks( withYear );
-        }
-        catch ( Exception e )
-        {
-          // try prepending year instead of appending
-          try
-          {
-            String withYear = LocalDate.now().getYear() + "/" + text;
-            return parseWithFallbacks( withYear );
-          }
-          catch ( Exception e2 )
-          {
-            return Optional.empty();
-          }
-        }
-      }
-      return Optional.empty();
-    }
-
-    /************************************** simplifyPattern **************************************/
-    /**
-     * creates a simplified version of complex patterns by removing unsupported elements.
-     */
-    private static String simplifyPattern( String pattern )
-    {
-      return pattern.replaceAll( "G+", "" ) // remove era designators
-          .replaceAll( "B+", "" ) // remove half-year patterns
-          .replaceAll( "Q+", "" ) // remove quarter patterns
-          .replaceAll( "E+", "" ) // remove day of week names
-          .replaceAll( "'[^']*'", "" ) // remove quoted literal text
-          .replaceAll( "([yMd])\\1+", "$1$1" ); // simplify repeated chars to pairs
-    }
   }
 }
