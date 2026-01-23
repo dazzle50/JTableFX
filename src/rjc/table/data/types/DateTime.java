@@ -182,23 +182,19 @@ public final class DateTime implements Serializable, Comparable<DateTime>
 
   /******************************************** parse ********************************************/
   /**
-   * Parses a text string to create a DateTime instance.
+   * Parses a date-time string into a DateTime instance with intelligent format detection.
    * <p>
-   * This method intelligently handles various common date-time formats by attempting
-   * to split the input on common separators (space, 'T') and parsing the resulting
-   * date and time portions separately. Supported formats include:
-   * <ul>
-   * <li>"yyyy-MM-dd HH:mm:ss" (ISO-like with space separator)</li>
-   * <li>"yyyy-MM-dd'T'HH:mm:ss" (ISO 8601 format)</li>
-   * <li>Other combinations using Date.parseIntelligent() and Time.parse()</li>
-   * </ul>
-   * <p>
-   * The method tries multiple parsing strategies and returns the first successful result.
+   * This method attempts to parse the input text by separating it into date and time components
+   * using common separators (space, 'T'), then parsing each portion independently using the
+   * intelligent parsing capabilities of {@link DateParser#parse(String)} and 
+   * {@link TimeParser#parse(String)}.
+   * Both date and time portions benefit from the full intelligent parsing capabilities of their
+   * respective parsers, including natural language interpretation and automatic format detection.
    *
-   * @param text the text string to parse, must not be null
-   * @return the parsed DateTime instance
+   * @param text the date-time string to parse, must not be null
+   * @return a new DateTime instance representing the parsed date and time
    * @throws NullPointerException if text is null
-   * @throws DateTimeParseException if the text cannot be parsed as a valid DateTime
+   * @throws DateTimeParseException if the text cannot be parsed as a valid DateTime using any supported format
    */
   public static DateTime parse( String text )
   {
@@ -218,8 +214,8 @@ public final class DateTime implements Serializable, Comparable<DateTime>
         String timeStr = trimmedText.substring( sepIndex + 1 );
         try
         {
-          Date date = Date.parse( dateStr );
-          Time time = Time.parse( timeStr );
+          Date date = DateParser.parse( dateStr );
+          Time time = TimeParser.parse( timeStr );
           return new DateTime( date, time );
         }
         catch ( IllegalArgumentException | DateTimeParseException e )

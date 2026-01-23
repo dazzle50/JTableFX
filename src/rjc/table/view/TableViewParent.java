@@ -27,107 +27,187 @@ import rjc.table.signal.ObservableInteger.ReadOnlyInteger;
 /****************************** JavaFX parent node for table views *******************************/
 /*************************************************************************************************/
 
+/**
+ * A custom JavaFX {@link Parent} node that serves as the container for table view components.
+ * <p>
+ * This class acts as the root parent node for a table view implementation. It manages the
+ * overall size (width and height) of the table area and provides observable properties for 
+ * these dimensions. It is designed to fill the available space in its parent layout, allowing
+ * scrollbars to appear at the edges of the allocated area when content exceeds the visible region.
+ * <p>
+ * The node is always resizable and reports extremely large preferred dimensions
+ * to encourage its parent container to allocate as much space as possible.
+ * <p>
+ * This class also provides convenience methods for adding, removing, and checking
+ * membership of child nodes that are part of the table's visual representation.
+ */
 public class TableViewParent extends Parent
 {
-  private ObservableInteger m_height = new ObservableInteger(); // table node height
-  private ObservableInteger m_width  = new ObservableInteger(); // table node width
+  private final ObservableInteger m_height = new ObservableInteger(); // current height of the table area in pixels
+  private final ObservableInteger m_width  = new ObservableInteger(); // current width of the table area in pixels
 
   /******************************************* resize ********************************************/
+  /**
+   * Called by the layout system when this node should be resized to the specified dimensions.
+   * <p>
+   * Updates the internal observable width and height properties with the new integer values.
+   *
+   * @param width   the target layout width
+   * @param height  the target layout height
+   */
   @Override
   public void resize( double width, double height )
   {
-    // resize the table parent
+    // update observable size properties (cast to int as table operates on pixel integers)
     m_width.set( (int) width );
     m_height.set( (int) height );
   }
 
   /**************************************** isResizable ******************************************/
+  /**
+   * Indicates whether this node can be resized by its parent during layout.
+   *
+   * @return {@code true} — this parent node is always resizable
+   */
   @Override
   public boolean isResizable()
   {
-    // table parent is resizable
     return true;
   }
 
   /***************************************** minHeight *******************************************/
+  /**
+   * Returns the minimum height this node is willing to be resized to.
+   *
+   * @param width the width constraint (ignored in this implementation)
+   * @return 0.0 — no minimum height constraint
+   */
   @Override
   public double minHeight( double width )
   {
-    // table parent minimum height is zero
     return 0.0;
   }
 
   /****************************************** minWidth *******************************************/
+  /**
+   * Returns the minimum width this node is willing to be resized to.
+   *
+   * @param height the height constraint (ignored in this implementation)
+   * @return 0.0 — no minimum width constraint
+   */
   @Override
   public double minWidth( double height )
   {
-    // table parent minimum width is zero
     return 0.0;
   }
 
   /***************************************** prefHeight ******************************************/
+  /**
+   * Returns the preferred height of this node for layout purposes.
+   * <p>
+   * A very large value is returned so that the parent layout allocates the maximum
+   * available vertical space, allowing scrollbars to appear at the edge of the area.
+   *
+   * @param width the width constraint (ignored in this implementation)
+   * @return {@code Integer.MAX_VALUE} to request maximum available height
+   */
   @Override
   public double prefHeight( double width )
   {
-    // table parent will take as much space as it can get so scroll-bars at edge of area
     return Integer.MAX_VALUE;
   }
 
   /****************************************** prefWidth ******************************************/
+  /**
+   * Returns the preferred width of this node for layout purposes.
+   * <p>
+   * A very large value is returned so that the parent layout allocates the maximum
+   * available horizontal space, allowing scrollbars to appear at the edge of the area.
+   *
+   * @param height the height constraint (ignored in this implementation)
+   * @return {@code Integer.MAX_VALUE} to request maximum available width
+   */
   @Override
   public double prefWidth( double height )
   {
-    // table parent will take as much space as it can get so scroll-bars at edge of area
     return Integer.MAX_VALUE;
   }
 
   /****************************************** getWidth *******************************************/
+  /**
+   * Returns the current width of the table area in pixels.
+   *
+   * @return current integer width
+   */
   public int getWidth()
   {
-    // return table parent node width
     return m_width.get();
   }
 
   /****************************************** getHeight ******************************************/
+  /**
+   * Returns the current height of the table area in pixels.
+   *
+   * @return current integer height
+   */
   public int getHeight()
   {
-    // return table parent node height
     return m_height.get();
   }
 
   /**************************************** widthProperty ****************************************/
+  /**
+   * Provides read-only access to the width property.
+   *
+   * @return read-only observable integer property representing the table width
+   */
   public ReadOnlyInteger widthProperty()
   {
-    // return table parent node width
     return m_width.getReadOnly();
   }
 
   /**************************************** heightProperty ***************************************/
+  /**
+   * Provides read-only access to the height property.
+   *
+   * @return read-only observable integer property representing the table height
+   */
   public ReadOnlyInteger heightProperty()
   {
-    // return table parent node height
     return m_height.getReadOnly();
   }
 
   /********************************************* add *********************************************/
+  /**
+   * Adds a child node to be displayed as part of the table.
+   *
+   * @param node the node to add to the table's children list
+   */
   public void add( Node node )
   {
-    // add node to table displayed children
     getChildren().add( node );
   }
 
   /******************************************* remove ********************************************/
+  /**
+   * Removes a child node from the table's displayed content.
+   *
+   * @param node the node to remove from the table's children list
+   */
   public void remove( Node node )
   {
-    // remove node from table displayed children
     getChildren().remove( node );
   }
 
   /****************************************** contains *******************************************/
+  /**
+   * Checks whether the specified node is currently a child of this table parent.
+   *
+   * @param node the node to test for membership
+   * @return {@code true} if the node is in the children list, otherwise {@code false}
+   */
   public boolean contains( Node node )
   {
-    // return true if node is in table displayed children
     return getChildren().contains( node );
   }
-
 }
