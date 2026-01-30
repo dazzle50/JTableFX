@@ -18,12 +18,8 @@
 
 package rjc.table.undo.commands;
 
-import java.util.Arrays;
-
 import rjc.table.undo.IUndoCommand;
 import rjc.table.view.TableView;
-import rjc.table.view.action.Sort.SortType;
-import rjc.table.view.action.SortList;
 import rjc.table.view.axis.TableAxis;
 
 /*************************************************************************************************/
@@ -40,45 +36,18 @@ public class CommandSortView implements IUndoCommand
   private String    m_text;     // text describing command
 
   /**************************************** constructor ******************************************/
-  public CommandSortView( TableView view, TableAxis axis, int viewIndex, SortType type )
+  public CommandSortView( TableView view, TableAxis axis, int[] beforeViewOrder, int[] afterDataOrder )
   {
-    // create SortList from specified column or row in specified view
-    SortList list = new SortList();
-    boolean isColumn = axis == view.getColumnsAxis();
-    if ( isColumn )
-    {
-      m_axis = view.getRowsAxis();
-      int dataColumn = axis.getDataIndex( viewIndex );
-      for ( int viewRow = 0; viewRow < view.getData().getRowCount(); viewRow++ )
-      {
-        int dataRow = m_axis.getDataIndex( viewRow );
-        if ( m_axis.getNominalSize( dataRow ) > 0 ) // only include visible rows
-          list.append( dataRow, view.getData().getValue( dataColumn, dataRow ) );
-      }
-    }
-    else
-    {
-      m_axis = view.getColumnsAxis();
-      int dataRow = axis.getDataIndex( viewIndex );
-      for ( int viewColumn = 0; viewColumn < view.getData().getColumnCount(); viewColumn++ )
-      {
-        int dataColumn = m_axis.getDataIndex( viewColumn );
-        if ( m_axis.getNominalSize( dataColumn ) > 0 ) // only include visible columns
-          list.append( dataColumn, view.getData().getValue( dataColumn, dataRow ) );
-      }
-    }
+    // convert view order to data order for before-sort
+    m_oldOrder = new int[beforeViewOrder.length];
+    for ( int i = 0; i < beforeViewOrder.length; i++ )
+      m_oldOrder[i] = axis.getDataIndex( beforeViewOrder[i] );
 
-    // store old order, sort list and store new order
-    m_oldOrder = list.getIndexes();
-    list.sort( type );
-    m_newOrder = list.getIndexes();
-
-    // if no change in order, do not create command
-    if ( Arrays.equals( m_oldOrder, m_newOrder ) )
-      return;
-
+    // store after-sort data order
+    m_newOrder = afterDataOrder;
+    
+    m_axis = axis;
     m_view = view;
-    m_index = viewIndex;
     redo();
   }
 
@@ -86,7 +55,7 @@ public class CommandSortView implements IUndoCommand
   @Override
   public void redo()
   {
-    // apply the sorted index mapping
+    // apply the post-sorted index mapping
     m_axis.setMapping( m_newOrder );
     m_view.redraw();
   }
@@ -124,13 +93,4 @@ public class CommandSortView implements IUndoCommand
     }
     return m_text;
   }
-
-  /******************************************* isValid *******************************************/
-  @Override
-  public boolean isValid()
-  {
-    // command is valid only if change in order (indicated by m_view not null)
-    return m_view != null;
-  }
-
 }

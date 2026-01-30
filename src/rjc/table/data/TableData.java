@@ -22,6 +22,7 @@ import rjc.table.Utils;
 import rjc.table.signal.ISignal;
 import rjc.table.signal.ObservableInteger;
 import rjc.table.signal.ObservableInteger.ReadOnlyInteger;
+import rjc.table.view.action.Sort.IntComparator;
 import rjc.table.view.cell.CellVisual;
 
 /*************************************************************************************************/
@@ -30,7 +31,7 @@ import rjc.table.view.cell.CellVisual;
 
 /**
  * This class serves as the foundation for table data implementations, offering observable properties
- * for table dimensions and a signaling system for coordinating view updates when data changes.
+ * for table dimensions and a signalling system for coordinating view updates when data changes.
  * 
  * Column and row indices start at 0 for table body cells, with -1 representing header cells.
  */
@@ -329,6 +330,49 @@ public class TableData implements ISignal
     return m_userData;
   }
 
+  /************************************* getColumnComparator *************************************/
+  public IntComparator getColumnComparator( int dataColumn )
+  /**
+   * Provides a comparator for sorting rows based on values in the specified column.
+   * This default implementation compares cell values using {@link GenericComparator}. 
+   * Used when sorting table by column at data-level and at view-level. 
+   * Override this method to provide optimised comparators for specific columns if needed.
+   * 
+   * @param   dataColumn the column index to create a comparator for
+   * @return an IntComparator that compares two row indices based on their values in the specified column
+   */
+  {
+    // implement comparator using cell values from specified column
+    return ( dataRow1, dataRow2 ) ->
+    {
+      var data = this; // cast to TableData to access getValue method
+      var obj1 = data.getValue( dataColumn, dataRow1 );
+      var obj2 = data.getValue( dataColumn, dataRow2 );
+      return GenericComparator.compare( obj1, obj2 );
+    };
+  }
+
+  /*************************************** getRowComparator **************************************/
+  public IntComparator getRowComparator( int dataRow )
+  /**
+    * Provides a comparator for sorting columns based on values in the specified row.
+    * This default implementation compares cell values using {@link GenericComparator}.
+    * Used when sorting table by row at data-level and at view-level.
+    * Override this method to provide optimised comparators for specific rows if needed.
+    *   
+    * @param   dataRow the row index to create a comparator for
+    * @return an IntComparator that compares two column indices based on their values in the specified row
+   */
+  {
+    // implement comparator using cell values from specified row
+    return ( dataColumn1, dataColumn2 ) ->
+    {
+      var obj1 = getValue( dataColumn1, dataRow );
+      var obj2 = getValue( dataColumn2, dataRow );
+      return GenericComparator.compare( obj1, obj2 );
+    };
+  }
+
   /****************************************** toString *******************************************/
   @Override
   public String toString()
@@ -336,5 +380,4 @@ public class TableData implements ISignal
     // return concise string representation showing current table dimensions
     return Utils.name( this ) + "[m_columnCount=" + m_columnCount + " m_rowCount=" + m_rowCount + "]";
   }
-
 }
