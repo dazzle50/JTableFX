@@ -851,14 +851,22 @@ public class TableAxis implements IListener
 
   /*********************************** getHiddenDataIndexes **************************************/
   /**
-   * Returns the set of all currently hidden data indices.
+   * Returns the set of all currently hidden view indices.
    * 
-   * @return set of hidden data indices (may be empty)
+   * @return set of hidden view indices (may be empty)
    */
-  public HashSetInt getHiddenDataIndexes()
+  public HashSetInt getHiddenViewIndexes()
   {
     // delegate to data index size storage
-    return m_dataNominalSize.getHiddenIndexes();
+    var dataIndexes = m_dataNominalSize.getHiddenIndexes();
+
+    // convert data indexes to view indexes
+    var viewIndexes = new HashSetInt( dataIndexes.size() );
+    var it = dataIndexes.iterator();
+    while ( it.hasNext() )
+      dataIndexes.add( m_viewDatamapping.getViewIndex( it.next() ) );
+
+    return viewIndexes;
   }
 
   /***************************************** setMapping ******************************************/

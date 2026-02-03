@@ -27,9 +27,15 @@ import rjc.table.view.TableView;
 import rjc.table.view.axis.TableAxis;
 
 /*************************************************************************************************/
-/******************************** Table view selected cells/areas ********************************/
+/************************ Manages selected cells and areas on table view *************************/
 /*************************************************************************************************/
 
+/**
+ * Manages the selection model for a table view, tracking which cells, rows, and columns are
+ * currently selected. Supports multiple non-contiguous selection areas and provides methods to
+ * query and modify the selection state. Implements ISignal to notify observers when the
+ * selection changes.
+ */
 public class CellSelection implements ISignal
 {
   final static private int     INVALID   = TableAxis.INVALID;
@@ -40,6 +46,11 @@ public class CellSelection implements ISignal
   private ArrayList<Selection> m_selected;
 
   /***************************************** constructor *****************************************/
+  /**
+   * Constructs a new cell selection model for the specified table view.
+   *
+   * @param view the table view this selection model is associated with
+   */
   public CellSelection( TableView view )
   {
     // construct selection model
@@ -48,6 +59,10 @@ public class CellSelection implements ISignal
   }
 
   /******************************************** clear ********************************************/
+  /**
+   * Removes all selected areas from the selection model. If no areas are currently selected,
+   * this method has no effect. Signals that the selection has been cleared.
+   */
   public void clear()
   {
     // remove all selected areas
@@ -59,6 +74,10 @@ public class CellSelection implements ISignal
   }
 
   /****************************************** selectAll ******************************************/
+  /**
+   * Selects the entire table by creating a selection area from the first cell to after the last
+   * cell. Also positions the focus cell at the first cell and the select cell after the last cell.
+   */
   public void selectAll()
   {
     // select entire table
@@ -69,15 +88,28 @@ public class CellSelection implements ISignal
   }
 
   /******************************************* select ********************************************/
-  public void select( int columnIndex1, int rowIndex1, int columnIndex2, int rowIndex2 )
+  /**
+   * Adds a new rectangular selection area to the table selection model, defined by two corner
+   * positions. The coordinates may be in any order (min/max are calculated internally).
+   *
+   * @param viewColumn1 the column view index of the first corner
+   * @param viewRow1    the row view index of the first corner
+   * @param viewColumn2 the column view index of the second corner
+   * @param viewRow2    the row view index of the second corner
+   */
+  public void select( int viewColumn1, int viewRow1, int viewColumn2, int viewRow2 )
   {
     // add new selected area to table selected
-    Selection newArea = new Selection( columnIndex1, rowIndex1, columnIndex2, rowIndex2 );
+    Selection newArea = new Selection( viewColumn1, viewRow1, viewColumn2, viewRow2 );
     m_selected.add( newArea );
     signal( m_selected.size() );
   }
 
   /******************************************* select ********************************************/
+  /**
+   * Selects a new rectangular area based on the current positions of the focus cell and the
+   * select cell. The area is defined by the rectangle between these two positions.
+   */
   public void select()
   {
     // select new area based on focus & select cell positions
@@ -87,31 +119,43 @@ public class CellSelection implements ISignal
   }
 
   /**************************************** selectColumns ****************************************/
-  public void selectColumns( HashSetInt columns )
+  /**
+   * Selects the specified columns by creating selection areas for contiguous ranges. Non-contiguous
+   * columns result in multiple selection areas. Each selection area spans from the first row to
+   * after the last row.
+   *
+   * @param viewColumnsToSelect the set of column view indices to select
+   */
+  public void selectColumns( HashSetInt viewColumnsToSelect )
   {
-    // select specified columns
-    var orderedColumns = columns.toSortedArray();
+    // select specified columns by creating areas for contiguous ranges
+    var sortedColumns = viewColumnsToSelect.toSortedArray();
     int startColumn = INVALID;
     int endColumn = INVALID;
 
-    for ( int column : orderedColumns )
+    // iterate through sorted columns to identify contiguous ranges
+    for ( int columnIndex : sortedColumns )
     {
       if ( startColumn == INVALID )
       {
-        startColumn = column;
-        endColumn = column;
+        // start new range
+        startColumn = columnIndex;
+        endColumn = columnIndex;
       }
-      else if ( column == endColumn + 1 )
-        endColumn = column;
+      else if ( columnIndex == endColumn + 1 )
+        // extend current range
+        endColumn = columnIndex;
       else
       {
+        // save current range and start new range
         Selection newArea = new Selection( startColumn, FIRSTCELL, endColumn, AFTER );
         m_selected.add( newArea );
-        startColumn = column;
-        endColumn = column;
+        startColumn = columnIndex;
+        endColumn = columnIndex;
       }
     }
 
+    // add final range if one exists
     if ( startColumn != INVALID )
     {
       Selection newArea = new Selection( startColumn, FIRSTCELL, endColumn, AFTER );
@@ -121,31 +165,43 @@ public class CellSelection implements ISignal
   }
 
   /***************************************** selectRows ******************************************/
-  public void selectRows( HashSetInt rows )
+  /**
+   * Selects the specified rows by creating selection areas for contiguous ranges. Non-contiguous
+   * rows result in multiple selection areas. Each selection area spans from the first column to
+   * after the last column.
+   *
+   * @param viewRowsToSelect the set of row view indices to select
+   */
+  public void selectRows( HashSetInt viewRowsToSelect )
   {
-    // select specified rows
-    var orderedRows = rows.toSortedArray();
+    // select specified rows by creating areas for contiguous ranges
+    var sortedRows = viewRowsToSelect.toSortedArray();
     int startRow = INVALID;
     int endRow = INVALID;
 
-    for ( int row : orderedRows )
+    // iterate through sorted rows to identify contiguous ranges
+    for ( int rowIndex : sortedRows )
     {
       if ( startRow == INVALID )
       {
-        startRow = row;
-        endRow = row;
+        // start new range
+        startRow = rowIndex;
+        endRow = rowIndex;
       }
-      else if ( row == endRow + 1 )
-        endRow = row;
+      else if ( rowIndex == endRow + 1 )
+        // extend current range
+        endRow = rowIndex;
       else
       {
+        // save current range and start new range
         Selection newArea = new Selection( FIRSTCELL, startRow, AFTER, endRow );
         m_selected.add( newArea );
-        startRow = row;
-        endRow = row;
+        startRow = rowIndex;
+        endRow = rowIndex;
       }
     }
 
+    // add final range if one exists
     if ( startRow != INVALID )
     {
       Selection newArea = new Selection( FIRSTCELL, startRow, AFTER, endRow );
@@ -155,35 +211,54 @@ public class CellSelection implements ISignal
   }
 
   /******************************************* update ********************************************/
+  /**
+   * Updates the last selected area to reflect the current positions of the focus and select cells.
+   * If no selection exists, creates a new one. When selecting entire columns or rows, adjusts the
+   * focus position to start from the first cell.
+   */
   public void update()
   {
-    // update last selected area
+    // update last selected area to match current focus and select cell positions
     ViewPosition focus = m_view.getFocusCell();
     ViewPosition select = m_view.getSelectCell();
     if ( m_selected.isEmpty() )
       select();
-    Selection last = m_selected.get( m_selected.size() - 1 );
+    Selection lastSelectedArea = m_selected.get( m_selected.size() - 1 );
 
     // if selecting columns or rows, then start selecting from first cell
-    int focusColumn = select.isColumnAfter() ? FIRSTCELL : focus.getColumn();
-    int focusRow = select.isRowAfter() ? FIRSTCELL : focus.getRow();
-    last.set( focusColumn, focusRow, select.getColumn(), select.getRow() );
+    int anchorColumn = select.isColumnAfter() ? FIRSTCELL : focus.getColumn();
+    int anchorRow = select.isRowAfter() ? FIRSTCELL : focus.getRow();
+    lastSelectedArea.set( anchorColumn, anchorRow, select.getColumn(), select.getRow() );
     signal( m_selected.size() );
   }
 
   /*************************************** isCellSelected ****************************************/
-  public boolean isCellSelected( int columnIndex, int rowIndex )
+  /**
+   * Determines whether the specified cell is contained within any of the currently selected areas.
+   *
+   * @param viewColumn the column view index to check
+   * @param viewRow    the row view index to check
+   * @return true if the cell is selected, false otherwise
+   */
+  public boolean isCellSelected( int viewColumn, int viewRow )
   {
     // return true if specified cell is in a selected area
     for ( var area : m_selected )
-      if ( area.isCellSelected( columnIndex, rowIndex ) )
+      if ( area.isCellSelected( viewColumn, viewRow ) )
         return true;
 
     return false;
   }
 
   /************************************** isColumnSelected ***************************************/
-  public boolean isColumnSelected( int columnIndex )
+  /**
+   * Determines whether all visible cells in the specified column are selected. Returns false if
+   * the column has no visible cells or if any visible cell in the column is not selected.
+   *
+   * @param viewColumn the column view index to check
+   * @return true if all visible cells in the column are selected, false otherwise
+   */
+  public boolean isColumnSelected( int viewColumn )
   {
     // return true if all visible cells in specified column are selected
     TableAxis axis = m_view.getRowsAxis();
@@ -193,15 +268,19 @@ public class CellSelection implements ISignal
     int top = axis.getFirstVisible();
     int bottom = axis.getLastVisible();
 
+    // check each visible row in this column
     for ( int rowIndex = top; rowIndex <= bottom; rowIndex++ )
       rows: if ( axis.isVisible( rowIndex ) )
       {
+        // check if this cell is within any selected area
         for ( var area : m_selected )
-          if ( area.isCellSelected( columnIndex, rowIndex ) )
+          if ( area.isCellSelected( viewColumn, rowIndex ) )
           {
+            // skip ahead to end of this selected area's row range
             rowIndex = area.r2;
             break rows;
           }
+        // cell is not selected, so column is not fully selected
         return false;
       }
 
@@ -209,7 +288,14 @@ public class CellSelection implements ISignal
   }
 
   /**************************************** isRowSelected ****************************************/
-  public boolean isRowSelected( int rowIndex )
+  /**
+   * Determines whether all visible cells in the specified row are selected. Returns false if
+   * the row has no visible cells or if any visible cell in the row is not selected.
+   *
+   * @param viewRow the row view index to check
+   * @return true if all visible cells in the row are selected, false otherwise
+   */
+  public boolean isRowSelected( int viewRow )
   {
     // return true if all visible cells in specified row are selected
     TableAxis axis = m_view.getColumnsAxis();
@@ -219,15 +305,19 @@ public class CellSelection implements ISignal
     int left = axis.getFirstVisible();
     int right = axis.getLastVisible();
 
+    // check each visible column in this row
     for ( int columnIndex = left; columnIndex <= right; columnIndex++ )
       columns: if ( axis.isVisible( columnIndex ) )
       {
+        // check if this cell is within any selected area
         for ( var area : m_selected )
-          if ( area.isCellSelected( columnIndex, rowIndex ) )
+          if ( area.isCellSelected( columnIndex, viewRow ) )
           {
+            // skip ahead to end of this selected area's column range
             columnIndex = area.c2;
             break columns;
           }
+        // cell is not selected, so row is not fully selected
         return false;
       }
 
@@ -235,39 +325,66 @@ public class CellSelection implements ISignal
   }
 
   /************************************* hasColumnSelection **************************************/
-  public boolean hasColumnSelection( int columnIndex )
+  /**
+   * Determines whether the specified column intersects with any selected area. Returns true if
+   * any part of the column is included in a selection, even if not all cells are selected.
+   *
+   * @param viewColumn the column view index to check
+   * @return true if the column has any selection, false otherwise
+   */
+  public boolean hasColumnSelection( int viewColumn )
   {
     // return true if specified column has any selection
     for ( var area : m_selected )
-      if ( columnIndex >= area.c1 && columnIndex <= area.c2 )
+      if ( viewColumn >= area.c1 && viewColumn <= area.c2 )
         return true;
 
     return false;
   }
 
   /*************************************** hasRowSelection ***************************************/
-  public boolean hasRowSelection( int rowIndex )
+  /**
+   * Determines whether the specified row intersects with any selected area. Returns true if
+   * any part of the row is included in a selection, even if not all cells are selected.
+   *
+   * @param viewRow the row view index to check
+   * @return true if the row has any selection, false otherwise
+   */
+  public boolean hasRowSelection( int viewRow )
   {
     // return true if specified row has any selection
     for ( var area : m_selected )
-      if ( rowIndex >= area.r1 && rowIndex <= area.r2 )
+      if ( viewRow >= area.r1 && viewRow <= area.r2 )
         return true;
 
     return false;
   }
 
   /************************************* getResizableColumns **************************************/
+  /**
+   * Returns a set of selected column view indices, excluding those that are not resizable. If all
+   * columns are selected, returns null to indicate all columns (filtered for resizability).
+   *
+   * @return a HashSetInt of resizable selected columns, null if all columns selected, or empty set if none
+   */
   public HashSetInt getResizableColumns()
   {
     // return list of selected columns with non-resizable removed
-    var columns = getSelectedColumns();
-    if ( columns != null )
-      columns.removeIf( column -> !m_view.isColumnResizable( column ) );
+    var selectedColumns = getSelectedColumns();
+    if ( selectedColumns != null )
+      selectedColumns.removeIf( columnIndex -> !m_view.isColumnResizable( columnIndex ) );
 
-    return columns;
+    return selectedColumns;
   }
 
   /************************************* getSelectedColumns **************************************/
+  /**
+   * Returns a set of all selected column view indices. Returns null if the entire table is selected
+   * (indicating all columns), or an empty set if no columns are selected. A column is considered
+   * selected if it spans from the first to last visible row within a selection area.
+   *
+   * @return a HashSetInt of selected columns, null if all columns, or empty set if none
+   */
   public HashSetInt getSelectedColumns()
   {
     // return return list of selected columns, null = all, empty-set = none
@@ -296,17 +413,30 @@ public class CellSelection implements ISignal
   }
 
   /************************************** getResizableRows ***************************************/
+  /**
+   * Returns a set of selected row view indices, excluding those that are not resizable. If all
+   * rows are selected, returns null to indicate all rows (filtered for resizability).
+   *
+   * @return a HashSetInt of resizable selected rows, null if all rows selected, or empty set if none
+   */
   public HashSetInt getResizableRows()
   {
     // return list of selected rows with non-resizable removed
-    var rows = getSelectedRows();
-    if ( rows != null )
-      rows.removeIf( row -> !m_view.isRowResizable( row ) );
+    var selectedRows = getSelectedRows();
+    if ( selectedRows != null )
+      selectedRows.removeIf( rowIndex -> !m_view.isRowResizable( rowIndex ) );
 
-    return rows;
+    return selectedRows;
   }
 
   /*************************************** getSelectedRows ***************************************/
+  /**
+   * Returns a set of all selected row view indices. Returns null if the entire table is selected
+   * (indicating all rows), or an empty set if no rows are selected. A row is considered
+   * selected if it spans from the first to last visible column within a selection area.
+   *
+   * @return a HashSetInt of selected rows, null if all rows, or empty set if none
+   */
   public HashSetInt getSelectedRows()
   {
     // return return list of selected rows, null = all, empty-set = none
@@ -323,7 +453,7 @@ public class CellSelection implements ISignal
       if ( area.c1 <= first && area.c2 >= last && area.r1 <= top && area.r2 >= bottom )
         return null;
 
-      // if rows selected then add to list
+      // if rows selected (spanning all columns) then add to list
       if ( area.c1 <= first && area.c2 >= last )
       {
         for ( int row = area.r1; row <= area.r2; row++ )
@@ -377,21 +507,30 @@ public class CellSelection implements ISignal
   }
 
   /****************************************** getAreas *******************************************/
+  /**
+   * Returns a list of all selected areas as integer arrays. Each array contains four elements:
+   * [columnStart, rowStart, columnEnd, rowEnd]. The end coordinates are clamped to the maximum
+   * valid column and row view indices. This method is used by the canvas overlay to draw selection
+   * highlighting.
+   *
+   * @return an ArrayList of int arrays, each representing a selected area's bounds
+   */
   public ArrayList<int[]> getAreas()
   {
     // return list of selected areas - used by CanvasOverlay to draw the highlighting
-    int maxColumn = m_view.getColumnsAxis().getCount() - 1;
-    int maxRow = m_view.getRowsAxis().getCount() - 1;
-    var areas = new ArrayList<int[]>();
+    int maxColumnIndex = m_view.getColumnsAxis().getCount() - 1;
+    int maxRowIndex = m_view.getRowsAxis().getCount() - 1;
+    var selectedAreas = new ArrayList<int[]>();
 
-    // construct the list
-    for ( Selection selected : m_selected )
+    // construct the list with clamped coordinates
+    for ( Selection selectedArea : m_selected )
     {
-      int[] area = { selected.c1, selected.r1, Math.min( selected.c2, maxColumn ), Math.min( selected.r2, maxRow ) };
-      areas.add( area );
+      int[] areaBounds = { selectedArea.c1, selectedArea.r1, Math.min( selectedArea.c2, maxColumnIndex ),
+          Math.min( selectedArea.r2, maxRowIndex ) };
+      selectedAreas.add( areaBounds );
     }
 
-    return areas;
+    return selectedAreas;
   }
 
   /****************************************** toString *******************************************/

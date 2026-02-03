@@ -45,7 +45,7 @@ public class CommandSortView implements IUndoCommand
 
     // store after-sort data order
     m_newOrder = afterDataOrder;
-    
+
     m_axis = axis;
     m_view = view;
     redo();

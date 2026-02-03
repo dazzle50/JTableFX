@@ -108,7 +108,7 @@ public class HideShow
     // get currently selected columns
     var viewColumns = view.getSelection().getSelectedColumns();
     if ( viewColumns == null ) // all visible columns are selected so unhide all
-      viewColumns = view.getColumnsAxis().getHiddenDataIndexes();
+      viewColumns = view.getColumnsAxis().getHiddenViewIndexes();
 
     // unhide the columns via undo-command and add to undostack
     var command = new CommandUnhideIndexes( view, view.getColumnsAxis(), viewColumns );
@@ -127,7 +127,7 @@ public class HideShow
     // get currently selected rows
     var viewRows = view.getSelection().getSelectedRows();
     if ( viewRows == null ) // all visible rows are selected so unhide all
-      viewRows = view.getRowsAxis().getHiddenDataIndexes();
+      viewRows = view.getRowsAxis().getHiddenViewIndexes();
 
     // unhide the rows via undo-command and add to undostack
     var command = new CommandUnhideIndexes( view, view.getRowsAxis(), viewRows );

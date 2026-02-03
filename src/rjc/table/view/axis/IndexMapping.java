@@ -141,11 +141,11 @@ public class IndexMapping
 
   /***************************************** setMapping ******************************************/
   /**
-   * Sets a new mapping from view indices to data indices based on provided mapping array.
+   * Sets a new mapping from view-indices to data-indices based on provided mapping array.
    * <p>
    * The newMapping array contains data indices for non-hidden view indices only, in order.
-   * This method updates the internal mapping to reflect the new ordering while preserving
-   * hidden indices.
+   * This method updates the internal mapping to reflect the new ordering while leaving
+   * hidden indices unchanged.
    * 
    * @param newMapping array of data indices for non-hidden view indices
    * @param size IndexSize object to determine hidden/non-hidden status
@@ -167,17 +167,23 @@ public class IndexMapping
         m_dataIndices[viewIndex] = newDataIndex;
       }
     }
+
+    // update mapped count to reflect new maximum mapped index
+    if ( max > m_mappedCount )
+      m_mappedCount = max;
+    trimIdentityTail();
   }
 
   /************************************** trimIdentityTail ***************************************/
   /**
-   * Removes trailing entries that match identity mapping (value equals index).
-   * <p>
-   * This optimises storage by not storing unnecessary mappings where the view index equals the
-   * data index. For example, if the mapping ends with [..., 5→5, 6→6, 7→7], these trailing
-   * entries are removed since they provide no information beyond the identity mapping.
-   * 
-   * @return true if any entries were trimmed
+  * Reduces the mapped count to exclude trailing entries that match identity mapping (value equals index).
+  * <p>
+  * This optimises storage by not considering unnecessary mappings where the view index equals the
+  * data index. For example, if the mapping ends with [..., 5→5, 6→6, 7→7], the mapped count
+  * is reduced to exclude these trailing entries since they provide no information beyond the 
+  * identity mapping. The array itself is not modified; only m_mappedCount is adjusted.
+  * 
+  * @return true if the mapped count was reduced
    */
   public boolean trimIdentityTail()
   {
@@ -215,7 +221,7 @@ public class IndexMapping
     ensureCapacity( maxRequiredIndex + 1 );
     m_mappedCount = maxRequiredIndex + 1;
 
-    // extract data values in reverse order to preserve original positions during removal
+    // extract data values by removing from highest to lowest index to preserve lower positions during removal
     int[] movedDataIndexes = new int[sortedSourceIndexes.length];
     for ( int i = sortedSourceIndexes.length - 1; i >= 0; i-- )
       movedDataIndexes[i] = remove( sortedSourceIndexes[i] );
