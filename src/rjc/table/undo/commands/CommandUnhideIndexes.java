@@ -41,7 +41,7 @@ public class CommandUnhideIndexes implements IUndoCommand
     m_view = view;
     m_axis = axis;
 
-    // convert view indexes to data indexes and hide them
+    // convert view indexes to data indexes and unhide them
     HashSetInt dataIndexes = new HashSetInt( viewIndexes.size() );
     var it = viewIndexes.iterator();
     while ( it.hasNext() )

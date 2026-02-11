@@ -30,13 +30,13 @@ public class CommandSortView implements IUndoCommand
 {
   private TableView m_view;     // table view
   private TableAxis m_axis;     // axis being reordered
-  private int       m_index;    // view index being sorted
+  private String    m_label;    // label of column/row being sorted
   private int[]     m_oldOrder; // data-indexes order before sort
   private int[]     m_newOrder; // data-indexes order after sort
   private String    m_text;     // text describing command
 
   /**************************************** constructor ******************************************/
-  public CommandSortView( TableView view, TableAxis axis, int[] beforeViewOrder, int[] afterDataOrder )
+  public CommandSortView( TableView view, TableAxis axis, int[] beforeViewOrder, int[] afterDataOrder, String label )
   {
     // convert view order to data order for before-sort
     m_oldOrder = new int[beforeViewOrder.length];
@@ -46,6 +46,7 @@ public class CommandSortView implements IUndoCommand
     // store after-sort data order
     m_newOrder = afterDataOrder;
 
+    m_label = label;
     m_axis = axis;
     m_view = view;
     redo();
@@ -76,17 +77,7 @@ public class CommandSortView implements IUndoCommand
     // construct command description
     if ( m_text == null )
     {
-      m_text = "Sorted ";
-      if ( m_axis == m_view.getRowsAxis() )
-      {
-        int dataColumn = m_view.getColumnsAxis().getDataIndex( m_index );
-        m_text += "column " + m_view.getData().getValue( dataColumn, TableAxis.HEADER );
-      }
-      else
-      {
-        int dataRow = m_view.getRowsAxis().getDataIndex( m_index );
-        m_text += "row " + m_view.getData().getValue( TableAxis.HEADER, dataRow );
-      }
+      m_text = "Sorted " + ( m_axis == m_view.getRowsAxis() ? "column " : "row " ) + m_label;
 
       if ( m_view.getId() != null )
         m_text = m_view.getId() + " - " + m_text;

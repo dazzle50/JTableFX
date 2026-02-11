@@ -18,40 +18,31 @@
 
 package rjc.table.data;
 
-import rjc.table.HashSetInt;
-
 /*************************************************************************************************/
 /************************ Interface for reordering columns in table data *************************/
 /*************************************************************************************************/
 
 /**  
- * Enables data-level column reordering operations for table data models.
- * <p>
- * This interface provides an extension point for {@link TableData} implementations
- * that support column reordering at the data-level within the data model.
+ * Provides interface for {@link TableData} implementations that support column
+ * reordering including sorting at the data-level within the data model.
  *   
  * @see IDataReorderRows  
  */
 public interface IDataReorderColumns
 {
-  /*************************************** reorderColumns ****************************************/
-  /**  
-   * Reorders the specified columns by moving them to a new insert position.  
-   * <p>  
-   * This method should move the columns specified by {@code fromIndexes} to the  
-   * position indicated by {@code insertIndex}. The implementation should handle  
-   * the reordering logic and update the underlying data model accordingly.  
-   *   
-   * @param fromIndexes a set of column indexes to be moved (data-based indexes, not view-based)  
-   * @param insertIndex the target position where the columns should be inserted  
-   * @return {@code true} if the reordering was successful and resulted in a different  
-   *         column order, {@code false} if the operation failed or resulted in no change  
-   * @throws Exceptions if invalid input parameters are provided  
-   * @implNote The default implementation returns {@code false} (no operation performed)
+  /***************************************** swapColumns *****************************************/
+  /**
+   * Swaps the position of two columns in the table model at data-level.
+   * This method is typically used during reordering and sorting operations.
+   * 
+   * @param column1 index of the first column to swap
+   * @param column2 index of the second column to swap
+   * @return {@code true} if the swap was successful and resulted in a different column order,
+   *         {@code false} otherwise
    */
-  default public boolean reorderColumns( HashSetInt fromIndexes, int insertIndex )
+  default public boolean swapColumns( int column1, int column2 )
   {
-    // return if reordering successful (and resulted in different column order)
     return false;
   }
+
 }

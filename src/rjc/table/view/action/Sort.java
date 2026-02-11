@@ -23,12 +23,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-import rjc.table.data.IDataSortRows;
+import javafx.geometry.Orientation;
+import rjc.table.Utils;
+import rjc.table.data.IDataReorderColumns;
+import rjc.table.data.IDataReorderRows;
 import rjc.table.undo.IUndoCommand;
 import rjc.table.undo.commands.CommandSortData;
 import rjc.table.undo.commands.CommandSortView;
 import rjc.table.view.TableView;
-import rjc.table.view.axis.TableAxis;
 
 /*************************************************************************************************/
 /************************* Sort table-view columns/rows via undo command *************************/
@@ -142,7 +144,7 @@ public class Sort
     var comparator = view.getData().getColumnComparator( view.getColumnsAxis().getDataIndex( viewColumn ) );
 
     // collect indices of visible rows only
-    var visibleViewRows = getVisibleIndices( view.getRowsAxis() );
+    var visibleViewRows = view.getRowsAxis().getAllVisible();
 
     // convert visible view indices to data indices before sorting
     var beforeDataRows = new int[visibleViewRows.length];
@@ -156,9 +158,13 @@ public class Sort
     if ( Arrays.equals( beforeDataRows, afterDataRows ) )
       return false;
 
+    Utils.trace( "BEFORE ", beforeDataRows );
+    Utils.trace( "AFTER  ", afterDataRows );
+
     // create appropriate command based on whether data layer supports sorting
-    IUndoCommand command = view.getData() instanceof IDataSortRows ? new CommandSortData( view, viewColumn, type )
-        : new CommandSortView( view, view.getRowsAxis(), visibleViewRows, afterDataRows );
+    IUndoCommand command = view.getData() instanceof IDataReorderRows
+        ? new CommandSortData( view.getData(), Orientation.VERTICAL, beforeDataRows, afterDataRows, "XX" )
+        : new CommandSortView( view, view.getRowsAxis(), visibleViewRows, afterDataRows, "XX" );
 
     // execute command through undo stack
     return view.getUndoStack().push( command );
@@ -181,7 +187,7 @@ public class Sort
     var comparator = view.getData().getRowComparator( view.getRowsAxis().getDataIndex( viewRow ) );
 
     // collect indices of visible columns only
-    var visibleViewColumns = getVisibleIndices( view.getColumnsAxis() );
+    var visibleViewColumns = view.getColumnsAxis().getAllVisible();
 
     // convert visible view indices to data indices before sorting
     var beforeDataColumns = new int[visibleViewColumns.length];
@@ -196,44 +202,14 @@ public class Sort
       return false;
 
     // create view sort command for columns axis
-    IUndoCommand command = new CommandSortView( view, view.getColumnsAxis(), visibleViewColumns, afterDataColumns );
+    IUndoCommand command = view.getData() instanceof IDataReorderColumns
+        ? new CommandSortData( view.getData(), Orientation.HORIZONTAL, beforeDataColumns, afterDataColumns, "XX" )
+        : new CommandSortView( view, view.getColumnsAxis(), visibleViewColumns, afterDataColumns, "XX" );
+    // IUndoCommand command = new CommandSortView( view, view.getColumnsAxis(), visibleViewColumns, afterDataColumns,
+    // "XX" );
 
     // execute command through undo stack
     return view.getUndoStack().push( command );
-  }
-
-  /************************************** getVisibleIndices **************************************/
-  /**
-   * Extracts the indices of visible rows or columns from the specified axis.
-   * An index is considered visible if it has a non-zero pixel span.
-   * 
-   * @param axis the table axis to query
-   * @return array of visible view indices
-   */
-  private static int[] getVisibleIndices( TableAxis axis )
-  {
-    // get total count of indices in this axis
-    int count = axis.getCount();
-
-    // allocate temporary array (worst case: all indices visible)
-    int[] tempVisible = new int[count];
-    int visibleCount = 0;
-    int pixelStart = axis.getPixelStart( 0, 0 );
-
-    // scan through all indices checking for non-zero pixel spans
-    for ( int viewIndex = 0; viewIndex < count; viewIndex++ )
-    {
-      int pixelEnd = axis.getPixelStart( viewIndex + 1, 0 );
-      if ( pixelEnd - pixelStart > 0 )
-        tempVisible[visibleCount++] = viewIndex;
-      pixelStart = pixelEnd;
-    }
-
-    // trim array to actual visible count
-    int[] result = new int[visibleCount];
-    System.arraycopy( tempVisible, 0, result, 0, visibleCount );
-
-    return result;
   }
 
   /************************************** stableSort *********************************************/

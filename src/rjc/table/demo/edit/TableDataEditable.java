@@ -19,8 +19,8 @@
 package rjc.table.demo.edit;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
-import rjc.table.HashSetInt;
 import rjc.table.data.IDataReorderRows;
 import rjc.table.data.TableData;
 import rjc.table.demo.edit.EditableData.Column;
@@ -75,32 +75,11 @@ public class TableDataEditable extends TableData implements IDataReorderRows
     return m_rows.get( dataRow ).setValue( dataColumn, newValue, commit );
   }
 
-  /***************************************** reorderRows *****************************************/
+  /****************************************** swapRows *******************************************/
   @Override
-  public boolean reorderRows( HashSetInt fromIndexes, int insertIndex )
+  public boolean swapRows( int row1, int row2 )
   {
-    // prepare a sorted list of the indexes to be moved
-    var sortedIndexes = fromIndexes.toSortedArray();
-
-    // remove these rows (highest to lowest index to preserve position)
-    var beforeHash = m_rows.hashCode();
-    var removed = new ArrayList<EditableData>( sortedIndexes.length );
-    for ( int i = sortedIndexes.length; i-- > 0; )
-      removed.add( m_rows.remove( sortedIndexes[i] ) );
-
-    // adjust insert-index to take account of removed rows
-    int oldInsert = insertIndex;
-    for ( int index : sortedIndexes )
-      if ( index < oldInsert )
-        insertIndex--;
-      else
-        break;
-
-    // re-insert removed rows at adjusted insert position and in correct order
-    m_rows.addAll( insertIndex, removed.reversed() );
-    signalTableChanged();
-
-    // return if reordering resulted in different row order
-    return beforeHash != m_rows.hashCode();
+    Collections.swap( m_rows, row1, row2 );
+    return true;
   }
 }

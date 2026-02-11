@@ -73,7 +73,7 @@ public class TableAxis implements IListener
 
   // axis components
   private final ReadOnlyInteger   m_countProperty;
-  private final IndexMapping      m_viewDatamapping;
+  private final IndexMapping      m_viewDataMapping;
   private final IndexSize         m_dataNominalSize;
   private final PixelCache        m_startPixelCache;
   private final ObservableInteger m_totalPixelsCache;
@@ -101,7 +101,7 @@ public class TableAxis implements IListener
 
     // initialise components
     m_countProperty = countProperty;
-    m_viewDatamapping = new IndexMapping();
+    m_viewDataMapping = new IndexMapping();
     m_dataNominalSize = new IndexSize();
     m_startPixelCache = new PixelCache();
     m_totalPixelsCache = new ObservableInteger( INVALID );
@@ -120,7 +120,7 @@ public class TableAxis implements IListener
   public void reset()
   {
     // reset mapping and sizing components
-    m_viewDatamapping.reset();
+    m_viewDataMapping.reset();
     m_dataNominalSize.reset();
     m_startPixelCache.clear();
     m_totalPixelsCache.set( INVALID );
@@ -199,8 +199,39 @@ public class TableAxis implements IListener
     if ( viewIndex < FIRSTCELL || viewIndex >= getCount() )
       return false;
 
-    int dataIndex = m_viewDatamapping.getDataIndex( viewIndex );
+    int dataIndex = m_viewDataMapping.getDataIndex( viewIndex );
     return m_dataNominalSize.getSize( dataIndex ) > 0;
+  }
+
+  /**************************************** getAllVisible ****************************************/
+  /**
+   * Returns an array of all body cell view indices that are visible.
+   * 
+   * @return array of all visible view indices
+   */
+  public int[] getAllVisible()
+  {
+    // allocate array (worst case: all indices visible)
+    int count = getCount();
+    int[] visible = new int[count];
+    int visibleCount = 0;
+    int pixelStart = getPixelStart( 0, 0 );
+
+    // scan through all indices checking for non-zero pixel spans
+    for ( int viewIndex = 0; viewIndex < count; viewIndex++ )
+    {
+      int pixelEnd = getPixelStart( viewIndex + 1, 0 );
+      if ( pixelEnd - pixelStart > 0 )
+        visible[visibleCount++] = viewIndex;
+      pixelStart = pixelEnd;
+    }
+
+    // if all visible, return array containing all indices, otherwise trim to actual visible count
+    if ( visibleCount == count )
+      return visible;
+    int[] trimmed = new int[visibleCount];
+    System.arraycopy( visible, 0, trimmed, 0, visibleCount );
+    return trimmed;
   }
 
   /***************************************** getVisible ******************************************/
@@ -268,7 +299,7 @@ public class TableAxis implements IListener
     // search forward from viewIndex + 1
     for ( int candidate = viewIndex + 1; candidate < max; candidate++ )
     {
-      int dataIndex = m_viewDatamapping.getDataIndex( candidate );
+      int dataIndex = m_viewDataMapping.getDataIndex( candidate );
       if ( m_dataNominalSize.getSize( dataIndex ) > 0 )
         return candidate;
     }
@@ -276,7 +307,7 @@ public class TableAxis implements IListener
     // if nothing found forward, search backward from viewIndex
     for ( int candidate = viewIndex; candidate > HEADER; candidate-- )
     {
-      int dataIndex = m_viewDatamapping.getDataIndex( candidate );
+      int dataIndex = m_viewDataMapping.getDataIndex( candidate );
       if ( m_dataNominalSize.getSize( dataIndex ) > 0 )
         return candidate;
     }
@@ -301,7 +332,7 @@ public class TableAxis implements IListener
     // search backward from viewIndex - 1
     for ( int candidate = viewIndex - 1; candidate > HEADER; candidate-- )
     {
-      int dataIndex = m_viewDatamapping.getDataIndex( candidate );
+      int dataIndex = m_viewDataMapping.getDataIndex( candidate );
       if ( m_dataNominalSize.getSize( dataIndex ) > 0 )
         return candidate;
     }
@@ -309,7 +340,7 @@ public class TableAxis implements IListener
     // if nothing found backward, search forward from viewIndex
     for ( int candidate = viewIndex; candidate < max; candidate++ )
     {
-      int dataIndex = m_viewDatamapping.getDataIndex( candidate );
+      int dataIndex = m_viewDataMapping.getDataIndex( candidate );
       if ( m_dataNominalSize.getSize( dataIndex ) > 0 )
         return candidate;
     }
@@ -337,7 +368,7 @@ public class TableAxis implements IListener
       return HEADER;
 
     // delegate to mapping component
-    return m_viewDatamapping.getDataIndex( viewIndex );
+    return m_viewDataMapping.getDataIndex( viewIndex );
   }
 
   /**************************************** getViewIndex *****************************************/
@@ -356,7 +387,7 @@ public class TableAxis implements IListener
       return HEADER;
 
     // delegate to mapping component
-    return m_viewDatamapping.getViewIndex( dataIndex );
+    return m_viewDataMapping.getViewIndex( dataIndex );
   }
 
   /***************************************** reorderView *****************************************/
@@ -376,7 +407,7 @@ public class TableAxis implements IListener
     int[] sortedMovedViewIndices = viewIndicesToRelocate.toSortedArray();
 
     // update index mapping and get lowest affected view index
-    int lowestAffectedViewIndex = m_viewDatamapping.moveIndices( sortedMovedViewIndices, insertIndex );
+    int lowestAffectedViewIndex = m_viewDataMapping.moveIndices( sortedMovedViewIndices, insertIndex );
 
     // invalidate pixel caches from affected position
     truncatePixelCaches( lowestAffectedViewIndex, 0 );
@@ -410,7 +441,7 @@ public class TableAxis implements IListener
   public int getIndexMappingHash()
   {
     // delegate to mapping component
-    return m_viewDatamapping.hashCode();
+    return m_viewDataMapping.hashCode();
   }
 
   // ==============================================================================================
@@ -554,7 +585,7 @@ public class TableAxis implements IListener
 
     if ( zoomNew != zoomOld )
     {
-      int viewIndex = m_viewDatamapping.getViewIndex( dataIndex );
+      int viewIndex = m_viewDataMapping.getViewIndex( dataIndex );
       truncatePixelCaches( viewIndex, zoomNew - zoomOld );
     }
   }
@@ -604,7 +635,7 @@ public class TableAxis implements IListener
       return getHeaderPixels();
 
     // convert to data index and check for hidden or sized state
-    int dataIndex = m_viewDatamapping.getDataIndex( viewIndex );
+    int dataIndex = m_viewDataMapping.getDataIndex( viewIndex );
     short nominalSize = m_dataNominalSize.getSize( dataIndex );
     if ( nominalSize <= 0 )
       return 0; // hidden
@@ -849,7 +880,7 @@ public class TableAxis implements IListener
     return shown;
   }
 
-  /*********************************** getHiddenDataIndexes **************************************/
+  /*********************************** getHiddenViewIndexes **************************************/
   /**
    * Returns the set of all currently hidden view indices.
    * 
@@ -864,7 +895,7 @@ public class TableAxis implements IListener
     var viewIndexes = new HashSetInt( dataIndexes.size() );
     var it = dataIndexes.iterator();
     while ( it.hasNext() )
-      dataIndexes.add( m_viewDatamapping.getViewIndex( it.next() ) );
+      viewIndexes.add( m_viewDataMapping.getViewIndex( it.next() ) );
 
     return viewIndexes;
   }
@@ -878,7 +909,7 @@ public class TableAxis implements IListener
   public void setMapping( int[] newMapping )
   {
     // apply the index mapping to only-visible indices
-    m_viewDatamapping.setMapping( newMapping, m_dataNominalSize, getCount() );
+    m_viewDataMapping.setMapping( newMapping, m_dataNominalSize, getCount() );
     m_startPixelCache.clear();
   }
 
