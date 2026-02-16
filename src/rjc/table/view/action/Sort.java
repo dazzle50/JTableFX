@@ -24,9 +24,9 @@ import java.util.Map;
 import java.util.WeakHashMap;
 
 import javafx.geometry.Orientation;
-import rjc.table.Utils;
 import rjc.table.data.IDataReorderColumns;
 import rjc.table.data.IDataReorderRows;
+import rjc.table.data.TableData;
 import rjc.table.undo.IUndoCommand;
 import rjc.table.undo.commands.CommandSortData;
 import rjc.table.undo.commands.CommandSortView;
@@ -36,6 +36,11 @@ import rjc.table.view.TableView;
 /************************* Sort table-view columns/rows via undo command *************************/
 /*************************************************************************************************/
 
+/**
+ * Provides stable sorting for table view columns and rows with undo support.
+ * Tracks sort state per view using weak references and generates undo commands
+ * for all sort operations. Only visible columns and rows are affected by sorting.
+ */
 public class Sort
 {
   // maps to hold view-specific column sort states
@@ -77,10 +82,11 @@ public class Sort
    * @param dataColumn the data column index
    * @return the sort type (ASCENDING, DESCENDING, or NOTSORTED)
    */
-  public static SortType isColumnSorted( TableView view, int dataColumn )
+  public static SortType getColumnSortType( TableView view, int dataColumn )
   {
     // lookup sort state for this view and column, defaulting to unsorted
-    return COLUMN_SORTS.getOrDefault( view, Map.of() ).getOrDefault( dataColumn, SortType.NOTSORTED );
+    var sortMap = COLUMN_SORTS.get( view );
+    return sortMap != null ? sortMap.getOrDefault( dataColumn, SortType.NOTSORTED ) : SortType.NOTSORTED;
   }
 
   /***************************************** isRowSorted *****************************************/
@@ -91,10 +97,11 @@ public class Sort
    * @param dataRow the data row index
    * @return the sort type (ASCENDING, DESCENDING, or NOTSORTED)
    */
-  public static SortType isRowSorted( TableView view, int dataRow )
+  public static SortType getRowSortType( TableView view, int dataRow )
   {
     // lookup sort state for this view and row, defaulting to unsorted
-    return ROW_SORTS.getOrDefault( view, Map.of() ).getOrDefault( dataRow, SortType.NOTSORTED );
+    var sortMap = ROW_SORTS.get( view );
+    return sortMap != null ? sortMap.getOrDefault( dataRow, SortType.NOTSORTED ) : SortType.NOTSORTED;
   }
 
   /************************************** setColumnSorted ****************************************/
@@ -109,7 +116,7 @@ public class Sort
   public static void setColumnSorted( TableView view, int dataColumn, SortType status )
   {
     // ensure view has a sort map, then update the column's sort status
-    COLUMN_SORTS.computeIfAbsent( view, v -> new HashMap<>( 4 ) ).put( dataColumn, status );
+    COLUMN_SORTS.computeIfAbsent( view, v -> new HashMap<>() ).put( dataColumn, status );
   }
 
   /*************************************** setRowSorted ******************************************/
@@ -124,7 +131,7 @@ public class Sort
   public static void setRowSorted( TableView view, int dataRow, SortType status )
   {
     // ensure view has a sort map, then update the row's sort status
-    ROW_SORTS.computeIfAbsent( view, v -> new HashMap<>( 4 ) ).put( dataRow, status );
+    ROW_SORTS.computeIfAbsent( view, v -> new HashMap<>() ).put( dataRow, status );
   }
 
   /*************************************** columnSort ********************************************/
@@ -141,7 +148,8 @@ public class Sort
   public static boolean columnSort( TableView view, int viewColumn, SortType type )
   {
     // get comparator for the specified data column
-    var comparator = view.getData().getColumnComparator( view.getColumnsAxis().getDataIndex( viewColumn ) );
+    int dataColumn = view.getColumnsAxis().getDataIndex( viewColumn );
+    var comparator = view.getData().getColumnComparator( dataColumn );
 
     // collect indices of visible rows only
     var visibleViewRows = view.getRowsAxis().getAllVisible();
@@ -153,18 +161,16 @@ public class Sort
 
     // perform stable sort to get new data row order
     var afterDataRows = stableSort( beforeDataRows, comparator, type );
-
-    // check if sort would actually change anything
     if ( Arrays.equals( beforeDataRows, afterDataRows ) )
-      return false;
+      return false; // no change in order, so no need to execute command
 
-    Utils.trace( "BEFORE ", beforeDataRows );
-    Utils.trace( "AFTER  ", afterDataRows );
+    String label = view.getData().getValue( dataColumn, TableData.HEADER ).toString() + " "
+        + ( type == SortType.ASCENDING ? "↓" : "↑" );
 
     // create appropriate command based on whether data layer supports sorting
     IUndoCommand command = view.getData() instanceof IDataReorderRows
-        ? new CommandSortData( view.getData(), Orientation.VERTICAL, beforeDataRows, afterDataRows, "XX" )
-        : new CommandSortView( view, view.getRowsAxis(), visibleViewRows, afterDataRows, "XX" );
+        ? new CommandSortData( view.getData(), Orientation.VERTICAL, beforeDataRows, afterDataRows, label )
+        : new CommandSortView( view, view.getRowsAxis(), visibleViewRows, afterDataRows, label );
 
     // execute command through undo stack
     return view.getUndoStack().push( command );
@@ -184,7 +190,8 @@ public class Sort
   public static boolean rowSort( TableView view, int viewRow, SortType type )
   {
     // get comparator for the specified data row
-    var comparator = view.getData().getRowComparator( view.getRowsAxis().getDataIndex( viewRow ) );
+    int dataRow = view.getRowsAxis().getDataIndex( viewRow );
+    var comparator = view.getData().getRowComparator( dataRow );
 
     // collect indices of visible columns only
     var visibleViewColumns = view.getColumnsAxis().getAllVisible();
@@ -196,17 +203,16 @@ public class Sort
 
     // perform stable sort to get new data column order
     var afterDataColumns = stableSort( beforeDataColumns, comparator, type );
-
-    // check if sort would actually change anything
     if ( Arrays.equals( beforeDataColumns, afterDataColumns ) )
-      return false;
+      return false; // no change in order, so no need to execute command
 
-    // create view sort command for columns axis
+    String label = view.getData().getValue( TableData.HEADER, dataRow ).toString() + " "
+        + ( type == SortType.ASCENDING ? "→" : "←" );
+
+    // create appropriate command based on whether data layer supports sorting
     IUndoCommand command = view.getData() instanceof IDataReorderColumns
-        ? new CommandSortData( view.getData(), Orientation.HORIZONTAL, beforeDataColumns, afterDataColumns, "XX" )
-        : new CommandSortView( view, view.getColumnsAxis(), visibleViewColumns, afterDataColumns, "XX" );
-    // IUndoCommand command = new CommandSortView( view, view.getColumnsAxis(), visibleViewColumns, afterDataColumns,
-    // "XX" );
+        ? new CommandSortData( view.getData(), Orientation.HORIZONTAL, beforeDataColumns, afterDataColumns, label )
+        : new CommandSortView( view, view.getColumnsAxis(), visibleViewColumns, afterDataColumns, label );
 
     // execute command through undo stack
     return view.getUndoStack().push( command );
@@ -225,27 +231,90 @@ public class Sort
    */
   public static int[] stableSort( int[] dataIndex, IntComparator comparator, SortType type )
   {
-    // create index array tracking original positions
-    Integer[] indices = new Integer[dataIndex.length];
+    int[] indices = new int[dataIndex.length];
     for ( int i = 0; i < dataIndex.length; i++ )
       indices[i] = i;
 
-    // sort indices using comparator with stability preserved by index tie-breaker
-    Arrays.sort( indices, ( i, j ) ->
-    {
-      int cmp = comparator.compare( dataIndex[i], dataIndex[j] );
-      return cmp != 0 ? cmp : Integer.compare( i, j );
-    } );
+    boolean descending = ( type == SortType.DESCENDING );
+    int[] temp = new int[dataIndex.length];
+    mergeSort( dataIndex, indices, temp, 0, dataIndex.length - 1, comparator, descending );
 
-    // build result array in requested order
+    // build result array in sorted order
     int[] sorted = new int[dataIndex.length];
-    if ( type == SortType.DESCENDING )
-      for ( int i = 0; i < dataIndex.length; i++ )
-        sorted[i] = dataIndex[indices[dataIndex.length - 1 - i]];
-    else
-      for ( int i = 0; i < dataIndex.length; i++ )
-        sorted[i] = dataIndex[indices[i]];
+    for ( int i = 0; i < dataIndex.length; i++ )
+      sorted[i] = dataIndex[indices[i]];
 
     return sorted;
+  }
+
+  /**************************************** mergeSort ********************************************/
+  /**
+   * Recursively sorts the indices array using merge sort algorithm.
+   * Stable sort is maintained through original index order for equal elements.
+   * 
+   * @param dataIndex the data values to compare
+   * @param indices the array of indices being sorted
+   * @param temp temporary array for merging
+   * @param left the left boundary (inclusive)
+   * @param right the right boundary (inclusive)
+   * @param comparator the comparator determining element order
+   * @param descending true for descending sort, false for ascending
+   */
+  private static void mergeSort( int[] dataIndex, int[] indices, int[] temp, int left, int right,
+      IntComparator comparator, boolean descending )
+  {
+    if ( left >= right )
+      return;
+
+    int mid = left + ( right - left ) / 2;
+    mergeSort( dataIndex, indices, temp, left, mid, comparator, descending );
+    mergeSort( dataIndex, indices, temp, mid + 1, right, comparator, descending );
+    merge( dataIndex, indices, temp, left, mid, right, comparator, descending );
+  }
+
+  /****************************************** merge **********************************************/
+  /**
+   * Merges two sorted subarrays into a single sorted array.
+   * 
+   * @param dataIndex the data values to compare
+   * @param indices the array of indices being sorted
+   * @param temp temporary array for merging
+   * @param left the left boundary
+   * @param mid the middle point
+   * @param right the right boundary
+   * @param comparator the comparator determining element order
+   * @param descending true for descending sort, false for ascending
+   */
+  private static void merge( int[] dataIndex, int[] indices, int[] temp, int left, int mid, int right,
+      IntComparator comparator, boolean descending )
+  {
+    // copy to temp array
+    for ( int i = left; i <= right; i++ )
+      temp[i] = indices[i];
+
+    int i = left;
+    int j = mid + 1;
+    int k = left;
+
+    while ( i <= mid && j <= right )
+    {
+      int cmp = comparator.compare( dataIndex[temp[i]], dataIndex[temp[j]] );
+      if ( descending )
+        cmp = -cmp;
+
+      // use <= for left side to maintain stability
+      if ( cmp <= 0 )
+        indices[k++] = temp[i++];
+      else
+        indices[k++] = temp[j++];
+    }
+
+    // copy remaining elements from left half
+    while ( i <= mid )
+      indices[k++] = temp[i++];
+
+    // copy remaining elements from right half
+    while ( j <= right )
+      indices[k++] = temp[j++];
   }
 }

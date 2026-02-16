@@ -43,32 +43,58 @@ public class Filter
   private static final Map<TableView, Map<Integer, Integer>> ROW_FILTERS    = new WeakHashMap<>();
 
   /************************************* columnTextContains **************************************/
+  /**
+   * Filters rows by hiding those where the specified column's text does not contain the given text.
+   *
+   * @param view the table view to filter
+   * @param viewIndex the view index of the column to filter by
+   * @param text the text to search for
+   * @param caseSensitive whether the search should be case-sensitive
+   */
   public static void columnTextContains( TableView view, int viewIndex, String text, boolean caseSensitive )
   {
-    // filter rows where column text contains the specified text (hide those that don't)
-    Predicate<String> predicate = caseSensitive ? valueText -> valueText.contains( text )
-        : valueText -> ( valueText.toLowerCase( Locale.ROOT ) ).contains( text.toLowerCase( Locale.ROOT ) );
+    // normalise search text once to avoid repeated toLowerCase() calls per cell
+    String searchText = caseSensitive ? text : text.toLowerCase( Locale.ROOT );
+    Predicate<String> predicate = caseSensitive ? valueText -> valueText.contains( searchText )
+        : valueText -> valueText.toLowerCase( Locale.ROOT ).contains( searchText );
 
     filterAxis( view, view.getRowsAxis(), view.getColumnsAxis().getDataIndex( viewIndex ), predicate );
   }
 
   /************************************** columnTextStarts ***************************************/
+  /**
+   * Filters rows by hiding those where the specified column's text does not start with the given text.
+   *
+   * @param view the table view to filter
+   * @param viewIndex the view index of the column to filter by
+   * @param text the text to search for at the start
+   * @param caseSensitive whether the search should be case-sensitive
+   */
   public static void columnTextStarts( TableView view, int viewIndex, String text, boolean caseSensitive )
   {
-    // filter rows where column text starts with the specified text (hide those that don't)
-    Predicate<String> predicate = caseSensitive ? valueText -> valueText.startsWith( text )
-        : valueText -> ( valueText.toLowerCase( Locale.ROOT ) ).startsWith( text.toLowerCase( Locale.ROOT ) );
+    // normalise search text once to avoid repeated toLowerCase() calls per cell
+    String searchText = caseSensitive ? text : text.toLowerCase( Locale.ROOT );
+    Predicate<String> predicate = caseSensitive ? valueText -> valueText.startsWith( searchText )
+        : valueText -> valueText.toLowerCase( Locale.ROOT ).startsWith( searchText );
 
     filterAxis( view, view.getRowsAxis(), view.getColumnsAxis().getDataIndex( viewIndex ), predicate );
   }
 
   /************************************** columnTextRegex ****************************************/
+  /**
+   * Filters rows by hiding those where the specified column's text does not match the regex pattern.
+   *
+   * @param view the table view to filter
+   * @param viewIndex the view index of the column to filter by
+   * @param regex the regular expression pattern to match
+   * @param caseSensitive whether the pattern matching should be case-sensitive
+   */
   public static void columnTextRegex( TableView view, int viewIndex, String regex, boolean caseSensitive )
   {
-    // filter rows where column text matches the regex pattern (hide those that don't)
+    // compile pattern once with appropriate flags
     try
     {
-      var pattern = caseSensitive ? Pattern.compile( regex ) : Pattern.compile( regex, Pattern.CASE_INSENSITIVE );
+      Pattern pattern = caseSensitive ? Pattern.compile( regex ) : Pattern.compile( regex, Pattern.CASE_INSENSITIVE );
 
       filterAxis( view, view.getRowsAxis(), view.getColumnsAxis().getDataIndex( viewIndex ),
           valueText -> pattern.matcher( valueText ).find() );
@@ -77,37 +103,62 @@ public class Filter
     {
       Utils.trace( view, viewIndex, regex, caseSensitive, exception );
       view.getStatus().update( Level.ERROR, "Invalid regex pattern: " + regex );
-      return;
     }
   }
 
   /*************************************** rowTextContains ***************************************/
+  /**
+   * Filters columns by hiding those where the specified row's text does not contain the given text.
+   *
+   * @param view the table view to filter
+   * @param viewIndex the view index of the row to filter by
+   * @param text the text to search for
+   * @param caseSensitive whether the search should be case-sensitive
+   */
   public static void rowTextContains( TableView view, int viewIndex, String text, boolean caseSensitive )
   {
-    // filter columns where row text contains the specified text (hide those that don't)
-    Predicate<String> predicate = caseSensitive ? valueText -> valueText.contains( text )
-        : valueText -> ( valueText.toLowerCase( Locale.ROOT ) ).contains( text.toLowerCase( Locale.ROOT ) );
+    // normalise search text once to avoid repeated toLowerCase() calls per cell
+    String searchText = caseSensitive ? text : text.toLowerCase( Locale.ROOT );
+    Predicate<String> predicate = caseSensitive ? valueText -> valueText.contains( searchText )
+        : valueText -> valueText.toLowerCase( Locale.ROOT ).contains( searchText );
 
     filterAxis( view, view.getColumnsAxis(), view.getRowsAxis().getDataIndex( viewIndex ), predicate );
   }
 
   /**************************************** rowTextStarts ****************************************/
+  /**
+   * Filters columns by hiding those where the specified row's text does not start with the given text.
+   *
+   * @param view the table view to filter
+   * @param viewIndex the view index of the row to filter by
+   * @param text the text to search for at the start
+   * @param caseSensitive whether the search should be case-sensitive
+   */
   public static void rowTextStarts( TableView view, int viewIndex, String text, boolean caseSensitive )
   {
-    // filter columns where row text starts with the specified text (hide those that don't)
-    Predicate<String> predicate = caseSensitive ? valueText -> valueText.startsWith( text )
-        : valueText -> ( valueText.toLowerCase( Locale.ROOT ) ).startsWith( text.toLowerCase( Locale.ROOT ) );
+    // normalise search text once to avoid repeated toLowerCase() calls per cell
+    String searchText = caseSensitive ? text : text.toLowerCase( Locale.ROOT );
+    Predicate<String> predicate = caseSensitive ? valueText -> valueText.startsWith( searchText )
+        : valueText -> valueText.toLowerCase( Locale.ROOT ).startsWith( searchText );
 
     filterAxis( view, view.getColumnsAxis(), view.getRowsAxis().getDataIndex( viewIndex ), predicate );
   }
 
   /**************************************** rowTextRegex *****************************************/
+  /**
+   * Filters columns by hiding those where the specified row's text does not match the regex pattern.
+   *
+   * @param view the table view to filter
+   * @param viewIndex the view index of the row to filter by
+   * @param regex the regular expression pattern to match
+   * @param caseSensitive whether the pattern matching should be case-sensitive
+   */
   public static void rowTextRegex( TableView view, int viewIndex, String regex, boolean caseSensitive )
   {
-    // filter columns where row text matches the regex pattern (hide those that don't)
+    // compile pattern once with appropriate flags
     try
     {
-      var pattern = caseSensitive ? Pattern.compile( regex ) : Pattern.compile( regex, Pattern.CASE_INSENSITIVE );
+      Pattern pattern = caseSensitive ? Pattern.compile( regex ) : Pattern.compile( regex, Pattern.CASE_INSENSITIVE );
 
       filterAxis( view, view.getColumnsAxis(), view.getRowsAxis().getDataIndex( viewIndex ),
           valueText -> pattern.matcher( valueText ).find() );
@@ -116,7 +167,6 @@ public class Filter
     {
       Utils.trace( view, viewIndex, regex, caseSensitive, exception );
       view.getStatus().update( Level.ERROR, "Invalid regex pattern: " + regex );
-      return;
     }
   }
 
@@ -161,24 +211,40 @@ public class Filter
   }
 
   /*************************************** isColumnFiltered **************************************/
+  /**
+   * Checks whether the specified data column is currently filtered in the view.
+   *
+   * @param view the table view to check
+   * @param dataColumn the data column index
+   * @return {@code true} if the column has active filters, {@code false} otherwise
+   */
   public static boolean isColumnFiltered( TableView view, int dataColumn )
   {
-    // return true if specified data column in view is currently filtered
-    return COLUMN_FILTERS.getOrDefault( view, Map.of() ).containsKey( dataColumn );
+    // single map lookup avoids creating empty map and double lookup
+    Map<Integer, Integer> filters = COLUMN_FILTERS.get( view );
+    return filters != null && filters.containsKey( dataColumn );
   }
 
   /**************************************** isRowFiltered ****************************************/
-  public static boolean isRowFiltered( TableView m_view, int dataRow )
+  /**
+   * Checks whether the specified data row is currently filtered in the view.
+   *
+   * @param view the table view to check
+   * @param dataRow the data row index
+   * @return {@code true} if the row has active filters, {@code false} otherwise
+   */
+  public static boolean isRowFiltered( TableView view, int dataRow )
   {
-    // return true if specified data row in view is currently filtered
-    return ROW_FILTERS.getOrDefault( m_view, Map.of() ).containsKey( dataRow );
+    // single map lookup avoids creating empty map and double lookup
+    Map<Integer, Integer> filters = ROW_FILTERS.get( view );
+    return filters != null && filters.containsKey( dataRow );
   }
 
   /************************************* incrementColumnFilter ***********************************/
   public static void incrementColumnFilter( TableView view, int dataColumn )
   {
     // increment filter count for specified data column in view
-    COLUMN_FILTERS.computeIfAbsent( view, v -> new HashMap<>( 4 ) ).merge( dataColumn, 1, Integer::sum );
+    COLUMN_FILTERS.computeIfAbsent( view, v -> new HashMap<>() ).merge( dataColumn, 1, Integer::sum );
   }
 
   /************************************* decrementColumnFilter ***********************************/

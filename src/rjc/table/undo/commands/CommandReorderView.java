@@ -28,6 +28,20 @@ import rjc.table.view.cursor.AbstractReorderCursor;
 /******************* UndoCommand for reordering columns or rows on table-view ********************/
 /*************************************************************************************************/
 
+/**
+ * Undoable command for reordering view presentation without modifying underlying data.
+ * <p>
+ * Moves selected view positions to a target position by manipulating the axis
+ * mapping. Unlike {@link CommandReorderData}, this only affects how the table
+ * is displayed, leaving actual data storage order unchanged.
+ * <p>
+ * Example: Moving view positions [0,1] to position 3 in [0,1,2,3,4] produces [2,0,1,3,4].
+ * 
+ * @see IUndoCommand
+ * @see TableView
+ * @see TableAxis
+ * @see CommandReorderData
+ */
 public class CommandReorderView implements IUndoCommand
 {
   private TableView  m_view;        // table view
@@ -37,6 +51,17 @@ public class CommandReorderView implements IUndoCommand
   private String     m_text;        // text describing command
 
   /**************************************** constructor ******************************************/
+  /**
+   * Creates and executes a view reordering command.
+   * <p>
+   * Tests if reorder actually changes the mapping via hash comparison. If no
+   * change occurs, command is marked invalid to prevent cluttering undo stack.
+   * 
+   * @param view            the table view to reorder
+   * @param axis            the axis (rows or columns) being reordered
+   * @param viewIndexes     set of view-indices to move
+   * @param targetViewIndex view-index where selected items should be inserted
+   */
   public CommandReorderView( TableView view, TableAxis axis, HashSetInt viewIndexes, int targetViewIndex )
   {
     // prepare reorder command
@@ -53,6 +78,9 @@ public class CommandReorderView implements IUndoCommand
   }
 
   /******************************************* redo **********************************************/
+  /**
+   * Executes the reordering operation by updating axis mapping.
+   */
   @Override
   public void redo()
   {
@@ -62,6 +90,12 @@ public class CommandReorderView implements IUndoCommand
   }
 
   /******************************************* undo **********************************************/
+  /**
+   * Reverses the reordering operation.
+   * <p>
+   * Moves items back one-by-one in predictable order, adjusting positions
+   * dynamically as each item returns to its original location.
+   */
   @Override
   public void undo()
   {
@@ -95,6 +129,13 @@ public class CommandReorderView implements IUndoCommand
   }
 
   /******************************************* text **********************************************/
+  /**
+   * Returns a description of this command for undo/redo UI.
+   * <p>
+   * Lazily constructs description including view ID if available.
+   * 
+   * @return command description
+   */
   @Override
   public String text()
   {
@@ -111,10 +152,19 @@ public class CommandReorderView implements IUndoCommand
   }
 
   /******************************************* isValid *******************************************/
+  /**
+   * Checks if this command is valid.
+   * <p>
+   * Command is invalid if the reorder operation resulted in no actual change
+   * to the axis mapping, as detected by hash comparison during construction.
+   *
+   * @return {@code true} if items were moved
+   */
   @Override
   public boolean isValid()
   {
     // command is valid only if reorder results in difference (via hashcode)
     return m_view != null;
   }
+
 }

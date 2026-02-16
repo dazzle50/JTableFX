@@ -26,6 +26,17 @@ import rjc.table.view.axis.TableAxis;
 /***************** UndoCommand for sorting table-view by specified column or row *****************/
 /*************************************************************************************************/
 
+/**
+ * Undoable command for sorting table view by reordering axis mapping.
+ * <p>
+ * Reorders view presentation without modifying underlying data. Maintains
+ * mapping between view positions and data indices, enabling independent
+ * sorting of what users see versus actual data storage order.
+ * 
+ * @see IUndoCommand
+ * @see TableView
+ * @see TableAxis
+ */
 public class CommandSortView implements IUndoCommand
 {
   private TableView m_view;     // table view
@@ -36,6 +47,18 @@ public class CommandSortView implements IUndoCommand
   private String    m_text;     // text describing command
 
   /**************************************** constructor ******************************************/
+  /**
+   * Creates and executes a view sorting command.
+   * <p>
+   * Converts view-order indices to data-order indices for tracking original
+   * state, then immediately applies the sorted mapping via {@link #redo()}.
+   * 
+   * @param view            the table view to reorder
+   * @param axis            the axis (rows or columns) being sorted
+   * @param beforeViewOrder array of view-indices representing current view positions
+   * @param afterDataOrder  array of data-indices representing desired sorted order
+   * @param label           description of the sort column/row for display purposes
+   */
   public CommandSortView( TableView view, TableAxis axis, int[] beforeViewOrder, int[] afterDataOrder, String label )
   {
     // convert view order to data order for before-sort
@@ -43,16 +66,17 @@ public class CommandSortView implements IUndoCommand
     for ( int i = 0; i < beforeViewOrder.length; i++ )
       m_oldOrder[i] = axis.getDataIndex( beforeViewOrder[i] );
 
-    // store after-sort data order
     m_newOrder = afterDataOrder;
-
     m_label = label;
     m_axis = axis;
     m_view = view;
     redo();
   }
 
-  /******************************************* redo **********************************************/
+  /********************************************** redo ********************************************/
+  /**
+   * Executes the sort operation by applying sorted axis mapping.
+   */
   @Override
   public void redo()
   {
@@ -61,7 +85,10 @@ public class CommandSortView implements IUndoCommand
     m_view.redraw();
   }
 
-  /******************************************* undo **********************************************/
+  /********************************************** undo ********************************************/
+  /**
+   * Reverses the sort operation by restoring original axis mapping.
+   */
   @Override
   public void undo()
   {
@@ -70,7 +97,14 @@ public class CommandSortView implements IUndoCommand
     m_view.redraw();
   }
 
-  /******************************************* text **********************************************/
+  /********************************************* text *********************************************/
+  /**
+   * Returns a description of this command for undo/redo UI.
+   * <p>
+   * Lazily constructs description including view ID if available.
+   * 
+   * @return command description
+   */
   @Override
   public String text()
   {

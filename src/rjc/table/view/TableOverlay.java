@@ -155,7 +155,7 @@ public class TableOverlay extends Canvas
     {
       // check if this visible column is sorted
       int dataColumn = m_view.getColumnsAxis().getDataIndex( viewColumn );
-      switch ( Sort.isColumnSorted( m_view, dataColumn ) )
+      switch ( Sort.getColumnSortType( m_view, dataColumn ) )
       {
         case ASCENDING:
           drawUpArrow( viewColumn, TableAxis.HEADER );
@@ -190,7 +190,7 @@ public class TableOverlay extends Canvas
     {
       // check if this visible row is sorted
       int dataRow = m_view.getRowsAxis().getDataIndex( viewRow );
-      switch ( Sort.isRowSorted( m_view, dataRow ) )
+      switch ( Sort.getRowSortType( m_view, dataRow ) )
       {
         case ASCENDING:
           drawUpArrow( TableAxis.HEADER, viewRow );
