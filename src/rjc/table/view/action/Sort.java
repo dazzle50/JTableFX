@@ -19,9 +19,6 @@
 package rjc.table.view.action;
 
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.WeakHashMap;
 
 import javafx.geometry.Orientation;
 import rjc.table.data.IDataReorderColumns;
@@ -43,11 +40,9 @@ import rjc.table.view.TableView;
  */
 public class Sort
 {
-  // maps to hold view-specific column sort states
-  private static final Map<TableView, Map<Integer, SortType>> COLUMN_SORTS = new WeakHashMap<>();
-
-  // maps to hold view-specific row sort states
-  private static final Map<TableView, Map<Integer, SortType>> ROW_SORTS    = new WeakHashMap<>();
+  // sort state per view/data-model and data-index; visible externally to avoid wrapper methods
+  public static final WeakSortMap<Object, SortType> columnSort = new WeakSortMap<>();
+  public static final WeakSortMap<Object, SortType> rowSort    = new WeakSortMap<>();
 
   /**
    * Enumeration representing the sorting state of a column or row.
@@ -66,84 +61,24 @@ public class Sort
   {
     /**
      * Compares two integer indices for order.
-     * 
+     *
      * @param index1 the first index to compare
      * @param index2 the second index to compare
-     * @return negative if index1 < index2, zero if index1 == index2, positive if index1 > index2
+     * @return negative if value at index1 < value at index2, zero if equal, else positive
      */
     int compare( int index1, int index2 );
-  }
-
-  /*************************************** isColumnSorted ****************************************/
-  /**
-   * Retrieves the current sort status for a specified data column in a table view.
-   * 
-   * @param view the table view to query
-   * @param dataColumn the data column index
-   * @return the sort type (ASCENDING, DESCENDING, or NOTSORTED)
-   */
-  public static SortType getColumnSortType( TableView view, int dataColumn )
-  {
-    // lookup sort state for this view and column, defaulting to unsorted
-    var sortMap = COLUMN_SORTS.get( view );
-    return sortMap != null ? sortMap.getOrDefault( dataColumn, SortType.NOTSORTED ) : SortType.NOTSORTED;
-  }
-
-  /***************************************** isRowSorted *****************************************/
-  /**
-   * Retrieves the current sort status for a specified data row in a table view.
-   * 
-   * @param view the table view to query
-   * @param dataRow the data row index
-   * @return the sort type (ASCENDING, DESCENDING, or NOTSORTED)
-   */
-  public static SortType getRowSortType( TableView view, int dataRow )
-  {
-    // lookup sort state for this view and row, defaulting to unsorted
-    var sortMap = ROW_SORTS.get( view );
-    return sortMap != null ? sortMap.getOrDefault( dataRow, SortType.NOTSORTED ) : SortType.NOTSORTED;
-  }
-
-  /************************************** setColumnSorted ****************************************/
-  /**
-   * Sets the sort status for a specified data column in a table view.
-   * Creates the view's sort map if it doesn't exist.
-   * 
-   * @param view the table view to update
-   * @param dataColumn the data column index
-   * @param status the new sort status
-   */
-  public static void setColumnSorted( TableView view, int dataColumn, SortType status )
-  {
-    // ensure view has a sort map, then update the column's sort status
-    COLUMN_SORTS.computeIfAbsent( view, v -> new HashMap<>() ).put( dataColumn, status );
-  }
-
-  /*************************************** setRowSorted ******************************************/
-  /**
-   * Sets the sort status for a specified data row in a table view.
-   * Creates the view's sort map if it doesn't exist.
-   * 
-   * @param view the table view to update
-   * @param dataRow the data row index
-   * @param status the new sort status
-   */
-  public static void setRowSorted( TableView view, int dataRow, SortType status )
-  {
-    // ensure view has a sort map, then update the row's sort status
-    ROW_SORTS.computeIfAbsent( view, v -> new HashMap<>() ).put( dataRow, status );
   }
 
   /*************************************** columnSort ********************************************/
   /**
    * Sorts visible rows in the table view based on values in the specified column.
-   * Creates and executes an undo-command that reorders rows according to the
+   * Creates and executes an undo-able command that reorders rows according to the
    * column's comparator and specified sort direction. Only visible rows are sorted.
-   * 
-   * @param view the table view to sort
+   *
+   * @param view       the table view to sort
    * @param viewColumn the view column index to sort by
-   * @param type the sort direction (ASCENDING or DESCENDING)
-   * @return true if sort was performed, false if no change needed
+   * @param type       the sort direction (ASCENDING or DESCENDING)
+   * @return {@code true} if the sort was performed, {@code false} if no change was needed
    */
   public static boolean columnSort( TableView view, int viewColumn, SortType type )
   {
@@ -167,12 +102,11 @@ public class Sort
     String label = view.getData().getValue( dataColumn, TableData.HEADER ).toString() + " "
         + ( type == SortType.ASCENDING ? "↓" : "↑" );
 
-    // create appropriate command based on whether data layer supports sorting
+    // create appropriate command based on whether data layer supports reordering
     IUndoCommand command = view.getData() instanceof IDataReorderRows
         ? new CommandSortData( view.getData(), Orientation.VERTICAL, beforeDataRows, afterDataRows, label )
         : new CommandSortView( view, view.getRowsAxis(), visibleViewRows, afterDataRows, label );
 
-    // execute command through undo stack
     return view.getUndoStack().push( command );
   }
 
@@ -181,11 +115,11 @@ public class Sort
    * Sorts visible columns in the table view based on values in the specified row.
    * Creates and executes an undo-able command that reorders columns according to the
    * row's comparator and specified sort direction. Only visible columns are sorted.
-   * 
-   * @param view the table view to sort
+   *
+   * @param view    the table view to sort
    * @param viewRow the view row index to sort by
-   * @param type the sort direction (ASCENDING or DESCENDING)
-   * @return true if sort was performed, false if no change needed
+   * @param type    the sort direction (ASCENDING or DESCENDING)
+   * @return {@code true} if the sort was performed, {@code false} if no change was needed
    */
   public static boolean rowSort( TableView view, int viewRow, SortType type )
   {
@@ -209,12 +143,11 @@ public class Sort
     String label = view.getData().getValue( TableData.HEADER, dataRow ).toString() + " "
         + ( type == SortType.ASCENDING ? "→" : "←" );
 
-    // create appropriate command based on whether data layer supports sorting
+    // create appropriate command based on whether data layer supports reordering
     IUndoCommand command = view.getData() instanceof IDataReorderColumns
         ? new CommandSortData( view.getData(), Orientation.HORIZONTAL, beforeDataColumns, afterDataColumns, label )
         : new CommandSortView( view, view.getColumnsAxis(), visibleViewColumns, afterDataColumns, label );
 
-    // execute command through undo stack
     return view.getUndoStack().push( command );
   }
 
@@ -223,10 +156,10 @@ public class Sort
    * Performs a stable sort on the specified integer array using the provided comparator.
    * Stability is maintained by using original indices as tie-breakers when elements compare equal.
    * The input array is not modified; a new sorted array is returned.
-   * 
-   * @param dataIndex the array of data indices to sort (not modified)
+   *
+   * @param dataIndex  the array of data indices to sort (not modified)
    * @param comparator the comparator determining element order
-   * @param type the sort direction (ASCENDING or DESCENDING)
+   * @param type       the sort direction (ASCENDING or DESCENDING)
    * @return a new array containing the sorted data indices
    */
   public static int[] stableSort( int[] dataIndex, IntComparator comparator, SortType type )
@@ -249,16 +182,16 @@ public class Sort
 
   /**************************************** mergeSort ********************************************/
   /**
-   * Recursively sorts the indices array using merge sort algorithm.
-   * Stable sort is maintained through original index order for equal elements.
-   * 
-   * @param dataIndex the data values to compare
-   * @param indices the array of indices being sorted
-   * @param temp temporary array for merging
-   * @param left the left boundary (inclusive)
-   * @param right the right boundary (inclusive)
+   * Recursively sorts the indices array using the merge sort algorithm.
+   * Stability is maintained through original index order for equal elements.
+   *
+   * @param dataIndex  the data values to compare
+   * @param indices    the array of indices being sorted
+   * @param temp       temporary array for merging
+   * @param left       the left boundary (inclusive)
+   * @param right      the right boundary (inclusive)
    * @param comparator the comparator determining element order
-   * @param descending true for descending sort, false for ascending
+   * @param descending {@code true} for descending sort, {@code false} for ascending
    */
   private static void mergeSort( int[] dataIndex, int[] indices, int[] temp, int left, int right,
       IntComparator comparator, boolean descending )
@@ -274,16 +207,16 @@ public class Sort
 
   /****************************************** merge **********************************************/
   /**
-   * Merges two sorted subarrays into a single sorted array.
-   * 
-   * @param dataIndex the data values to compare
-   * @param indices the array of indices being sorted
-   * @param temp temporary array for merging
-   * @param left the left boundary
-   * @param mid the middle point
-   * @param right the right boundary
+   * Merges two sorted sub-arrays into a single sorted array.
+   *
+   * @param dataIndex  the data values to compare
+   * @param indices    the array of indices being sorted
+   * @param temp       temporary array for merging
+   * @param left       the left boundary
+   * @param mid        the middle point
+   * @param right      the right boundary
    * @param comparator the comparator determining element order
-   * @param descending true for descending sort, false for ascending
+   * @param descending {@code true} for descending sort, {@code false} for ascending
    */
   private static void merge( int[] dataIndex, int[] indices, int[] temp, int left, int mid, int right,
       IntComparator comparator, boolean descending )
@@ -302,7 +235,7 @@ public class Sort
       if ( descending )
         cmp = -cmp;
 
-      // use <= for left side to maintain stability
+      // use <= on left side to maintain stability
       if ( cmp <= 0 )
         indices[k++] = temp[i++];
       else

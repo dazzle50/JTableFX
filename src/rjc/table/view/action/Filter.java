@@ -18,10 +18,7 @@
 
 package rjc.table.view.action;
 
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
-import java.util.WeakHashMap;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
@@ -36,19 +33,24 @@ import rjc.table.view.axis.TableAxis;
 /************************ Filter table-view columns/rows via undo command ************************/
 /*************************************************************************************************/
 
+/**
+ * Provides text-based filtering for table-view columns and rows with undo support.
+ * Tracks filter state per view using weak references and generates undo commands
+ * for all filter operations. Only visible columns and rows are evaluated during filtering.
+ */
 public class Filter
 {
-  // maps to hold current index filter counts for each TableView
-  private static final Map<TableView, Map<Integer, Integer>> COLUMN_FILTERS = new WeakHashMap<>();
-  private static final Map<TableView, Map<Integer, Integer>> ROW_FILTERS    = new WeakHashMap<>();
+  // reference-counted filter state per view and data index; visible externally to avoid wrapper methods
+  public static final WeakFilterCount<TableView> columnFilterCount = new WeakFilterCount<>();
+  public static final WeakFilterCount<TableView> rowFilterCount    = new WeakFilterCount<>();
 
   /************************************* columnTextContains **************************************/
   /**
    * Filters rows by hiding those where the specified column's text does not contain the given text.
    *
-   * @param view the table view to filter
-   * @param viewIndex the view index of the column to filter by
-   * @param text the text to search for
+   * @param view          the table view to filter
+   * @param viewIndex     the view index of the column to filter by
+   * @param text          the text to search for
    * @param caseSensitive whether the search should be case-sensitive
    */
   public static void columnTextContains( TableView view, int viewIndex, String text, boolean caseSensitive )
@@ -65,9 +67,9 @@ public class Filter
   /**
    * Filters rows by hiding those where the specified column's text does not start with the given text.
    *
-   * @param view the table view to filter
-   * @param viewIndex the view index of the column to filter by
-   * @param text the text to search for at the start
+   * @param view          the table view to filter
+   * @param viewIndex     the view index of the column to filter by
+   * @param text          the text to search for at the start
    * @param caseSensitive whether the search should be case-sensitive
    */
   public static void columnTextStarts( TableView view, int viewIndex, String text, boolean caseSensitive )
@@ -84,9 +86,9 @@ public class Filter
   /**
    * Filters rows by hiding those where the specified column's text does not match the regex pattern.
    *
-   * @param view the table view to filter
-   * @param viewIndex the view index of the column to filter by
-   * @param regex the regular expression pattern to match
+   * @param view          the table view to filter
+   * @param viewIndex     the view index of the column to filter by
+   * @param regex         the regular expression pattern to match
    * @param caseSensitive whether the pattern matching should be case-sensitive
    */
   public static void columnTextRegex( TableView view, int viewIndex, String regex, boolean caseSensitive )
@@ -110,9 +112,9 @@ public class Filter
   /**
    * Filters columns by hiding those where the specified row's text does not contain the given text.
    *
-   * @param view the table view to filter
-   * @param viewIndex the view index of the row to filter by
-   * @param text the text to search for
+   * @param view          the table view to filter
+   * @param viewIndex     the view index of the row to filter by
+   * @param text          the text to search for
    * @param caseSensitive whether the search should be case-sensitive
    */
   public static void rowTextContains( TableView view, int viewIndex, String text, boolean caseSensitive )
@@ -129,9 +131,9 @@ public class Filter
   /**
    * Filters columns by hiding those where the specified row's text does not start with the given text.
    *
-   * @param view the table view to filter
-   * @param viewIndex the view index of the row to filter by
-   * @param text the text to search for at the start
+   * @param view          the table view to filter
+   * @param viewIndex     the view index of the row to filter by
+   * @param text          the text to search for at the start
    * @param caseSensitive whether the search should be case-sensitive
    */
   public static void rowTextStarts( TableView view, int viewIndex, String text, boolean caseSensitive )
@@ -148,9 +150,9 @@ public class Filter
   /**
    * Filters columns by hiding those where the specified row's text does not match the regex pattern.
    *
-   * @param view the table view to filter
-   * @param viewIndex the view index of the row to filter by
-   * @param regex the regular expression pattern to match
+   * @param view          the table view to filter
+   * @param viewIndex     the view index of the row to filter by
+   * @param regex         the regular expression pattern to match
    * @param caseSensitive whether the pattern matching should be case-sensitive
    */
   public static void rowTextRegex( TableView view, int viewIndex, String regex, boolean caseSensitive )
@@ -208,76 +210,6 @@ public class Filter
     // execute hide command via undo stack
     var hideCommand = new CommandHideIndexes( view, filterAxis, indexesToHide );
     view.getUndoStack().push( hideCommand );
-  }
-
-  /*************************************** isColumnFiltered **************************************/
-  /**
-   * Checks whether the specified data column is currently filtered in the view.
-   *
-   * @param view the table view to check
-   * @param dataColumn the data column index
-   * @return {@code true} if the column has active filters, {@code false} otherwise
-   */
-  public static boolean isColumnFiltered( TableView view, int dataColumn )
-  {
-    // single map lookup avoids creating empty map and double lookup
-    Map<Integer, Integer> filters = COLUMN_FILTERS.get( view );
-    return filters != null && filters.containsKey( dataColumn );
-  }
-
-  /**************************************** isRowFiltered ****************************************/
-  /**
-   * Checks whether the specified data row is currently filtered in the view.
-   *
-   * @param view the table view to check
-   * @param dataRow the data row index
-   * @return {@code true} if the row has active filters, {@code false} otherwise
-   */
-  public static boolean isRowFiltered( TableView view, int dataRow )
-  {
-    // single map lookup avoids creating empty map and double lookup
-    Map<Integer, Integer> filters = ROW_FILTERS.get( view );
-    return filters != null && filters.containsKey( dataRow );
-  }
-
-  /************************************* incrementColumnFilter ***********************************/
-  public static void incrementColumnFilter( TableView view, int dataColumn )
-  {
-    // increment filter count for specified data column in view
-    COLUMN_FILTERS.computeIfAbsent( view, v -> new HashMap<>() ).merge( dataColumn, 1, Integer::sum );
-  }
-
-  /************************************* decrementColumnFilter ***********************************/
-  public static void decrementColumnFilter( TableView view, int dataColumn )
-  {
-    // decrement filter count for specified data column in view
-    Map<Integer, Integer> filters = COLUMN_FILTERS.get( view );
-    if ( filters != null )
-    {
-      filters.computeIfPresent( dataColumn, ( k, v ) -> ( v > 1 ) ? v - 1 : null );
-      if ( filters.isEmpty() )
-        COLUMN_FILTERS.remove( view );
-    }
-  }
-
-  /************************************** incrementRowFilter *************************************/
-  public static void incrementRowFilter( TableView view, int dataRow )
-  {
-    // increment filter count for specified data row in view
-    ROW_FILTERS.computeIfAbsent( view, v -> new HashMap<>( 4 ) ).merge( dataRow, 1, Integer::sum );
-  }
-
-  /************************************** decrementRowFilter *************************************/
-  public static void decrementRowFilter( TableView view, int dataRow )
-  {
-    // decrement filter count for specified data row in view
-    Map<Integer, Integer> filters = ROW_FILTERS.get( view );
-    if ( filters != null )
-    {
-      filters.computeIfPresent( dataRow, ( k, v ) -> ( v > 1 ) ? v - 1 : null );
-      if ( filters.isEmpty() )
-        ROW_FILTERS.remove( view );
-    }
   }
 
 }
