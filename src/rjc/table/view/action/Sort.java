@@ -23,7 +23,6 @@ import java.util.Arrays;
 import javafx.geometry.Orientation;
 import rjc.table.data.IDataReorderColumns;
 import rjc.table.data.IDataReorderRows;
-import rjc.table.data.TableData;
 import rjc.table.undo.IUndoCommand;
 import rjc.table.undo.commands.CommandSortData;
 import rjc.table.undo.commands.CommandSortView;
@@ -64,7 +63,7 @@ public class Sort
      *
      * @param index1 the first index to compare
      * @param index2 the second index to compare
-     * @return negative if value at index1 < value at index2, zero if equal, else positive
+     * @return negative if value at index1 &lt; value at index2, zero if equal, else positive
      */
     int compare( int index1, int index2 );
   }
@@ -99,13 +98,10 @@ public class Sort
     if ( Arrays.equals( beforeDataRows, afterDataRows ) )
       return false; // no change in order, so no need to execute command
 
-    String label = view.getData().getValue( dataColumn, TableData.HEADER ).toString() + " "
-        + ( type == SortType.ASCENDING ? "↓" : "↑" );
-
     // create appropriate command based on whether data layer supports reordering
     IUndoCommand command = view.getData() instanceof IDataReorderRows
-        ? new CommandSortData( view.getData(), Orientation.VERTICAL, beforeDataRows, afterDataRows, label )
-        : new CommandSortView( view, view.getRowsAxis(), visibleViewRows, afterDataRows, label );
+        ? new CommandSortData( view.getData(), Orientation.VERTICAL, beforeDataRows, afterDataRows, dataColumn, type )
+        : new CommandSortView( view, view.getRowsAxis(), visibleViewRows, afterDataRows, dataColumn, type );
 
     return view.getUndoStack().push( command );
   }
@@ -140,13 +136,11 @@ public class Sort
     if ( Arrays.equals( beforeDataColumns, afterDataColumns ) )
       return false; // no change in order, so no need to execute command
 
-    String label = view.getData().getValue( TableData.HEADER, dataRow ).toString() + " "
-        + ( type == SortType.ASCENDING ? "→" : "←" );
-
     // create appropriate command based on whether data layer supports reordering
     IUndoCommand command = view.getData() instanceof IDataReorderColumns
-        ? new CommandSortData( view.getData(), Orientation.HORIZONTAL, beforeDataColumns, afterDataColumns, label )
-        : new CommandSortView( view, view.getColumnsAxis(), visibleViewColumns, afterDataColumns, label );
+        ? new CommandSortData( view.getData(), Orientation.HORIZONTAL, beforeDataColumns, afterDataColumns, dataRow,
+            type )
+        : new CommandSortView( view, view.getColumnsAxis(), visibleViewColumns, afterDataColumns, dataRow, type );
 
     return view.getUndoStack().push( command );
   }
@@ -250,4 +244,5 @@ public class Sort
     while ( j <= right )
       indices[k++] = temp[j++];
   }
+
 }

@@ -208,7 +208,7 @@ public class Filter
     view.getStatus().update( Level.INFO, found + " of " + valuesChecked + " records found" );
 
     // execute hide command via undo stack
-    var hideCommand = new CommandHideIndexes( view, filterAxis, indexesToHide );
+    var hideCommand = new CommandHideIndexes( view, filterAxis, indexesToHide, filterDataIndex );
     view.getUndoStack().push( hideCommand );
   }
 

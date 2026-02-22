@@ -359,10 +359,10 @@ public class TableContextMenuBuilder
     // add sort menu items for column if option is enabled for this table-view
     if ( TableContextMenu.isEnabled( m_view, TableContextMenu.TableMenuItems.COLUMN_SORT ) )
     {
-      var ascend = new MenuItem( "Sort ↓" );
+      var ascend = new MenuItem( "Sort ▲" );
       ascend.setOnAction( event -> Sort.columnSort( m_view, m_triggerCol, SortType.ASCENDING ) );
 
-      var descend = new MenuItem( "Sort ↑" );
+      var descend = new MenuItem( "Sort ▼" );
       descend.setOnAction( event -> Sort.columnSort( m_view, m_triggerCol, SortType.DESCENDING ) );
 
       m_menu.getItems().addAll( ascend, descend );
@@ -384,10 +384,10 @@ public class TableContextMenuBuilder
     // add sort menu items for row if option is enabled for this table-view
     if ( TableContextMenu.isEnabled( m_view, TableContextMenu.TableMenuItems.ROW_SORT ) )
     {
-      var ascend = new MenuItem( "Sort →" );
+      var ascend = new MenuItem( "Sort ◀" );
       ascend.setOnAction( event -> Sort.rowSort( m_view, m_triggerRow, SortType.ASCENDING ) );
 
-      var descend = new MenuItem( "Sort ←" );
+      var descend = new MenuItem( "Sort ▶" );
       descend.setOnAction( event -> Sort.rowSort( m_view, m_triggerRow, SortType.DESCENDING ) );
 
       m_menu.getItems().addAll( ascend, descend );
