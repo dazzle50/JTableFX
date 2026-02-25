@@ -23,8 +23,8 @@ import javafx.scene.shape.Line;
 import javafx.scene.shape.StrokeLineCap;
 import rjc.table.HashSetInt;
 import rjc.table.Utils;
-import rjc.table.data.IDataReorderColumns;
-import rjc.table.data.IDataReorderRows;
+import rjc.table.data.IDataSwapColumns;
+import rjc.table.data.IDataSwapRows;
 import rjc.table.undo.IUndoCommand;
 import rjc.table.undo.commands.CommandReorderData;
 import rjc.table.undo.commands.CommandReorderView;
@@ -172,14 +172,14 @@ abstract public class AbstractReorderCursor extends AbstractCursor
     if ( orientation == Orientation.HORIZONTAL )
     {
       // columns
-      command = m_view.getData() instanceof IDataReorderColumns
+      command = m_view.getData() instanceof IDataSwapColumns
           ? new CommandReorderData( m_view.getData(), orientation, m_selected, m_pos )
           : new CommandReorderView( m_view, m_view.getColumnsAxis(), m_selected, m_pos );
     }
     else
     {
       // rows
-      command = m_view.getData() instanceof IDataReorderRows
+      command = m_view.getData() instanceof IDataSwapRows
           ? new CommandReorderData( m_view.getData(), orientation, m_selected, m_pos )
           : new CommandReorderView( m_view, m_view.getRowsAxis(), m_selected, m_pos );
     }

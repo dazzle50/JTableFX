@@ -19,8 +19,8 @@
 package rjc.table.undo.commands;
 
 import javafx.geometry.Orientation;
-import rjc.table.data.IDataReorderColumns;
-import rjc.table.data.IDataReorderRows;
+import rjc.table.data.IDataSwapColumns;
+import rjc.table.data.IDataSwapRows;
 import rjc.table.data.TableData;
 import rjc.table.undo.IUndoCommand;
 import rjc.table.view.action.Sort;
@@ -41,8 +41,8 @@ import rjc.table.view.action.Sort.SortType;
  *
  * @see IUndoCommand
  * @see TableData
- * @see IDataReorderColumns
- * @see IDataReorderRows
+ * @see IDataSwapColumns
+ * @see IDataSwapRows
  */
 public class CommandSortData implements IUndoCommand
 {
@@ -86,9 +86,9 @@ public class CommandSortData implements IUndoCommand
 
     // assign swapper method reference based on orientation
     if ( m_orientation == Orientation.HORIZONTAL )
-      m_swapper = ( (IDataReorderColumns) m_data )::swapColumns;
+      m_swapper = ( (IDataSwapColumns) m_data )::swapColumns;
     else
-      m_swapper = ( (IDataReorderRows) m_data )::swapRows;
+      m_swapper = ( (IDataSwapRows) m_data )::swapRows;
 
     redo();
   }

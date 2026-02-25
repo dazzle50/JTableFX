@@ -21,8 +21,8 @@ package rjc.table.view.action;
 import java.util.Arrays;
 
 import javafx.geometry.Orientation;
-import rjc.table.data.IDataReorderColumns;
-import rjc.table.data.IDataReorderRows;
+import rjc.table.data.IDataSwapColumns;
+import rjc.table.data.IDataSwapRows;
 import rjc.table.undo.IUndoCommand;
 import rjc.table.undo.commands.CommandSortData;
 import rjc.table.undo.commands.CommandSortView;
@@ -99,7 +99,7 @@ public class Sort
       return false; // no change in order, so no need to execute command
 
     // create appropriate command based on whether data layer supports reordering
-    IUndoCommand command = view.getData() instanceof IDataReorderRows
+    IUndoCommand command = view.getData() instanceof IDataSwapRows
         ? new CommandSortData( view.getData(), Orientation.VERTICAL, beforeDataRows, afterDataRows, dataColumn, type )
         : new CommandSortView( view, view.getRowsAxis(), visibleViewRows, afterDataRows, dataColumn, type );
 
@@ -137,7 +137,7 @@ public class Sort
       return false; // no change in order, so no need to execute command
 
     // create appropriate command based on whether data layer supports reordering
-    IUndoCommand command = view.getData() instanceof IDataReorderColumns
+    IUndoCommand command = view.getData() instanceof IDataSwapColumns
         ? new CommandSortData( view.getData(), Orientation.HORIZONTAL, beforeDataColumns, afterDataColumns, dataRow,
             type )
         : new CommandSortView( view, view.getColumnsAxis(), visibleViewColumns, afterDataColumns, dataRow, type );

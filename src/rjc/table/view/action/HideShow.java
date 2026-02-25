@@ -19,7 +19,6 @@
 package rjc.table.view.action;
 
 import rjc.table.HashSetInt;
-import rjc.table.signal.ObservableStatus.Level;
 import rjc.table.undo.commands.CommandHideIndexes;
 import rjc.table.undo.commands.CommandUnhideIndexes;
 import rjc.table.view.TableView;
@@ -33,7 +32,6 @@ public class HideShow
   /****************************************** hideRows *******************************************/
   /**
    * Hide the specified row, or if that row is selected, hide all selected rows.
-   * Cannot hide all rows (at least one row must remain visible).
    * 
    * @param view TableView to operate on
    * @param viewRow  row index to hide (or all selected rows if that row is selected)
@@ -44,15 +42,6 @@ public class HideShow
     // if mouse row is selected, hide all selected rows, else just hide mouse row
     var viewRows = view.getSelection().isRowSelected( viewRow ) ? view.getSelection().getSelectedRows()
         : new HashSetInt( 1 );
-
-    // prevent hiding all rows
-    if ( viewRows == null || view.getSelection().areAllVisibleRowsSelected()
-        || view.getRowsAxis().getFirstVisible() == view.getRowsAxis().getLastVisible() )
-    {
-      view.getStatus().update( Level.INFO, "Cannot hide all rows" );
-      view.getStatus().clearAfterMillisecs( 2500 );
-      return false;
-    }
 
     // if no rows selected, hide specified row (usually mouse row)
     if ( viewRows.isEmpty() )
@@ -66,7 +55,6 @@ public class HideShow
   /***************************************** hideColumns *****************************************/
   /**
    * Hide the specified column, or if that column is selected, hide all selected columns.
-   * Cannot hide all columns (at least one column must remain visible).
    *
    * @param view TableView to operate on
    * @param viewColumn column index to hide (or all selected columns if that column is selected)
@@ -77,15 +65,6 @@ public class HideShow
     // if mouse column is selected, hide all selected columns, else just hide mouse column
     var viewColumns = view.getSelection().isColumnSelected( viewColumn ) ? view.getSelection().getSelectedColumns()
         : new HashSetInt( 1 );
-
-    // prevent hiding all columns
-    if ( viewColumns == null || view.getSelection().areAllVisibleColumnsSelected()
-        || view.getColumnsAxis().getFirstVisible() == view.getColumnsAxis().getLastVisible() )
-    {
-      view.getStatus().update( Level.INFO, "Cannot hide all columns" );
-      view.getStatus().clearAfterMillisecs( 2500 );
-      return false;
-    }
 
     // if no columns selected, hide specified column (usually mouse column)
     if ( viewColumns.isEmpty() )

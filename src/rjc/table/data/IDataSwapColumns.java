@@ -19,28 +19,27 @@
 package rjc.table.data;
 
 /*************************************************************************************************/
-/*************************** Interface for reordering rows in table data *************************/
+/************************** Interface for swapping columns in table data *************************/
 /*************************************************************************************************/
 
 /**  
- * Provides interface for {@link TableData} implementations that support row
- * reordering including sorting at the data-level within the data model.
+ * Provides interface for {@link TableData} implementations that support column swapping,
+ * enabling data-level column reordering and sorting directly within the data model.
  *   
- * @see IDataReorderColumns  
+ * @see IDataSwapRows  
  */
-public interface IDataReorderRows
+public interface IDataSwapColumns
 {
-  /****************************************** swapRows *******************************************/
+  /***************************************** swapColumns *****************************************/
   /**
-   * Swaps the position of two rows in the table model at data-level.
-   * This method is typically used during reordering and sorting operations.
+   * Performs a data-level swap of two columns within the table data-model.
    * 
-   * @param row1 index of the first row to swap
-   * @param row2 index of the second row to swap
-   * @return {@code true} if the swap was successful and resulted in a different row order,
+   * @param column1 index of the first column to swap
+   * @param column2 index of the second column to swap
+   * @return {@code true} if the swap was successful and resulted in a different column order,
    *         {@code false} otherwise
    */
-  default public boolean swapRows( int row1, int row2 )
+  default public boolean swapColumns( int column1, int column2 )
   {
     return false;
   }

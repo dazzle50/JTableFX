@@ -20,8 +20,8 @@ package rjc.table.undo.commands;
 
 import javafx.geometry.Orientation;
 import rjc.table.HashSetInt;
-import rjc.table.data.IDataReorderColumns;
-import rjc.table.data.IDataReorderRows;
+import rjc.table.data.IDataSwapColumns;
+import rjc.table.data.IDataSwapRows;
 import rjc.table.data.TableData;
 import rjc.table.undo.IUndoCommand;
 
@@ -78,9 +78,9 @@ public class CommandReorderData implements IUndoCommand
 
     // assign swapper method reference based on orientation
     if ( m_orientation == Orientation.HORIZONTAL )
-      m_swapper = ( (IDataReorderColumns) m_data )::swapColumns;
+      m_swapper = ( (IDataSwapColumns) m_data )::swapColumns;
     else
-      m_swapper = ( (IDataReorderRows) m_data )::swapRows;
+      m_swapper = ( (IDataSwapRows) m_data )::swapRows;
 
     // calculate affected range for permutation
     int selMin = m_selectedIndexes[0];

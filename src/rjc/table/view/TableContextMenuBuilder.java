@@ -24,6 +24,9 @@ import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.paint.Paint;
+import rjc.table.data.IDataInsertDeleteColumns;
+import rjc.table.data.IDataInsertDeleteRows;
+import rjc.table.view.action.Delete;
 import rjc.table.view.action.Filter;
 import rjc.table.view.action.HideShow;
 import rjc.table.view.action.Sort;
@@ -37,7 +40,7 @@ import rjc.table.view.axis.TableAxis;
 /**
  * Constructs context menus with appropriate items based on the location
  * of the triggering cell (header, body, corner, etc.). Provides fluent API
- * for adding menu items such as sort, filter, hide/show, and clipboard operations.
+ * for adding menu items such as sort, filter, hide/show, delete, and clipboard operations.
  */
 public class TableContextMenuBuilder
 {
@@ -122,7 +125,7 @@ public class TableContextMenuBuilder
   public ContextMenu buildColumnHeader()
   {
     // build context menu for table-view column header row - add relevant menu items
-    addFilterTextColumn().addSortColumn().addHideColumn().addShowColumn();
+    addFilterTextColumn().addSortColumn().addHideColumn().addShowColumn().addDeleteColumn();
     return m_menu;
   }
 
@@ -135,7 +138,7 @@ public class TableContextMenuBuilder
   public ContextMenu buildRowHeader()
   {
     // build context menu for table-view row header column - add relevant menu items
-    addFilterTextRow().addSortRow().addHideRow().addShowRow();
+    addFilterTextRow().addSortRow().addHideRow().addShowRow().addDeleteRow();
     return m_menu;
   }
 
@@ -391,6 +394,52 @@ public class TableContextMenuBuilder
       descend.setOnAction( event -> Sort.rowSort( m_view, m_triggerRow, SortType.DESCENDING ) );
 
       m_menu.getItems().addAll( ascend, descend );
+    }
+
+    return this;
+  }
+
+  /*************************************** addDeleteColumn ***************************************/
+  /**
+   * Adds a menu item to delete the selected column(s).
+   * <p>
+   * The item is added if {@link TableContextMenu.TableMenuItems#COLUMN_DELETE} is enabled for
+   * this table view.
+   *
+   * @return this builder for method chaining
+   */
+  protected TableContextMenuBuilder addDeleteColumn()
+  {
+    // add a delete column(s) menu item if option is enabled for this table-view
+    if ( TableContextMenu.isEnabled( m_view, TableContextMenu.TableMenuItems.COLUMN_DELETE )
+        && m_view.getData() instanceof IDataInsertDeleteColumns )
+    {
+      var item = new MenuItem( "Delete" );
+      item.setOnAction( event -> Delete.deleteColumns( m_view, m_triggerCol ) );
+      m_menu.getItems().add( item );
+    }
+
+    return this;
+  }
+
+  /**************************************** addDeleteRow *****************************************/
+  /**
+   * Adds a menu item to delete the selected row(s).
+   * <p>
+   * The item is added if {@link TableContextMenu.TableMenuItems#ROW_DELETE} is enabled for
+   * this table view.
+   *
+   * @return this builder for method chaining
+   */
+  protected TableContextMenuBuilder addDeleteRow()
+  {
+    // add a delete row(s) menu item if option is enabled for this table-view
+    if ( TableContextMenu.isEnabled( m_view, TableContextMenu.TableMenuItems.ROW_DELETE )
+        && m_view.getData() instanceof IDataInsertDeleteRows )
+    {
+      var item = new MenuItem( "Delete" );
+      item.setOnAction( event -> Delete.deleteRows( m_view, m_triggerRow ) );
+      m_menu.getItems().add( item );
     }
 
     return this;
