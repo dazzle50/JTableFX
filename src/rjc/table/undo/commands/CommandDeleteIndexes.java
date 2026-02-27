@@ -44,8 +44,11 @@ import rjc.table.view.axis.TableAxis;
  * View-based indexes are converted to data-based indexes and grouped into the fewest possible
  * contiguous runs, each resolved with a single call to
  * {@link IDataInsertDeleteColumns#deleteColumns} or {@link IDataInsertDeleteRows#deleteRows}.
- * Deletion is applied high-to-low so that lower run indexes remain valid throughout. Undo
- * re-inserts runs in the reverse order (low-to-high) using the data captured during deletion.
+ * Deletion is applied high-to-low so that lower run indexes remain valid throughout. For each
+ * run, axis view-to-data mapping entries and nominal sizes are both captured and shifted
+ * <em>before</em> the data deletion so that view reordering and custom widths/heights remain
+ * correctly aligned with data indexes throughout. Undo re-inserts runs in the reverse order
+ * (low-to-high), restoring data, sizes, and mapping to their original state.
  *
  * @see IUndoCommand
  * @see IDataInsertDeleteColumns
@@ -53,12 +56,15 @@ import rjc.table.view.axis.TableAxis;
  */
 public class CommandDeleteIndexes implements IUndoCommand
 {
-  private final TableData      m_data;        // data model on which deletions are performed
-  private final Orientation    m_orientation; // HORIZONTAL for columns, VERTICAL for rows
-  private final int[][]        m_runs;        // [startIndex, count] per run, high-to-low
-  private final List<Object>[] m_deletedData; // data returned per run during redo; used by undo
-  private final int            m_totalCount;  // total number of columns or rows deleted
-  private String               m_text;        // lazily constructed description for undo/redo UI
+  private final TableData      m_data;            // data model on which deletions are performed
+  private final TableAxis      m_axis;            // axis whose sizes must stay aligned with data
+  private final Orientation    m_orientation;     // HORIZONTAL for columns, VERTICAL for rows
+  private final int[][]        m_runs;            // [startIndex, count] per run, high-to-low
+  private final List<Object>[] m_deletedData;     // data captured per run during redo; used by undo
+  private final short[][]      m_capturedSizes;   // axis sizes captured per run during redo; used by undo
+  private final int[][][]      m_capturedMapping; // axis mapping pairs captured per run during redo; used by undo
+  private final int            m_totalCount;      // total number of columns or rows deleted
+  private String               m_text;            // lazily constructed description for undo/redo UI
 
   /***************************************** constructor *****************************************/
   /**
@@ -66,6 +72,8 @@ public class CommandDeleteIndexes implements IUndoCommand
    * <p>
    * View indexes are resolved to data indexes via the appropriate axis, grouped into contiguous
    * runs, and deleted from highest to lowest to preserve index validity throughout the operation.
+   * Axis nominal sizes are captured and shifted in lock-step with each data deletion so that
+   * custom column/row sizes remain correctly aligned after the operation and after undo.
    *
    * @param view        the table view providing axis and data access
    * @param orientation {@code HORIZONTAL} to delete columns, {@code VERTICAL} to delete rows
@@ -77,19 +85,21 @@ public class CommandDeleteIndexes implements IUndoCommand
     m_data = view.getData();
     m_orientation = orientation;
 
-    // resolve the correct axis for view->data index conversion
-    TableAxis axis = orientation == Orientation.HORIZONTAL ? view.getColumnsAxis() : view.getRowsAxis();
+    // resolve the correct axis for view->data index conversion and size management
+    m_axis = orientation == Orientation.HORIZONTAL ? view.getColumnsAxis() : view.getRowsAxis();
 
     // convert view indexes to data indexes
     int[] viewArray = viewIndexes.toArray();
     int[] raw = new int[viewArray.length];
     for ( int i = 0; i < viewArray.length; i++ )
-      raw[i] = axis.getDataIndex( viewArray[i] );
+      raw[i] = m_axis.getDataIndex( viewArray[i] );
     Arrays.sort( raw );
 
     // build contiguous runs in descending order (deletion order)
     m_runs = buildRuns( raw );
     m_deletedData = new List[m_runs.length];
+    m_capturedSizes = new short[m_runs.length][];
+    m_capturedMapping = new int[m_runs.length][][];
     m_totalCount = raw.length;
 
     redo();
@@ -98,7 +108,8 @@ public class CommandDeleteIndexes implements IUndoCommand
   /******************************************** redo *********************************************/
   /**
    * Executes the deletion, removing runs from highest to lowest data index.
-   * The data returned by each deletion is stored for use by {@link #undo()}.
+   * Axis mapping and sizes are captured and shifted before each data deletion.
+   * The captured data is stored for use by {@link #undo()}.
    */
   @Override
   public void redo()
@@ -108,16 +119,21 @@ public class CommandDeleteIndexes implements IUndoCommand
         ? ( (IDataInsertDeleteColumns) m_data )::deleteColumns
         : ( (IDataInsertDeleteRows) m_data )::deleteRows;
 
-    // delete runs high-to-low; lower run indexes are unaffected by higher deletions
+    // delete runs high-to-low; capture axis mapping and sizes BEFORE data deletion so the
+    // count-change signal's truncate() becomes a no-op (both components are already shifted)
     for ( int i = 0; i < m_runs.length; i++ )
+    {
+      m_capturedMapping[i] = m_axis.deleteMapping( m_runs[i][0], m_runs[i][1] );
+      m_capturedSizes[i] = m_axis.deleteSizes( m_runs[i][0], m_runs[i][1] );
       m_deletedData[i] = delete.apply( m_runs[i][0], m_runs[i][1] );
+    }
     m_data.signalTableChanged();
   }
 
   /******************************************** undo *********************************************/
   /**
    * Reverses the deletion by re-inserting all runs from lowest to highest data index,
-   * restoring the exact data and positions that existed before {@link #redo()}.
+   * restoring the exact data, sizes, and index mapping that existed before {@link #redo()}.
    */
   @Override
   public void undo()
@@ -127,9 +143,15 @@ public class CommandDeleteIndexes implements IUndoCommand
         ? ( (IDataInsertDeleteColumns) m_data )::insertColumns
         : ( (IDataInsertDeleteRows) m_data )::insertRows;
 
-    // insert runs low-to-high (reverse of m_runs order) to restore original positions
+    // insert runs low-to-high (reverse of m_runs order) to restore original positions;
+    // restore axis sizes and mapping AFTER data insertion so the count is correct before
+    // cache invalidation; mapping is restored after sizes so pixel cache is cleared once
     for ( int i = m_runs.length - 1; i >= 0; i-- )
+    {
       insert.accept( m_runs[i][0], m_deletedData[i] );
+      m_axis.insertSizes( m_runs[i][0], m_capturedSizes[i] );
+      m_axis.insertMapping( m_runs[i][0], m_runs[i][1], m_capturedMapping[i] );
+    }
     m_data.signalTableChanged();
   }
 

@@ -18,6 +18,7 @@
 
 package rjc.table.view.axis;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -392,6 +393,73 @@ public class IndexSize
       return originalIndex - before;
 
     return originalIndex - before + movedSorted.length;
+  }
+
+  /***************************************** deleteSizes *****************************************/
+  /**
+   * Removes {@code count} entries from {@code start}, shifts the tail down, and returns the
+   * captured sizes. Entries beyond the stored array are treated as {@link #DEFAULT}.
+   *
+   * @param start  first data index of the range to remove
+   * @param count  number of consecutive entries to remove
+   * @return array of {@code count} captured sizes (may contain {@link #DEFAULT})
+   */
+  public short[] deleteSizes( int start, int count )
+  {
+    // capture sizes before removal (getSize handles out-of-bounds → DEFAULT)
+    short[] captured = new short[count];
+    for ( int i = 0; i < count; i++ )
+      captured[i] = getSize( start + i );
+
+    // nothing stored at or beyond start — nothing to shift
+    if ( start >= m_sizes.length )
+      return captured;
+
+    int copyFrom = start + count;
+    if ( copyFrom < m_sizes.length )
+    {
+      // shift tail down and truncate
+      System.arraycopy( m_sizes, copyFrom, m_sizes, start, m_sizes.length - copyFrom );
+      m_sizes = Arrays.copyOf( m_sizes, m_sizes.length - count );
+    }
+    else
+      // deleted range extends to or beyond end — just truncate to start
+      m_sizes = Arrays.copyOf( m_sizes, start );
+
+    return captured;
+  }
+
+  /***************************************** insertSizes *****************************************/
+  /**
+   * Inserts {@code sizes} at {@code start}, shifting all existing entries from that position
+   * upward by {@code sizes.length}. Gaps between the old array end and {@code start} are
+   * filled with {@link #DEFAULT}.
+   *
+   * @param start  data index at which to insert
+   * @param sizes  sizes to insert (in order, may contain {@link #DEFAULT})
+   */
+  public void insertSizes( int start, short[] sizes )
+  {
+    int count = sizes.length;
+    int oldLen = m_sizes.length;
+
+    if ( start >= oldLen )
+    {
+      // no existing entries to shift — just write non-default sizes
+      for ( int i = 0; i < count; i++ )
+        if ( sizes[i] != DEFAULT )
+          setSize( start + i, sizes[i] );
+      return;
+    }
+
+    // build new array: prefix | inserted sizes | shifted suffix
+    int newLen = oldLen + count;
+    short[] newSizes = new short[newLen];
+    Arrays.fill( newSizes, DEFAULT );
+    System.arraycopy( m_sizes, 0, newSizes, 0, start ); // prefix
+    System.arraycopy( sizes, 0, newSizes, start, count ); // inserted
+    System.arraycopy( m_sizes, start, newSizes, start + count, oldLen - start ); // suffix
+    m_sizes = newSizes;
   }
 
   /************************************* calculateTotalPixels ************************************/

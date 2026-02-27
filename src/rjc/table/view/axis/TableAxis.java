@@ -930,6 +930,81 @@ public class TableAxis implements IListener
     return (int) ( size * m_zoomProperty.get() );
   }
 
+  /**************************************** deleteMapping ****************************************/
+  /**
+   * Removes all view-to-data mapping entries whose data index falls within the deleted run,
+   * shifts remaining entries down, and decrements stored data values above the run.
+   * <p>
+   * Must be called <em>before</em> the corresponding data deletion, consistent with
+   * {@link #deleteSizes}.
+   *
+   * @param dataStart first data index of the deleted run
+   * @param dataCount number of consecutive data indexes deleted
+   * @return captured {@code {viewIndex, dataIndex}} pairs for restoration by {@link #insertMapping}
+   */
+  public int[][] deleteMapping( int dataStart, int dataCount )
+  {
+    // delegate to mapping component; pixel caches invalidated by deleteSizes caller
+    return m_viewDataMapping.deleteMapping( dataStart, dataCount );
+  }
+
+  /**************************************** insertMapping ****************************************/
+  /**
+   * Reverses a previous {@link #deleteMapping} call, restoring all captured view-to-data entries.
+   * <p>
+   * Must be called <em>after</em> the corresponding data insertion, consistent with
+   * {@link #insertSizes}.
+   *
+   * @param dataStart first data index of the restored run
+   * @param dataCount number of consecutive data indexes restored
+   * @param captured  pairs returned by the corresponding {@link #deleteMapping} call
+   */
+  public void insertMapping( int dataStart, int dataCount, int[][] captured )
+  {
+    // delegate to mapping component; pixel caches invalidated by insertSizes caller
+    m_viewDataMapping.insertMapping( dataStart, dataCount, captured );
+  }
+
+  /***************************************** deleteSizes *****************************************/
+  /**
+   * Removes the nominal sizes for a contiguous range of data indices, shifting all higher
+   * indices down, and returns the captured values for later restoration by {@link #insertSizes}.
+   * <p>
+   * This must be called <em>before</em> the corresponding data deletion so that the subsequent
+   * count-change signal's {@code truncate} call becomes a no-op.
+   *
+   * @param start  first data index of the range to remove
+   * @param count  number of consecutive data indices to remove
+   * @return captured size values, suitable for passing to {@link #insertSizes}
+   */
+  public short[] deleteSizes( int start, int count )
+  {
+    // remove range and shift tail; full cache invalidation required
+    short[] captured = m_dataNominalSize.deleteSizes( start, count );
+    m_startPixelCache.clear();
+    m_totalPixelsCache.set( INVALID );
+    return captured;
+  }
+
+  /***************************************** insertSizes *****************************************/
+  /**
+   * Restores nominal sizes previously captured by {@link #deleteSizes}, inserting them at
+   * {@code start} and shifting all higher existing entries upward.
+   * <p>
+   * Call this <em>after</em> the corresponding data insertion so that the count is already
+   * correct before pixel caches are invalidated.
+   *
+   * @param start  data index at which to insert
+   * @param sizes  values previously returned by {@link #deleteSizes}
+   */
+  public void insertSizes( int start, short[] sizes )
+  {
+    // insert sizes and shift tail; full cache invalidation required
+    m_dataNominalSize.insertSizes( start, sizes );
+    m_startPixelCache.clear();
+    m_totalPixelsCache.set( INVALID );
+  }
+
   /************************************* truncatePixelCaches *************************************/
   /**
    * Invalidates pixel caches from the specified index onwards, optionally adjusting total pixels.

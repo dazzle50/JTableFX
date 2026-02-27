@@ -85,7 +85,7 @@ public class IndexMapping
   public int getDataIndex( int viewIndex )
   {
     // return stored mapping if within range, otherwise assume identity mapping
-    if ( viewIndex < m_dataIndices.length )
+    if ( viewIndex < m_mappedCount )
       return m_dataIndices[viewIndex];
 
     return viewIndex;
@@ -262,6 +262,99 @@ public class IndexMapping
     m_mappedCount--;
 
     return removed;
+  }
+
+  /**************************************** deleteMapping ****************************************/
+  /**
+   * Removes all view entries whose stored data index falls within
+   * {@code [dataStart, dataStart+dataCount)}, shifts the remaining view entries down to close
+   * the gaps, and decrements every remaining stored data value {@code >= dataStart} by
+   * {@code dataCount}.
+   * <p>
+   * Only the explicitly stored range {@code [0, m_mappedCount)} is scanned; identity-mapped
+   * view indexes beyond that range self-heal as the axis count shrinks. Trailing identity
+   * entries are intentionally not trimmed here — trimming after a decrement could silently
+   * discard entries that must be incremented back on undo.
+   * <p>
+   * The returned array captures the original {@code {viewIndex, dataIndex}} pair for every
+   * removed entry (in ascending view-index order) and is suitable for passing to
+   * {@link #insertMapping} on undo.
+   *
+   * @param dataStart first data index of the deleted run (inclusive)
+   * @param dataCount number of consecutive data indexes deleted
+   * @return captured pairs {@code int[n][2]} where each row is {@code {viewIndex, dataIndex}},
+   *         ordered by ascending original view index
+   */
+  public int[][] deleteMapping( int dataStart, int dataCount )
+  {
+    int dataEnd = dataStart + dataCount; // exclusive upper bound of deleted data range
+
+    // first pass: count how many stored view entries fall in the deleted data range
+    int removedCount = 0;
+    for ( int v = 0; v < m_mappedCount; v++ )
+      if ( m_dataIndices[v] >= dataStart && m_dataIndices[v] < dataEnd )
+        removedCount++;
+
+    // capture original pairs and build compacted array in a single second pass
+    int[][] captured = new int[removedCount][2];
+    int capturePos = 0;
+    int writePos = 0;
+    for ( int v = 0; v < m_mappedCount; v++ )
+    {
+      int d = m_dataIndices[v];
+      if ( d >= dataStart && d < dataEnd )
+        // record original view index and data index before removal
+        captured[capturePos++] = new int[] { v, d };
+      else
+        // keep entry, decrementing data value if it lies above the deleted range
+        m_dataIndices[writePos++] = d >= dataEnd ? d - dataCount : d;
+    }
+    m_mappedCount = writePos;
+    return captured;
+  }
+
+  /**************************************** insertMapping ****************************************/
+  /**
+   * Reverses a previous {@link #deleteMapping} call by re-inserting the captured view entries.
+   * <p>
+   * First increments all currently stored data values {@code >= dataStart} by {@code dataCount}
+   * to reverse the decrement applied during deletion. Then inserts each captured
+   * {@code {viewIndex, dataIndex}} pair back into the stored mapping, shifting existing entries
+   * right to make room.
+   * <p>
+   * Captured pairs must be in ascending view-index order as returned by
+   * {@link #deleteMapping}.
+   *
+   * @param dataStart first data index of the restored run (must match original deletion)
+   * @param dataCount number of consecutive data indexes restored
+   * @param captured  pairs returned by the corresponding {@link #deleteMapping} call
+   */
+  public void insertMapping( int dataStart, int dataCount, int[][] captured )
+  {
+    if ( captured.length == 0 )
+      return;
+
+    // increment all stored data values above the restored range (reverse the earlier decrement)
+    for ( int v = 0; v < m_mappedCount; v++ )
+      if ( m_dataIndices[v] >= dataStart )
+        m_dataIndices[v] += dataCount;
+
+    // re-insert captured pairs in ascending view-index order; each insertion shifts the tail
+    // right by one so subsequent captured view indexes remain correct
+    for ( int[] pair : captured )
+    {
+      int viewIndex = pair[0];
+      int dataIndex = pair[1];
+      ensureCapacity( Math.max( viewIndex, m_mappedCount ) + 1 );
+
+      if ( viewIndex < m_mappedCount )
+        // shift right to create slot at viewIndex
+        System.arraycopy( m_dataIndices, viewIndex, m_dataIndices, viewIndex + 1, m_mappedCount - viewIndex );
+
+      m_dataIndices[viewIndex] = dataIndex;
+      m_mappedCount = Math.max( m_mappedCount, viewIndex ) + 1;
+    }
+    trimIdentityTail();
   }
 
   /************************************** ensureCapacity *****************************************/
