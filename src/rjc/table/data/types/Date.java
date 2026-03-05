@@ -25,512 +25,976 @@ import java.time.LocalDate;
 import java.time.Month;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.temporal.IsoFields;
 import java.util.Objects;
 
-/*************************************************************************************************/
-/*********************************** Date (with no time-zone) ************************************/
-/*************************************************************************************************/
+/**************************************************************************************************/
+/****************************** Date (calendar date, no time-zone) ********************************/
+/**************************************************************************************************/
 
 /**
- * Immutable date class representing a single calendar date without timezone information.
+ * Immutable calendar date without timezone information, stored internally as an {@code int} of
+ * days since the epoch (1970-01-01). This gives approximately ±5.8 million years of range at
+ * only 4 bytes per instance — more compact than {@link LocalDate}.
  * <p>
- * This class provides a memory-efficient alternative to LocalDate by storing dates internally 
- * as epoch days (days since 1970-01-01). Each instance uses only 4 bytes of memory while 
- * supporting an extensive date range of approximately +/-5.8 million years.
- * <p>
- * The class includes specialised features for business applications:
- * <ul>
- * <li>Custom half-year formatting support for financial reporting</li>
- * <li>Intelligent parsing with automatic format detection and fallbacks via {@link DateParser}</li>
- * <li>Complete immutability ensuring thread safety</li>
- * <li>Efficient comparison and arithmetic operations</li>
- * </ul>
- * <p>
- * Example usage:
- * <pre>{@code
- * Date today = Date.now();
- * Date future = today.plusDays(30);
- * String formatted = today.format("dd/MM/yyyy");
- * Date parsed = Date.parse("2026-12-25");
- * Date relative = Date.parse("next monday");
- * }</pre>
+ * Most arithmetic and component-extraction operations are performed via allocation-free static
+ * helper methods ({@link #addMonths}, {@link #addYears}, {@link #epochYear}, etc.) based on the
+ * Hinnant civil/days algorithm. {@link LocalDate} is used only for ISO week-of-year calculation
+ * and pattern-based formatting.
  */
 public final class Date implements Serializable, Comparable<Date>
 {
-  private static final long             serialVersionUID = 1L;
+  private static final long serialVersionUID = 1L;
 
-  // internal storage as days since epoch for memory efficiency
-  private final int                     m_epochDay;
+  // internal storage: days since 1970-01-01 (epoch day)
+  private final int         m_epochDay;
 
-  // predefined date constants covering maximum supported range
-  public static final Date              MIN_VALUE        = new Date( Integer.MIN_VALUE );
-  public static final Date              MAX_VALUE        = new Date( Integer.MAX_VALUE );
-  public static final Date              EPOCH            = new Date( 0 );                   // 1970-01-01
+  // ---- named constants ----
+  public static final Date  MIN_VALUE        = new Date( Integer.MIN_VALUE );
+  public static final Date  MAX_VALUE        = new Date( Integer.MAX_VALUE );
+  public static final Date  EPOCH            = new Date( 0 );
 
-  // standard iso date format for consistent parsing
-  public static final DateTimeFormatter ISO_FORMAT       = DateTimeFormatter.ISO_LOCAL_DATE;
+  // ---- formatting constants ----
+  // half-year pattern letter and placeholder used during format substitution
+  private static final char HALF_YEAR_CHAR   = 'U';
+  private static final char HALF_YEAR_S1     = '\u0001';                     // U → digit only
+  private static final char HALF_YEAR_S2     = '\u0002';                     // UU → H1 / H2
+  private static final char HALF_YEAR_S3     = '\u0003';                     // UUU → "1st half" / "2nd half"
 
-  // special formatting constants for half-year business reporting
-  private static final String           HALF_YEAR_MARKER = "#HY#";
-  private static final char             HALF_YEAR_CHAR   = 'B';
-
-  // ================================= Constructors =================================
+  // epoch day 0 (1970-01-01) was a Thursday; adding 3 then floorMod 7 gives 0=Mon..6=Sun
+  private static final int  DOW_OFFSET       = 3;
 
   /**
-   * Private constructor to enforce factory method usage and maintain immutability.
-   * 
-   * @param epochDay the number of days since 1970-01-01
+   * Enumeration of calendar interval units for rounding, stepping, and navigation.
+   */
+  public enum IntervalUnit
+  {
+    DAY, WEEK, MONTH, QUARTER_YEAR, HALF_YEAR, YEAR
+  }
+
+  // =================================== Constructor ===================================
+
+  /***************************************** constructor ******************************************/
+  /**
+   * Private constructor — use factory methods to create instances.
+   *
+   * @param epochDay days since 1970-01-01 (may be negative)
    */
   private Date( int epochDay )
   {
-    // store epoch day directly for efficient memory usage
     m_epochDay = epochDay;
   }
 
-  // ================================= Factory Methods =================================
+  // =================================== Factory Methods ===================================
 
-  /***************************************** ofEpochDay ******************************************/
+  /***************************************** ofEpochDay *******************************************/
   /**
-   * Creates a Date instance from the number of days since the epoch (1970-01-01).
-   * <p>
-   * This is the most efficient factory method as it directly uses the internal 
-   * storage format without any conversion overhead.
+   * Creates a {@code Date} directly from an epoch day value.
    *
-   * @param epochDay the number of days since 1970-01-01 (can be negative for dates before epoch)
-   * @return a new Date instance representing the specified epoch day
+   * @param epochDay days since 1970-01-01 (negative for dates before the epoch)
+   * @return a new {@code Date} instance
    */
   public static Date ofEpochDay( int epochDay )
   {
     return new Date( epochDay );
   }
 
-  /********************************************* of **********************************************/
+  /********************************************** of **********************************************/
   /**
-   * Creates a Date from the specified year, month, and day components.
+   * Creates a {@code Date} from year, month, and day components.
    * <p>
-   * This method performs full validation of the date components and will throw
-   * an exception for invalid dates such as February 30th or day 32 of any month.
+   * Month and day are validated without allocating a {@link LocalDate}. Year is not
+   * range-checked beyond what can be represented as an {@code int} epoch day.
    *
-   * @param year  the year to represent (e.g., 2025, can be negative for BC dates)
-   * @param month the month-of-year to represent (1-12, where 1=January, 12=December) 
-   * @param day   the day-of-month to represent (1-31, depending on month and leap year)
-   * @return a new Date instance representing the specified date
-   * @throws DateTimeException if any component is invalid or the combination is impossible
+   * @param year  proleptic Gregorian year (negative for BC)
+   * @param month month-of-year (1 = January … 12 = December)
+   * @param day   day-of-month (1–31 depending on month and leap year)
+   * @return a new {@code Date} instance
+   * @throws DateTimeException if month or day is out of range for the given year
    */
   public static Date of( int year, int month, int day )
   {
-    try
-    {
-      // leverage localdate validation then convert to our internal format
-      int epochDay = (int) LocalDate.of( year, month, day ).toEpochDay();
-      return ofEpochDay( epochDay );
-    }
-    catch ( DateTimeException exception )
-    {
-      // provide clearer error message with the attempted date
-      throw new DateTimeException( String.format( "Invalid date: %04d-%02d-%02d", year, month, day ), exception );
-    }
+    // validate without allocating a LocalDate
+    if ( month < 1 || month > 12 || day < 1 || day > monthLength( year, month ) )
+      throw new DateTimeException( String.format( "Invalid date: %04d-%02d-%02d", year, month, day ) );
+    return ofEpochDay( ymdToEpochDay( year, month, day ) );
   }
 
-  /********************************************* of **********************************************/
+  /********************************************** of **********************************************/
   /**
-   * Creates a Date instance from a LocalDate object.
-   * <p>
-   * This method provides seamless interoperability with the standard Java time API
-   * while converting to our more memory-efficient internal representation.
+   * Creates a {@code Date} from a {@link LocalDate}.
    *
-   * @param localDate the LocalDate to convert (must not be null)
-   * @return a new Date instance equivalent to the provided LocalDate
-   * @throws NullPointerException if localDate is null
+   * @param localDate the {@link LocalDate} to convert (must not be null)
+   * @return a new {@code Date} instance
+   * @throws NullPointerException if {@code localDate} is null
    */
   public static Date of( LocalDate localDate )
   {
-    // validate input parameter
-    Objects.requireNonNull( localDate, "LocalDate cannot be null" );
-    // convert to internal epoch day format
+    Objects.requireNonNull( localDate, "localDate must not be null" );
     return ofEpochDay( (int) localDate.toEpochDay() );
   }
 
-  /********************************************* now *********************************************/
+  /********************************************** now *********************************************/
   /**
-   * Creates a Date instance representing the current date in the system default timezone.
-   * <p>
-   * This method uses the system clock and default timezone to determine the current
-   * date. The result may vary depending on when and where the code is executed.
+   * Creates a {@code Date} representing today in the system default time-zone.
    *
-   * @return a new Date instance representing today's date
+   * @return a new {@code Date} for today
    */
   public static Date now()
   {
-    // use system default timezone to get current date
     return of( LocalDate.now() );
   }
 
-  // ================================ Accessor Methods ================================
+  // =================================== Static Primitive Helpers ===================================
 
-  /***************************************** getEpochDay *****************************************/
+  /******************************************** packYMD *******************************************/
+  // Hinnant civil_from_days: decomposes epoch day to packed long ((year<<9)|(month<<5)|day)
+  // uses Math.floorDiv for era so negative epoch days (dates before 1970) are handled correctly;
+  // all subsequent divisions are on non-negative values so Java truncation equals floor
+  private static long packYMD( int epochDay )
+  {
+    int z = epochDay + 719468;
+    int era = Math.floorDiv( z, 146097 );
+    int doe = z - era * 146097; // day-of-era [0, 146096]
+    int yoe = ( doe - doe / 1460 + doe / 36524 - doe / 146096 ) / 365; // year-of-era [0, 399]
+    int y = yoe + era * 400;
+    int doy = doe - ( 365 * yoe + yoe / 4 - yoe / 100 ); // day-of-year [0, 365]
+    int mp = ( 5 * doy + 2 ) / 153; // month-prime [0, 11]
+    int d = doy - ( 153 * mp + 2 ) / 5 + 1; // day [1, 31]
+    int m = mp < 10 ? mp + 3 : mp - 9; // month [1, 12]
+    if ( m <= 2 )
+      y++;
+    return ( (long) y << 9 ) | ( m << 5 ) | d;
+  }
+
+  /*************************************** ymdToEpochDay ******************************************/
   /**
-   * Returns the epoch day value for this date.
+   * Converts year, month, and day to an epoch day without allocating a {@link LocalDate}.
    * <p>
-   * The epoch day is the number of days since 1970-01-01, where day 0 represents
-   * the epoch date itself. Negative values represent dates before the epoch.
+   * No validation is performed; callers are responsible for ensuring the components are valid.
+   * Use the {@link #of(int, int, int)} factory for validated construction.
    *
-   * @return the epoch day value (can be negative for historical dates)
+   * @param year  proleptic Gregorian year
+   * @param month month-of-year (1–12)
+   * @param day   day-of-month (1–31)
+   * @return epoch day (days since 1970-01-01)
+   */
+  public static int ymdToEpochDay( int year, int month, int day )
+  {
+    int y = year;
+    if ( month <= 2 )
+      y--;
+    int era = Math.floorDiv( y, 400 );
+    int yoe = y - era * 400; // year-of-era [0, 399]
+    int mp = month > 2 ? month - 3 : month + 9; // month-prime [0, 11]
+    int doy = ( 153 * mp + 2 ) / 5 + day - 1; // day-of-year [0, 365]
+    int doe = yoe * 365 + yoe / 4 - yoe / 100 + doy; // day-of-era [0, 146096]
+    return era * 146097 + doe - 719468;
+  }
+
+  /****************************************** isLeapYear ******************************************/
+  /**
+   * Returns {@code true} if the given proleptic Gregorian year is a leap year.
+   * <p>
+   * A year is a leap year if it is divisible by 4, except for century years, which must be
+   * divisible by 400. Handles year 0 (1 BC) and negative years correctly.
+   *
+   * @param year proleptic Gregorian year
+   * @return {@code true} if {@code year} is a leap year
+   */
+  public static boolean isLeapYear( int year )
+  {
+    // Java % on negatives gives 0 iff exactly divisible, so this is safe for BC years
+    return ( year % 4 == 0 && year % 100 != 0 ) || year % 400 == 0;
+  }
+
+  /***************************************** monthLength ******************************************/
+  /**
+   * Returns the number of days in the given month of the given year (28–31).
+   *
+   * @param year  proleptic Gregorian year (used only for the February leap-year check)
+   * @param month month-of-year (1–12)
+   * @return length of the month in days
+   */
+  public static int monthLength( int year, int month )
+  {
+    return switch ( month )
+    {
+      case 2 -> isLeapYear( year ) ? 29 : 28;
+      case 4, 6, 9, 11 -> 30;
+      default -> 31;
+    };
+  }
+
+  /****************************************** addMonths *******************************************/
+  /**
+   * Adds the specified number of months to an epoch day without object allocation.
+   * <p>
+   * Month-end clamping is applied: adding one month to the epoch day of 31 January yields
+   * the epoch day of 28 or 29 February depending on the target year.
+   *
+   * @param epochDay days since 1970-01-01
+   * @param months   months to add (may be negative)
+   * @return new epoch day after adding {@code months}
+   */
+  public static int addMonths( int epochDay, int months )
+  {
+    if ( months == 0 )
+      return epochDay;
+    long ymd = packYMD( epochDay );
+    int y = (int) ( ymd >> 9 );
+    int m = (int) ( ( ymd >> 5 ) & 0xF );
+    int d = (int) ( ymd & 0x1F );
+    // floorDiv/Mod handle negative months (e.g. subtracting past January) correctly
+    int totalM = y * 12 + ( m - 1 ) + months;
+    int newYear = Math.floorDiv( totalM, 12 );
+    int newMon = Math.floorMod( totalM, 12 ) + 1;
+    // clamp day to the last valid day of the target month
+    return ymdToEpochDay( newYear, newMon, Math.min( d, monthLength( newYear, newMon ) ) );
+  }
+
+  /******************************************* addYears *******************************************/
+  /**
+   * Adds the specified number of years to an epoch day without object allocation.
+   * <p>
+   * Leap-year clamping is applied: adding one year to the epoch day of 29 February yields
+   * the epoch day of 28 February in a non-leap year.
+   *
+   * @param epochDay days since 1970-01-01
+   * @param years    years to add (may be negative)
+   * @return new epoch day after adding {@code years}
+   */
+  public static int addYears( int epochDay, int years )
+  {
+    // delegate to addMonths; years*12 cannot overflow int within the ±5.8 M year int range
+    return addMonths( epochDay, years * 12 );
+  }
+
+  /******************************************* epochYear ******************************************/
+  /**
+   * Returns the proleptic Gregorian year for the given epoch day.
+   *
+   * @param epochDay days since 1970-01-01
+   * @return proleptic Gregorian year
+   */
+  public static int epochYear( int epochDay )
+  {
+    return (int) ( packYMD( epochDay ) >> 9 );
+  }
+
+  /****************************************** epochMonth ******************************************/
+  /**
+   * Returns the month-of-year (1–12) for the given epoch day.
+   *
+   * @param epochDay days since 1970-01-01
+   * @return month-of-year (1–12)
+   */
+  public static int epochMonth( int epochDay )
+  {
+    return (int) ( ( packYMD( epochDay ) >> 5 ) & 0xF );
+  }
+
+  /*************************************** epochDayOfMonth ****************************************/
+  /**
+   * Returns the day-of-month (1–31) for the given epoch day.
+   *
+   * @param epochDay days since 1970-01-01
+   * @return day-of-month (1–31)
+   */
+  public static int epochDayOfMonth( int epochDay )
+  {
+    return (int) ( packYMD( epochDay ) & 0x1F );
+  }
+
+  // =================================== Accessor Methods ===================================
+
+  /***************************************** getEpochDay ******************************************/
+  /**
+   * Returns the raw epoch day value (days since 1970-01-01).
+   * <p>
+   * Negative for dates before the epoch.
+   *
+   * @return epoch day value
    */
   public int getEpochDay()
   {
     return m_epochDay;
   }
 
-  /******************************************* getYear *******************************************/
+  /******************************************** getYear *******************************************/
   /**
    * Returns the year component of this date.
    * <p>
-   * The year follows the proleptic Gregorian calendar system, where year 1 is 1 AD,
-   * year 0 is 1 BC, year -1 is 2 BC, and so forth.
+   * Follows the proleptic Gregorian calendar: year 0 is 1 BC, year −1 is 2 BC, and so on.
    *
-   * @return the year (e.g., 2025, can be negative for BC dates)
+   * @return proleptic Gregorian year
    */
   public int getYear()
   {
-    // convert to localdate for component extraction
-    return toLocalDate().getYear();
+    return epochYear( m_epochDay );
   }
 
-  /****************************************** getMonth *******************************************/
+  /******************************************* getMonth *******************************************/
   /**
-   * Returns the month-of-year as an integer value.
-   * <p>
-   * The returned value uses the standard calendar numbering where January is 1
-   * and December is 12, making it suitable for direct display to users.
+   * Returns the month-of-year as an integer (1 = January … 12 = December).
    *
-   * @return the month-of-year (1=January through 12=December)
+   * @return month-of-year (1–12)
    */
   public int getMonth()
   {
-    // extract month value using localdate conversion
-    return toLocalDate().getMonthValue();
+    return epochMonth( m_epochDay );
   }
 
-  /**************************************** getMonthEnum *****************************************/
+  /***************************************** getMonthEnum *****************************************/
   /**
-   * Returns the month-of-year as a Month enum value.
+   * Returns the month-of-year as a {@link Month} enum value.
    * <p>
-   * This method provides type-safe access to the month component with additional
-   * utility methods available through the Month enum.
+   * Prefer {@link #getMonth()} for simple numeric comparisons; use this method when
+   * enum-specific behaviour (e.g. {@link Month#length}) is needed.
    *
-   * @return the Month enum representing the month-of-year
+   * @return {@link Month} enum for this date
    */
   public Month getMonthEnum()
   {
-    // return enum for type safety and additional functionality
-    return toLocalDate().getMonth();
+    return Month.of( epochMonth( m_epochDay ) );
   }
 
-  /**************************************** getDayOfMonth ****************************************/
+  /**************************************** getDayOfMonth *****************************************/
   /**
-   * Returns the day-of-month component of this date.
-   * <p>
-   * The value ranges from 1 to 31 depending on the month and whether it's a leap year.
-   * For example, February in a leap year can have day 29, but not in a regular year.
+   * Returns the day-of-month component (1–31 depending on month and year).
    *
-   * @return the day-of-month (1-31 depending on the month)
+   * @return day-of-month
    */
   public int getDayOfMonth()
   {
-    // extract day using localdate conversion
-    return toLocalDate().getDayOfMonth();
+    return epochDayOfMonth( m_epochDay );
   }
 
-  /**************************************** getDayOfWeek *****************************************/
+  /***************************************** getDayOfWeek *****************************************/
   /**
    * Returns the day-of-week for this date.
    * <p>
-   * The DayOfWeek enum provides additional utility methods and follows the ISO standard
-   * where Monday is day 1 and Sunday is day 7.
+   * Follows ISO-8601: Monday = 1 … Sunday = 7.
    *
-   * @return the DayOfWeek enum representing the day of the week
+   * @return {@link DayOfWeek} enum
    */
   public DayOfWeek getDayOfWeek()
   {
-    // calculate day of week using localdate
-    return toLocalDate().getDayOfWeek();
+    // floorMod gives 0=Mon..6=Sun; DayOfWeek.of expects 1=Mon..7=Sun
+    return DayOfWeek.of( Math.floorMod( m_epochDay + DOW_OFFSET, 7 ) + 1 );
   }
 
-  /**************************************** getDayOfYear *****************************************/
+  /***************************************** getDayOfYear *****************************************/
   /**
-   * Returns the day-of-year component of this date.
-   * <p>
-   * January 1st is day 1, and the maximum value is 365 for regular years or 366 for leap years.
-   * This is useful for calculating progress through the year or for certain business calculations.
+   * Returns the day-of-year (1 on 1 January; 365 or 366 on 31 December).
    *
-   * @return the day-of-year (1-366 depending on leap year status)
+   * @return day-of-year (1–366)
    */
   public int getDayOfYear()
   {
-    // calculate ordinal day using localdate
-    return toLocalDate().getDayOfYear();
+    // subtract epoch day of 1 Jan same year; +1 for 1-based result
+    int y = epochYear( m_epochDay );
+    return m_epochDay - ymdToEpochDay( y, 1, 1 ) + 1;
   }
 
-  /***************************************** isLeapYear ******************************************/
+  /**************************************** getWeekOfYear *****************************************/
   /**
-   * Checks whether this date falls within a leap year.
+   * Returns the ISO-8601 week number within the week-based year (1–53).
    * <p>
-   * A leap year occurs every 4 years, except for years divisible by 100, unless they
-   * are also divisible by 400. This affects February which has 29 days in leap years.
+   * Week 1 is the week containing the first Thursday of January. The week-based year may
+   * differ from the calendar year for dates near 1 January.
+   * <p>
+   * This method allocates a {@link LocalDate} internally as no pure-integer equivalent
+   * exists for the ISO week-based year algorithm.
    *
-   * @return true if this date is in a leap year, false otherwise
+   * @return ISO week-of-week-based-year (1–53)
+   */
+  public int getWeekOfYear()
+  {
+    // IsoFields.WEEK_OF_WEEK_BASED_YEAR requires a LocalDate; no pure-int equivalent
+    return toLocalDate().get( IsoFields.WEEK_OF_WEEK_BASED_YEAR );
+  }
+
+  /****************************************** getQuarter ******************************************/
+  /**
+   * Returns the calendar quarter this date falls in (1–4).
+   * <p>
+   * Q1 = January–March, Q2 = April–June, Q3 = July–September, Q4 = October–December.
+   *
+   * @return quarter (1–4)
+   */
+  public int getQuarter()
+  {
+    // integer division maps months 1-3→1, 4-6→2, 7-9→3, 10-12→4
+    return ( getMonth() - 1 ) / 3 + 1;
+  }
+
+  /***************************************** getHalfYear ******************************************/
+  /**
+   * Returns the calendar half-year this date falls in (1 or 2).
+   * <p>
+   * H1 = January–June, H2 = July–December.
+   *
+   * @return half-year (1 or 2)
+   */
+  public int getHalfYear()
+  {
+    return getMonth() <= 6 ? 1 : 2;
+  }
+
+  /***************************************** isLeapYear *******************************************/
+  /**
+   * Returns {@code true} if this date falls within a leap year.
+   * <p>
+   * Delegates to {@link #isLeapYear(int)}.
+   *
+   * @return {@code true} if the year is a leap year
    */
   public boolean isLeapYear()
   {
-    // determine leap year status using localdate
-    return toLocalDate().isLeapYear();
+    return isLeapYear( epochYear( m_epochDay ) );
   }
 
-  // ================================= Date Arithmetic =================================
-
-  /****************************************** plusDays *******************************************/
+  /**************************************** lengthOfMonth *****************************************/
   /**
-   * Returns a new Date with the specified number of days added to this date.
-   * <p>
-   * This operation is performed efficiently using epoch day arithmetic without
-   * intermediate conversions. Negative values can be used to subtract days.
+   * Returns the number of days in the month of this date (28–31).
    *
-   * @param days the number of days to add (can be negative to subtract)
-   * @return a new Date instance with the days added
-   * @throws ArithmeticException if the resulting date would overflow the supported range
+   * @return length of the month in days
+   */
+  public int lengthOfMonth()
+  {
+    long ymd = packYMD( m_epochDay );
+    return monthLength( (int) ( ymd >> 9 ), (int) ( ( ymd >> 5 ) & 0xF ) );
+  }
+
+  /***************************************** lengthOfYear *****************************************/
+  /**
+   * Returns the number of days in the year of this date (365 or 366).
+   *
+   * @return length of the year in days
+   */
+  public int lengthOfYear()
+  {
+    return isLeapYear() ? 366 : 365;
+  }
+
+  // =================================== Rounding Methods ===================================
+
+  /****************************************** roundDown *******************************************/
+  /**
+   * Returns a copy of this date rounded down (floored) to the nearest boundary of the
+   * specified interval unit. If this date is already exactly on a boundary, the same
+   * instance is returned.
+   * <p>
+   * Boundaries per unit:
+   * <ul>
+   *   <li>{@code DAY} — always aligned; returns {@code this}</li>
+   *   <li>{@code WEEK} — Monday of the current ISO week</li>
+   *   <li>{@code MONTH} — 1st of the current month</li>
+   *   <li>{@code QUARTER_YEAR} — 1st of January, April, July, or October</li>
+   *   <li>{@code HALF_YEAR} — 1st of January or 1st of July</li>
+   *   <li>{@code YEAR} — 1st of January</li>
+   * </ul>
+   * All arms use allocation-free integer arithmetic.
+   *
+   * @param unit the interval unit to round to (must not be null)
+   * @return {@code this} if already on a boundary, otherwise a new {@code Date}
+   * @throws NullPointerException if {@code unit} is null
+   */
+  public Date roundDown( IntervalUnit unit )
+  {
+    Objects.requireNonNull( unit, "unit must not be null" );
+    return switch ( unit )
+    {
+      case DAY -> this;
+
+      case WEEK -> {
+        // offset 0=Mon..6=Sun; subtract offset to land on Monday
+        int offset = Math.floorMod( m_epochDay + DOW_OFFSET, 7 );
+        yield offset == 0 ? this : ofEpochDay( m_epochDay - offset );
+      }
+
+      case MONTH -> {
+        long ymd = packYMD( m_epochDay );
+        int y = (int) ( ymd >> 9 ), m = (int) ( ( ymd >> 5 ) & 0xF ), d = (int) ( ymd & 0x1F );
+        yield d == 1 ? this : ofEpochDay( ymdToEpochDay( y, m, 1 ) );
+      }
+
+      case QUARTER_YEAR -> {
+        long ymd = packYMD( m_epochDay );
+        int y = (int) ( ymd >> 9 ), m = (int) ( ( ymd >> 5 ) & 0xF ), d = (int) ( ymd & 0x1F );
+        int firstM = ( ( m - 1 ) / 3 ) * 3 + 1;
+        yield ( m == firstM && d == 1 ) ? this : ofEpochDay( ymdToEpochDay( y, firstM, 1 ) );
+      }
+
+      case HALF_YEAR -> {
+        long ymd = packYMD( m_epochDay );
+        int y = (int) ( ymd >> 9 ), m = (int) ( ( ymd >> 5 ) & 0xF ), d = (int) ( ymd & 0x1F );
+        int firstM = m <= 6 ? 1 : 7;
+        yield ( m == firstM && d == 1 ) ? this : ofEpochDay( ymdToEpochDay( y, firstM, 1 ) );
+      }
+
+      case YEAR -> {
+        long ymd = packYMD( m_epochDay );
+        int y = (int) ( ymd >> 9 ), m = (int) ( ( ymd >> 5 ) & 0xF ), d = (int) ( ymd & 0x1F );
+        yield ( m == 1 && d == 1 ) ? this : ofEpochDay( ymdToEpochDay( y, 1, 1 ) );
+      }
+    };
+  }
+
+  /******************************************* roundUp ********************************************/
+  /**
+   * Returns a copy of this date rounded up (ceiled) to the nearest boundary of the
+   * specified interval unit. If this date is already exactly on a boundary, the same
+   * instance is returned.
+   * <p>
+   * Boundaries are the same as for {@link #roundDown(IntervalUnit)}:
+   * <ul>
+   *   <li>{@code DAY} — always aligned; returns {@code this}</li>
+   *   <li>{@code WEEK} — Monday of the next ISO week, or {@code this} if already Monday</li>
+   *   <li>{@code MONTH} — 1st of the next month, or {@code this} if already the 1st</li>
+   *   <li>{@code QUARTER_YEAR} — 1st of the next quarter, or {@code this}</li>
+   *   <li>{@code HALF_YEAR} — next 1st January or 1st July, or {@code this}</li>
+   *   <li>{@code YEAR} — 1st January of the next year, or {@code this}</li>
+   * </ul>
+   * All arms use allocation-free integer arithmetic.
+   *
+   * @param unit the interval unit to round to (must not be null)
+   * @return {@code this} if already on a boundary, otherwise a new {@code Date}
+   * @throws NullPointerException if {@code unit} is null
+   */
+  public Date roundUp( IntervalUnit unit )
+  {
+    Objects.requireNonNull( unit, "unit must not be null" );
+    return switch ( unit )
+    {
+      case DAY -> this;
+
+      case WEEK -> {
+        // offset 0=Mon..6=Sun; advance (7 - offset) days to reach next Monday
+        int offset = Math.floorMod( m_epochDay + DOW_OFFSET, 7 );
+        yield offset == 0 ? this : ofEpochDay( m_epochDay + ( 7 - offset ) );
+      }
+
+      case MONTH -> {
+        long ymd = packYMD( m_epochDay );
+        int y = (int) ( ymd >> 9 ), m = (int) ( ( ymd >> 5 ) & 0xF ), d = (int) ( ymd & 0x1F );
+        if ( d == 1 )
+          yield this;
+        // advance to 1st of next month, wrapping year if needed
+        int nextM = m + 1, nextY = y;
+        if ( nextM > 12 )
+        {
+          nextM = 1;
+          nextY++;
+        }
+        yield ofEpochDay( ymdToEpochDay( nextY, nextM, 1 ) );
+      }
+
+      case QUARTER_YEAR -> {
+        long ymd = packYMD( m_epochDay );
+        int y = (int) ( ymd >> 9 ), m = (int) ( ( ymd >> 5 ) & 0xF ), d = (int) ( ymd & 0x1F );
+        int firstM = ( ( m - 1 ) / 3 ) * 3 + 1;
+        if ( m == firstM && d == 1 )
+          yield this;
+        // first month of next quarter, wrapping year if needed
+        int nextM = firstM + 3, nextY = y;
+        if ( nextM > 12 )
+        {
+          nextM -= 12;
+          nextY++;
+        }
+        yield ofEpochDay( ymdToEpochDay( nextY, nextM, 1 ) );
+      }
+
+      case HALF_YEAR -> {
+        long ymd = packYMD( m_epochDay );
+        int y = (int) ( ymd >> 9 ), m = (int) ( ( ymd >> 5 ) & 0xF ), d = (int) ( ymd & 0x1F );
+        int firstM = m <= 6 ? 1 : 7;
+        if ( m == firstM && d == 1 )
+          yield this;
+        // next boundary is Jul 1 same year (H1) or Jan 1 next year (H2)
+        yield firstM == 1 ? ofEpochDay( ymdToEpochDay( y, 7, 1 ) ) : ofEpochDay( ymdToEpochDay( y + 1, 1, 1 ) );
+      }
+
+      case YEAR -> {
+        long ymd = packYMD( m_epochDay );
+        int y = (int) ( ymd >> 9 ), m = (int) ( ( ymd >> 5 ) & 0xF ), d = (int) ( ymd & 0x1F );
+        yield ( m == 1 && d == 1 ) ? this : ofEpochDay( ymdToEpochDay( y + 1, 1, 1 ) );
+      }
+    };
+  }
+
+  // =================================== Arithmetic Methods ===================================
+
+  /******************************************** plusDays ******************************************/
+  /**
+   * Returns a copy of this date with the specified number of days added.
+   *
+   * @param days days to add (may be negative)
+   * @return {@code this} if {@code days == 0}, otherwise a new {@code Date}
    */
   public Date plusDays( int days )
   {
-    // optimise for zero case to avoid object creation
     if ( days == 0 )
       return this;
-    // perform efficient epoch day arithmetic
     return ofEpochDay( m_epochDay + days );
   }
 
-  /****************************************** plusWeeks ******************************************/
+  /******************************************* plusWeeks ******************************************/
   /**
-   * Returns a new Date with the specified number of weeks added to this date.
+   * Returns a copy of this date with the specified number of weeks added.
    * <p>
-   * This is equivalent to calling plusDays(weeks * 7) but provides clearer
-   * semantic meaning for weekly calculations.
+   * Equivalent to {@code plusDays(weeks * 7)}.
    *
-   * @param weeks the number of weeks to add (can be negative to subtract)
-   * @return a new Date instance with the weeks added
+   * @param weeks weeks to add (may be negative)
+   * @return a new {@code Date} with the weeks added
    */
   public Date plusWeeks( int weeks )
   {
-    // delegate to plusDays with week multiplication
     return plusDays( weeks * 7 );
   }
 
-  /***************************************** plusMonths ******************************************/
+  /******************************************* plusMonths *****************************************/
   /**
-   * Returns a new Date with the specified number of months added to this date.
+   * Returns a copy of this date with the specified number of months added.
    * <p>
-   * Month arithmetic handles varying month lengths intelligently. For example,
-   * adding one month to January 31st results in February 28th (or 29th in leap years).
+   * Month-end clamping is applied: adding one month to 31 January yields 28/29 February.
    *
-   * @param months the number of months to add (can be negative to subtract)
-   * @return a new Date instance with the months added
+   * @param months months to add (may be negative)
+   * @return {@code this} if {@code months == 0}, otherwise a new {@code Date}
    */
   public Date plusMonths( int months )
   {
-    // optimise for zero case to avoid object creation
     if ( months == 0 )
       return this;
-    // use localdate for complex month arithmetic then convert back
-    return of( toLocalDate().plusMonths( months ) );
+    return ofEpochDay( addMonths( m_epochDay, months ) );
   }
 
-  /****************************************** plusYears ******************************************/
+  /******************************************* plusYears ******************************************/
   /**
-   * Returns a new Date with the specified number of years added to this date.
+   * Returns a copy of this date with the specified number of years added.
    * <p>
-   * Year arithmetic handles leap years appropriately. Adding years to February 29th
-   * in a leap year will result in February 28th if the target year is not a leap year.
+   * Leap-year clamping is applied: adding one year to 29 February yields 28 February
+   * in a non-leap year.
    *
-   * @param years the number of years to add (can be negative to subtract)
-   * @return a new Date instance with the years added
+   * @param years years to add (may be negative)
+   * @return {@code this} if {@code years == 0}, otherwise a new {@code Date}
    */
   public Date plusYears( int years )
   {
-    // optimise for zero case to avoid object creation
     if ( years == 0 )
       return this;
-    // use localdate for leap year handling then convert back
-    return of( toLocalDate().plusYears( years ) );
+    return ofEpochDay( addYears( m_epochDay, years ) );
   }
 
-  // ================================= Comparison Methods =================================
-
-  /****************************************** isBefore *******************************************/
+  /****************************************** plusInterval ****************************************/
   /**
-   * Checks if this date occurs before the specified date.
+   * Returns a copy of this date with the specified number of intervals added.
    * <p>
-   * This comparison is performed efficiently using epoch day values without
-   * any intermediate object creation or complex date component analysis.
+   * Positive values advance the date; negative values retreat it.
+   * <ul>
+   *   <li>{@code DAY} — epoch-day arithmetic (no {@link LocalDate} allocation)</li>
+   *   <li>{@code WEEK} — epoch-day arithmetic × 7</li>
+   *   <li>{@code MONTH} — allocation-free calendar-month arithmetic</li>
+   *   <li>{@code QUARTER_YEAR} — {@code count × 3} calendar months</li>
+   *   <li>{@code HALF_YEAR} — {@code count × 6} calendar months</li>
+   *   <li>{@code YEAR} — allocation-free calendar-year arithmetic</li>
+   * </ul>
+   *
+   * @param count number of intervals to add (positive = forward, negative = backward)
+   * @param unit  the interval unit (must not be null)
+   * @return {@code this} if {@code count == 0}, otherwise a new {@code Date}
+   * @throws NullPointerException if {@code unit} is null
+   */
+  public Date plusInterval( int count, IntervalUnit unit )
+  {
+    Objects.requireNonNull( unit, "unit must not be null" );
+    if ( count == 0 )
+      return this;
+    return switch ( unit )
+    {
+      case DAY -> plusDays( count );
+      case WEEK -> plusDays( count * 7 );
+      case MONTH -> plusMonths( count );
+      case QUARTER_YEAR -> plusMonths( count * 3 );
+      case HALF_YEAR -> plusMonths( count * 6 );
+      case YEAR -> plusYears( count );
+    };
+  }
+
+  // =================================== Predicate Methods ===================================
+
+  /******************************************** isBefore ******************************************/
+  /**
+   * Returns {@code true} if this date is strictly before {@code other}.
    *
    * @param other the date to compare against (must not be null)
-   * @return true if this date is chronologically before the other date
-   * @throws NullPointerException if other is null
+   * @return {@code true} if this date is chronologically earlier
+   * @throws NullPointerException if {@code other} is null
    */
   public boolean isBefore( Date other )
   {
-    // validate parameter
-    Objects.requireNonNull( other, "Other date cannot be null" );
-    // perform efficient epoch day comparison
     return m_epochDay < other.m_epochDay;
   }
 
-  /******************************************* isAfter *******************************************/
+  /********************************************* isAfter ******************************************/
   /**
-   * Checks if this date occurs after the specified date.
-   * <p>
-   * This comparison is performed efficiently using epoch day values without
-   * any intermediate object creation or complex date component analysis.
+   * Returns {@code true} if this date is strictly after {@code other}.
    *
    * @param other the date to compare against (must not be null)
-   * @return true if this date is chronologically after the other date
-   * @throws NullPointerException if other is null
+   * @return {@code true} if this date is chronologically later
+   * @throws NullPointerException if {@code other} is null
    */
   public boolean isAfter( Date other )
   {
-    // validate parameter
-    Objects.requireNonNull( other, "Other date cannot be null" );
-    // perform efficient epoch day comparison
     return m_epochDay > other.m_epochDay;
   }
 
-  /******************************************* isEqual *******************************************/
+  /********************************************* isEqual ******************************************/
   /**
-   * Checks if this date represents the same calendar date as the specified date.
+   * Returns {@code true} if this date represents the same calendar day as {@code other}.
    * <p>
-   * Unlike equals(), this method is null-safe and will return false rather than
-   * throwing an exception when passed a null argument.
+   * Returns {@code false} rather than throwing when {@code other} is null, making this
+   * convenient for null-safe equality tests.
    *
-   * @param other the date to compare against (can be null)
-   * @return true if both dates represent the same calendar date, false if other is null
+   * @param other the date to compare against (may be null)
+   * @return {@code true} if both dates have the same epoch day
    */
   public boolean isEqual( Date other )
   {
-    // null-safe equality check using epoch day comparison
+    // null-safe: consistent with ChronoLocalDate.isEqual convention
     return other != null && m_epochDay == other.m_epochDay;
   }
 
-  /****************************************** daysUntil ******************************************/
+  /******************************************* isBetween ******************************************/
   /**
-   * Calculates the number of days between this date and the specified date.
+   * Returns {@code true} if this date falls within the inclusive range {@code [start, end]}.
    * <p>
-   * The result is positive if the other date is in the future, negative if in the past.
-   * This calculation is performed efficiently using epoch day subtraction.
+   * Returns {@code false} if {@code start} is after {@code end} (empty range).
    *
-   * @param other the target date to calculate the difference to (must not be null)
-   * @return the number of days from this date to the other date (negative if other is earlier)
-   * @throws NullPointerException if other is null
+   * @param start range start, inclusive (must not be null)
+   * @param end   range end, inclusive (must not be null)
+   * @return {@code true} if {@code start <= this <= end}
+   * @throws NullPointerException if either argument is null
+   */
+  public boolean isBetween( Date start, Date end )
+  {
+    Objects.requireNonNull( start, "start must not be null" );
+    Objects.requireNonNull( end, "end must not be null" );
+    return m_epochDay >= start.m_epochDay && m_epochDay <= end.m_epochDay;
+  }
+
+  // =================================== Difference Methods ===================================
+
+  /******************************************* daysUntil ******************************************/
+  /**
+   * Returns the signed number of days from this date to {@code other}.
+   * <p>
+   * Positive if {@code other} is later, negative if earlier, zero if equal.
+   *
+   * @param other the target date (must not be null)
+   * @return signed day difference
+   * @throws NullPointerException if {@code other} is null
    */
   public int daysUntil( Date other )
   {
-    // validate parameter
-    Objects.requireNonNull( other, "Other date cannot be null" );
-    // calculate difference using efficient epoch day arithmetic
+    Objects.requireNonNull( other, "other must not be null" );
     return other.m_epochDay - m_epochDay;
   }
 
-  /****************************************** compareTo ******************************************/
+  /*************************************** differenceInDays ***************************************/
   /**
-   * Compares this date to another date for ordering purposes.
+   * Returns the absolute number of days between this date and {@code other}.
    * <p>
-   * Returns a negative integer if this date is earlier, zero if equal, or a positive
-   * integer if this date is later than the specified date.
+   * Always non-negative. For a signed difference use {@link #daysUntil}.
    *
-   * @param other the date to compare to (must not be null)
-   * @return negative if earlier, zero if equal, positive if later
-   * @throws NullPointerException if other is null
+   * @param other the date to compare with (must not be null)
+   * @return absolute day difference
+   * @throws NullPointerException if {@code other} is null
    */
-  @Override
-  public int compareTo( Date other )
+  public int differenceInDays( Date other )
   {
-    // validate parameter
-    Objects.requireNonNull( other, "Other date cannot be null" );
-    // perform three-way comparison using epoch days
-    return m_epochDay < other.m_epochDay ? -1 : m_epochDay > other.m_epochDay ? 1 : 0;
+    Objects.requireNonNull( other, "other must not be null" );
+    return Math.abs( m_epochDay - other.m_epochDay );
   }
 
-  // ================================= String Conversion =================================
+  // =================================== Formatting Methods ===================================
 
-  /****************************************** toString *******************************************/
+  /******************************************** toString ******************************************/
   /**
-   * Returns a string representation of this date in ISO format (yyyy-MM-dd).
-   * <p>
-   * The format follows the ISO 8601 standard and is suitable for logging,
-   * debugging, and data interchange. For custom formatting, use the format() method.
+   * Returns this date as an ISO-8601 string ({@code yyyy-MM-dd}), e.g. {@code "2026-02-27"}.
    *
-   * @return the date formatted as yyyy-MM-dd (e.g., "2025-08-31")
+   * @return ISO-8601 date string
    */
   @Override
   public String toString()
   {
-    // use iso standard format for consistency
-    return toLocalDate().toString();
+    return formatDate( 3 );
   }
 
-  /******************************************* format ********************************************/
+  /********************************************* format *******************************************/
+  /**
+   * Returns this date formatted with the specified number of components.
+   * <table border="1" summary="Component count to format mapping">
+   * <tr><th>components</th><th>format</th><th>example</th></tr>
+   * <tr><td>1</td><td>{@code yyyy}</td><td>{@code 2026}</td></tr>
+   * <tr><td>2</td><td>{@code yyyy-MM}</td><td>{@code 2026-02}</td></tr>
+   * <tr><td>3+</td><td>{@code yyyy-MM-dd}</td><td>{@code 2026-02-27}</td></tr>
+   * </table>
+   *
+   * @param components number of date components to include (must be ≥ 1)
+   * @return formatted date string
+   * @throws IllegalArgumentException if {@code components} is less than 1
+   */
+  public String format( int components )
+  {
+    if ( components < 1 )
+      throw new IllegalArgumentException( "components must be >= 1, got: " + components );
+    return formatDate( components );
+  }
+
+  /******************************************** toString ******************************************/
   /**
    * Formats this date using the specified pattern string.
    * <p>
-   * Supports all standard DateTimeFormatter patterns plus custom half-year formatting:
+   * Supports all standard {@link DateTimeFormatter} patterns plus an extended half-year
+   * letter {@code B}:
    * <ul>
-   * <li>B = half-year number (1 or 2)</li>
-   * <li>BB = H1 or H2</li>
-   * <li>BBB = "1st half" or "2nd half"</li>
+   *   <li>{@code B}   — half-year number: {@code 1} or {@code 2}</li>
+   *   <li>{@code BB}  — half-year label: {@code H1} or {@code H2}</li>
+   *   <li>{@code BBB} — half-year long form: {@code "1st half"} or {@code "2nd half"}</li>
    * </ul>
-   * <p>
-   * Standard patterns include: yyyy (year), MM (month), dd (day), etc.
-   * See DateTimeFormatter documentation for complete pattern reference.
    *
    * @param pattern the formatting pattern (must not be null)
    * @return the formatted date string
-   * @throws IllegalArgumentException if the pattern is invalid
-   * @throws NullPointerException if pattern is null
+   * @throws IllegalArgumentException if the pattern is invalid or contains more than three
+   *                                  {@code B} letters
+   * @throws NullPointerException     if {@code pattern} is null
    */
-  public String format( String pattern )
+  public String toString( String pattern )
   {
-    // validate input parameter
-    Objects.requireNonNull( pattern, "Pattern cannot be null" );
-
-    // check if special half-year formatting is needed
-    if ( !pattern.contains( String.valueOf( HALF_YEAR_CHAR ) ) )
+    Objects.requireNonNull( pattern, "pattern must not be null" );
+    // fast path: no half-year letter present
+    if ( pattern.indexOf( HALF_YEAR_CHAR ) < 0 )
       return toLocalDate().format( DateTimeFormatter.ofPattern( pattern ) );
-
-    // delegate to specialised half-year formatting
     return formatWithHalfYear( pattern );
   }
 
-  /************************************* formatWithHalfYear **************************************/
+  // =================================== Parsing Methods ===================================
+
+  /********************************************* parse ********************************************/
   /**
-   * handles formatting when half-year patterns are present in the format string.
+   * Parses a date string using the specified pattern via {@link DateParser}.
+   *
+   * @param text    the date string to parse (must not be null)
+   * @param pattern the {@link DateTimeFormatter} pattern (must not be null)
+   * @return a new {@code Date} instance
+   * @throws DateTimeParseException if {@code text} cannot be parsed with {@code pattern}
+   * @throws NullPointerException   if either argument is null
    */
+  public static Date parse( String text, String pattern )
+  {
+    return DateParser.parse( text, pattern );
+  }
+
+  /********************************************* parse ********************************************/
+  /**
+   * Parses a date string using {@link DateParser} with automatic format detection.
+   * <p>
+   * Supports ISO format, common locale formats, relative expressions such as
+   * {@code "today"} or {@code "next monday"}, and other formats handled by {@link DateParser}.
+   *
+   * @param text the date string to parse (must not be null)
+   * @return a new {@code Date} instance
+   * @throws DateTimeParseException if {@code text} cannot be parsed with any supported format
+   * @throws NullPointerException   if {@code text} is null
+   */
+  public static Date parse( String text )
+  {
+    return DateParser.parse( text );
+  }
+
+  // =================================== Conversion Methods ===================================
+
+  /***************************************** toLocalDate ******************************************/
+  /**
+   * Converts this {@code Date} to a {@link LocalDate}.
+   * <p>
+   * The sentinel values {@link #MIN_VALUE} and {@link #MAX_VALUE} cannot be converted and
+   * will throw a {@link DateTimeException}.
+   *
+   * @return equivalent {@link LocalDate}
+   * @throws DateTimeException if this date's epoch day is outside {@link LocalDate}'s
+   *                           supported range
+   */
+  public LocalDate toLocalDate()
+  {
+    return LocalDate.ofEpochDay( m_epochDay );
+  }
+
+  // =================================== Object Methods ===================================
+
+  /********************************************* equals *******************************************/
+  /**
+   * Returns {@code true} if {@code obj} is a {@code Date} representing the same calendar day.
+   * <p>
+   * Consistent with {@link #compareTo}: two dates are equal iff their epoch days are equal.
+   *
+   * @param obj the object to compare with (may be null)
+   * @return {@code true} if {@code obj} is a {@code Date} with the same epoch day
+   */
+  @Override
+  public boolean equals( Object obj )
+  {
+    return obj instanceof Date other && m_epochDay == other.m_epochDay;
+  }
+
+  /******************************************** hashCode ******************************************/
+  /**
+   * Returns a hash code for this date.
+   * <p>
+   * Consistent with {@link #equals}: equal dates have equal hash codes.
+   *
+   * @return hash code equal to the epoch day value
+   */
+  @Override
+  public int hashCode()
+  {
+    return m_epochDay;
+  }
+
+  /******************************************* compareTo ******************************************/
+  /**
+   * Compares this date to another date for natural chronological ordering.
+   *
+   * @param other the date to compare to (must not be null)
+   * @return negative if earlier, zero if equal, positive if later
+   * @throws NullPointerException if {@code other} is null
+   */
+  @Override
+  public int compareTo( Date other )
+  {
+    return Integer.compare( m_epochDay, other.m_epochDay );
+  }
+
+  // =================================== Private Helpers ===================================
+
+  /************************************** formatWithHalfYear **************************************/
+  // delegates to pattern pre-processing then post-substitution for half-year 'B' patterns
   private String formatWithHalfYear( String pattern )
   {
-    // replace half-year patterns with safe placeholders
-    String processedPattern = replaceHalfYearPatterns( pattern );
-
-    // format using standard datetime formatter
-    String result = toLocalDate().format( DateTimeFormatter.ofPattern( processedPattern ) );
-
-    // substitute placeholders with actual half-year values
+    // replace 'B' sequences with quoted placeholders safe for DateTimeFormatter
+    String processed = replaceHalfYearPatterns( pattern );
+    String result = toLocalDate().format( DateTimeFormatter.ofPattern( processed ) );
     return substituteHalfYearValues( result );
   }
 
-  /*********************************** replaceHalfYearPatterns ***********************************/
-  /**
-   * replaces half-year 'B' patterns with temporary placeholders to avoid formatter conflicts.
-   */
+  /************************************ replaceHalfYearPatterns ***********************************/
+  // scans pattern and replaces runs of 'U' outside quotes with raw control-char sentinels
   private String replaceHalfYearPatterns( String pattern )
   {
-    StringBuilder result = new StringBuilder();
+    StringBuilder sb = new StringBuilder( pattern.length() );
     boolean inQuotes = false;
     int i = 0;
 
@@ -540,143 +1004,82 @@ public final class Date implements Serializable, Comparable<Date>
 
       if ( ch == '\'' )
       {
-        // track quote state for literal text handling
+        // toggle quote state; '' (escaped apostrophe) toggles twice — net zero, correct
         inQuotes = !inQuotes;
-        result.append( ch );
+        sb.append( ch );
         i++;
       }
       else if ( !inQuotes && ch == HALF_YEAR_CHAR )
       {
-        // count consecutive B characters for pattern length
+        // count consecutive 'U' characters
         int count = 0;
         while ( i < pattern.length() && pattern.charAt( i ) == HALF_YEAR_CHAR )
         {
           count++;
           i++;
         }
-
-        // validate pattern length
         if ( count > 3 )
-          throw new IllegalArgumentException( "Too many 'B' pattern letters: " + count );
-
-        // insert quoted placeholder to avoid formatter interpretation
-        result.append( '\'' ).append( HALF_YEAR_MARKER ).append( count ).append( '\'' );
+          throw new IllegalArgumentException( "Too many '" + HALF_YEAR_CHAR + "' pattern letters: " + count );
+        // inject raw sentinel — no quoting needed, no adjacency collision possible
+        sb.append( switch ( count )
+        {
+          case 1 -> HALF_YEAR_S1;
+          case 2 -> HALF_YEAR_S2;
+          default -> HALF_YEAR_S3;
+        } );
       }
       else
       {
-        // append regular characters unchanged
-        result.append( ch );
+        sb.append( ch );
         i++;
       }
     }
 
-    return result.toString();
+    return sb.toString();
   }
 
-  /********************************** substituteHalfYearValues ***********************************/
-  /**
-   * replaces half-year placeholders with actual formatted half-year values.
-   */
+  /*********************************** substituteHalfYearValues ***********************************/
+  // replaces control-char sentinels with the actual half-year text for this date
   private String substituteHalfYearValues( String formatted )
   {
-    String result = formatted;
-    // determine half-year based on month (1-6 = first half, 7-12 = second half)
-    int halfYear = getMonth() <= 6 ? 1 : 2;
-
-    // replace placeholders with appropriate half-year representations
-    result = result.replace( HALF_YEAR_MARKER + "3", halfYear == 1 ? "1st half" : "2nd half" );
-    result = result.replace( HALF_YEAR_MARKER + "2", "H" + halfYear );
-    result = result.replace( HALF_YEAR_MARKER + "1", String.valueOf( halfYear ) );
-
-    return result;
+    int hy = getHalfYear();
+    // replace in descending sentinel order — avoids any prefix-match ambiguity
+    return formatted.replace( String.valueOf( HALF_YEAR_S3 ), hy == 1 ? "1st half" : "2nd half" )
+        .replace( String.valueOf( HALF_YEAR_S2 ), "H" + hy )
+        .replace( String.valueOf( HALF_YEAR_S1 ), String.valueOf( hy ) );
   }
 
-  // ================================= Parsing Methods =================================
-
-  /******************************************** parse ********************************************/
-  /**
-   * Parses a date string using the specified pattern.
-   * <p>
-   * The pattern must follow DateTimeFormatter conventions. Common patterns include:
-   * "yyyy-MM-dd" for ISO format, "dd/MM/yyyy" for European format, "MM/dd/yyyy" for US format.
-   *
-   * @param text    the date string to parse (must not be null)
-   * @param pattern the pattern to use for parsing (must not be null)
-   * @return a new Date instance representing the parsed date
-   * @throws DateTimeParseException if the text cannot be parsed with the pattern
-   * @throws NullPointerException if text or pattern is null
-   */
-  public static Date parse( String text, String pattern )
+  /****************************************** formatDate ******************************************/
+  // hand-rolled date formatter — avoids DateTimeFormatter overhead for table cell rendering
+  private String formatDate( int components )
   {
-    // delegate all parsing logic to DateParser
-    return DateParser.parse( text, pattern );
-  }
+    long ymd = packYMD( m_epochDay );
+    int y = (int) ( ymd >> 9 );
+    int m = (int) ( ( ymd >> 5 ) & 0xF );
+    int d = (int) ( ymd & 0x1F );
 
-  /******************************************** parse ********************************************/
-  /**
-   * Parses a date string using {@link DateParser} with automatic format detection.
-   *
-   * @param text the date string to parse (must not be null)
-   * @return a new Date instance representing the parsed date
-   * @throws DateTimeParseException if the text cannot be parsed with any supported format
-   * @throws NullPointerException if text is null
-   */
-  public static Date parse( String text )
-  {
-    // delegate all parsing logic to DateParser
-    return DateParser.parse( text );
-  }
+    // pre-size to maximum expected output length (10 for full yyyy-MM-dd)
+    StringBuilder sb = new StringBuilder( 10 );
+    sb.append( y );
 
-  // ================================= Conversion Methods =================================
+    if ( components < 2 )
+      return sb.toString();
 
-  /***************************************** toLocalDate *****************************************/
-  /**
-   * Converts this Date to a LocalDate instance.
-   * <p>
-   * This method provides interoperability with the standard Java time API while
-   * maintaining the same date value. The conversion is performed efficiently using
-   * the internal epoch day representation.
-   *
-   * @return a LocalDate instance representing the same date
-   */
-  public LocalDate toLocalDate()
-  {
-    // convert from internal epoch day format to localdate
-    return LocalDate.ofEpochDay( m_epochDay );
-  }
+    // append -MM with zero-padding
+    sb.append( '-' );
+    if ( m < 10 )
+      sb.append( '0' );
+    sb.append( m );
 
-  // ================================= Object Methods =================================
+    if ( components < 3 )
+      return sb.toString();
 
-  /******************************************* equals ********************************************/
-  /**
-   * Compares this date with another object for equality.
-   * <p>
-   * Two Date instances are equal if they represent the same calendar date.
-   * This method follows the standard equals contract and is consistent with compareTo().
-   *
-   * @param obj the object to compare with (can be null)
-   * @return true if the objects represent the same date, false otherwise
-   */
-  @Override
-  public boolean equals( Object obj )
-  {
-    // check if equal epoch day values
-    return obj instanceof Date other && m_epochDay == other.m_epochDay;
-  }
+    // append -dd with zero-padding
+    sb.append( '-' );
+    if ( d < 10 )
+      sb.append( '0' );
+    sb.append( d );
 
-  /****************************************** hashCode *******************************************/
-  /**
-   * Returns a hash code for this Date instance.
-   * <p>
-   * The hash code is based on the epoch day value, ensuring that equal dates
-   * have equal hash codes as required by the Object contract.
-   *
-   * @return a hash code value for this date
-   */
-  @Override
-  public int hashCode()
-  {
-    // use epoch day as hash code for simplicity and efficiency
-    return m_epochDay;
+    return sb.toString();
   }
 }

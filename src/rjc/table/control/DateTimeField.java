@@ -51,7 +51,7 @@ public class DateTimeField extends DateField
     Platform.runLater( () -> m_timeWidget.setStatus( getStatus() ) );
 
     // set default date-time to now truncated to hour
-    setDateTime( DateTime.now().roundDown( IntervalUnit.HOURS ) );
+    setDateTime( DateTime.now().roundDown( IntervalUnit.HOUR ) );
   }
 
   /************************************ updateDropDownWidgets ************************************/
@@ -120,14 +120,14 @@ public class DateTimeField extends DateField
   public String format( DateTime datetime )
   {
     // return date-time in display format
-    return datetime.format( "yyyy-MM-dd", 4 );
+    return datetime.toString( "yyyy-MM-dd", 4 );
   }
 
   /**************************************** formatStatus *****************************************/
   public String formatStatus( DateTime datetime )
   {
     // return date in status format
-    return datetime.format( "eeee d MMMM yyyy", 4 );
+    return datetime.toString( "eeee d MMMM yyyy", 4 );
   }
 
   /***************************************** parseText *******************************************/
@@ -180,9 +180,9 @@ public class DateTimeField extends DateField
       if ( !shift && !ctrl )
         setDateTime( getDateTime().plusDays( (int) delta ) );
       if ( shift && !ctrl )
-        setDateTime( getDateTime().plusInterval( (int) delta, IntervalUnit.MONTHS ) );
+        setDateTime( getDateTime().plusInterval( (int) delta, IntervalUnit.MONTH ) );
       if ( !shift && ctrl )
-        setDateTime( getDateTime().plusInterval( (int) delta, IntervalUnit.YEARS ) );
+        setDateTime( getDateTime().plusInterval( (int) delta, IntervalUnit.YEAR ) );
     }
   }
 

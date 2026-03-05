@@ -165,7 +165,7 @@ public class DateField extends AbstractDropDownField
   private String formatStatus( Date date )
   {
     // return date in status format
-    return date.format( "eeee d MMMM yyyy" );
+    return date.toString( "eeee d MMMM yyyy" );
   }
 
   /***************************************** parseText *******************************************/
