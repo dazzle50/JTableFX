@@ -29,6 +29,7 @@ import rjc.table.data.IDataInsertDeleteRows;
 import rjc.table.view.action.Delete;
 import rjc.table.view.action.Filter;
 import rjc.table.view.action.HideShow;
+import rjc.table.view.action.Insert;
 import rjc.table.view.action.Sort;
 import rjc.table.view.action.Sort.SortType;
 import rjc.table.view.axis.TableAxis;
@@ -125,7 +126,7 @@ public class TableContextMenuBuilder
   public ContextMenu buildColumnHeader()
   {
     // build context menu for table-view column header row - add relevant menu items
-    addFilterTextColumn().addSortColumn().addHideColumn().addShowColumn().addDeleteColumn();
+    addFilterTextColumn().addSortColumn().addHideColumn().addShowColumn().addInsertColumn().addDeleteColumn();
     return m_menu;
   }
 
@@ -138,7 +139,7 @@ public class TableContextMenuBuilder
   public ContextMenu buildRowHeader()
   {
     // build context menu for table-view row header column - add relevant menu items
-    addFilterTextRow().addSortRow().addHideRow().addShowRow().addDeleteRow();
+    addFilterTextRow().addSortRow().addHideRow().addShowRow().addInsertRow().addDeleteRow();
     return m_menu;
   }
 
@@ -221,6 +222,54 @@ public class TableContextMenuBuilder
     {
       var item = new MenuItem( "Show" );
       item.setOnAction( event -> HideShow.showRows( m_view ) );
+      m_menu.getItems().add( item );
+    }
+
+    return this;
+  }
+
+  /*************************************** addInsertColumn ***************************************/
+  /**
+   * Adds a menu item to insert a column before the triggered column (or before each selected
+   * column if the triggered column is selected).
+   * <p>
+   * The item is added if {@link TableContextMenu.TableMenuItems#COLUMN_INSERT} is enabled for
+   * this table view and the data model implements {@link IDataInsertDeleteColumns}.
+   *
+   * @return this builder for method chaining
+   */
+  protected TableContextMenuBuilder addInsertColumn()
+  {
+    // add an insert column(s) menu item if option is enabled for this table-view
+    if ( TableContextMenu.isEnabled( m_view, TableContextMenu.TableMenuItems.COLUMN_INSERT )
+        && m_view.getData() instanceof IDataInsertDeleteColumns )
+    {
+      var item = new MenuItem( "Insert" );
+      item.setOnAction( event -> Insert.insertColumns( m_view, m_triggerCol ) );
+      m_menu.getItems().add( item );
+    }
+
+    return this;
+  }
+
+  /**************************************** addInsertRow *****************************************/
+  /**
+   * Adds a menu item to insert a row before the triggered row (or before each selected
+   * row if the triggered row is selected).
+   * <p>
+   * The item is added if {@link TableContextMenu.TableMenuItems#ROW_INSERT} is enabled for
+   * this table view and the data model implements {@link IDataInsertDeleteRows}.
+   *
+   * @return this builder for method chaining
+   */
+  protected TableContextMenuBuilder addInsertRow()
+  {
+    // add an insert row(s) menu item if option is enabled for this table-view
+    if ( TableContextMenu.isEnabled( m_view, TableContextMenu.TableMenuItems.ROW_INSERT )
+        && m_view.getData() instanceof IDataInsertDeleteRows )
+    {
+      var item = new MenuItem( "Insert" );
+      item.setOnAction( event -> Insert.insertRows( m_view, m_triggerRow ) );
       m_menu.getItems().add( item );
     }
 

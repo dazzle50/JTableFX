@@ -73,6 +73,8 @@ public class Sort
    * Sorts visible rows in the table view based on values in the specified column.
    * Creates and executes an undo-able command that reorders rows according to the
    * column's comparator and specified sort direction. Only visible rows are sorted.
+   * Rows whose column value is {@code ""} are placed second-to-last; {@code null} values last,
+   * regardless of sort direction.
    *
    * @param view       the table view to sort
    * @param viewColumn the view column index to sort by
@@ -81,9 +83,10 @@ public class Sort
    */
   public static boolean columnSort( TableView view, int viewColumn, SortType type )
   {
-    // get comparator for the specified data column
+    // get comparator and data source for the specified data column
     int dataColumn = view.getColumnsAxis().getDataIndex( viewColumn );
-    var comparator = view.getData().getColumnComparator( dataColumn );
+    var data = view.getData();
+    var comparator = data.getColumnComparator( dataColumn );
 
     // collect indices of visible rows only
     var visibleViewRows = view.getRowsAxis().getAllVisible();
@@ -93,14 +96,38 @@ public class Sort
     for ( int i = 0; i < visibleViewRows.length; i++ )
       beforeDataRows[i] = view.getRowsAxis().getDataIndex( visibleViewRows[i] );
 
-    // perform stable sort to get new data row order
-    var afterDataRows = stableSort( beforeDataRows, comparator, type );
+    // partition into sortable, empty-string, and null buckets in a single pass
+    var sortable = new int[beforeDataRows.length];
+    var empty = new int[beforeDataRows.length];
+    var nulls = new int[beforeDataRows.length];
+    int sortCount = 0, emptyCount = 0, nullCount = 0;
+    for ( int row : beforeDataRows )
+    {
+      var val = data.getValue( dataColumn, row );
+      if ( val == null )
+        nulls[nullCount++] = row;
+      else if ( "".equals( val ) )
+        empty[emptyCount++] = row;
+      else
+        sortable[sortCount++] = row;
+    }
+
+    // sort only non-sentinel rows, then append empty then nulls at end regardless of direction
+    var sorted = stableSort( Arrays.copyOf( sortable, sortCount ), comparator, type );
+    var afterDataRows = new int[beforeDataRows.length];
+    int pos = 0;
+    System.arraycopy( sorted, 0, afterDataRows, pos, sorted.length );
+    pos += sorted.length;
+    System.arraycopy( empty, 0, afterDataRows, pos, emptyCount );
+    pos += emptyCount;
+    System.arraycopy( nulls, 0, afterDataRows, pos, nullCount );
+
     if ( Arrays.equals( beforeDataRows, afterDataRows ) )
       return false; // no change in order, so no need to execute command
 
     // create appropriate command based on whether data layer supports reordering
-    IUndoCommand command = view.getData() instanceof IDataSwapRows
-        ? new CommandSortData( view.getData(), Orientation.VERTICAL, beforeDataRows, afterDataRows, dataColumn, type )
+    IUndoCommand command = data instanceof IDataSwapRows
+        ? new CommandSortData( data, Orientation.VERTICAL, beforeDataRows, afterDataRows, dataColumn, type )
         : new CommandSortView( view, view.getRowsAxis(), visibleViewRows, afterDataRows, dataColumn, type );
 
     return view.getUndoStack().push( command );
@@ -111,6 +138,8 @@ public class Sort
    * Sorts visible columns in the table view based on values in the specified row.
    * Creates and executes an undo-able command that reorders columns according to the
    * row's comparator and specified sort direction. Only visible columns are sorted.
+   * Columns whose row value is {@code ""} are placed second-to-last; {@code null} values last,
+   * regardless of sort direction.
    *
    * @param view    the table view to sort
    * @param viewRow the view row index to sort by
@@ -119,9 +148,10 @@ public class Sort
    */
   public static boolean rowSort( TableView view, int viewRow, SortType type )
   {
-    // get comparator for the specified data row
+    // get comparator and data source for the specified data row
     int dataRow = view.getRowsAxis().getDataIndex( viewRow );
-    var comparator = view.getData().getRowComparator( dataRow );
+    var data = view.getData();
+    var comparator = data.getRowComparator( dataRow );
 
     // collect indices of visible columns only
     var visibleViewColumns = view.getColumnsAxis().getAllVisible();
@@ -131,15 +161,38 @@ public class Sort
     for ( int i = 0; i < visibleViewColumns.length; i++ )
       beforeDataColumns[i] = view.getColumnsAxis().getDataIndex( visibleViewColumns[i] );
 
-    // perform stable sort to get new data column order
-    var afterDataColumns = stableSort( beforeDataColumns, comparator, type );
+    // partition into sortable, empty-string, and null buckets in a single pass
+    var sortable = new int[beforeDataColumns.length];
+    var empty = new int[beforeDataColumns.length];
+    var nulls = new int[beforeDataColumns.length];
+    int sortCount = 0, emptyCount = 0, nullCount = 0;
+    for ( int col : beforeDataColumns )
+    {
+      var val = data.getValue( col, dataRow );
+      if ( val == null )
+        nulls[nullCount++] = col;
+      else if ( "".equals( val ) )
+        empty[emptyCount++] = col;
+      else
+        sortable[sortCount++] = col;
+    }
+
+    // sort only non-sentinel columns, then append empty then nulls at end regardless of direction
+    var sorted = stableSort( Arrays.copyOf( sortable, sortCount ), comparator, type );
+    var afterDataColumns = new int[beforeDataColumns.length];
+    int pos = 0;
+    System.arraycopy( sorted, 0, afterDataColumns, pos, sorted.length );
+    pos += sorted.length;
+    System.arraycopy( empty, 0, afterDataColumns, pos, emptyCount );
+    pos += emptyCount;
+    System.arraycopy( nulls, 0, afterDataColumns, pos, nullCount );
+
     if ( Arrays.equals( beforeDataColumns, afterDataColumns ) )
       return false; // no change in order, so no need to execute command
 
     // create appropriate command based on whether data layer supports reordering
-    IUndoCommand command = view.getData() instanceof IDataSwapColumns
-        ? new CommandSortData( view.getData(), Orientation.HORIZONTAL, beforeDataColumns, afterDataColumns, dataRow,
-            type )
+    IUndoCommand command = data instanceof IDataSwapColumns
+        ? new CommandSortData( data, Orientation.HORIZONTAL, beforeDataColumns, afterDataColumns, dataRow, type )
         : new CommandSortView( view, view.getColumnsAxis(), visibleViewColumns, afterDataColumns, dataRow, type );
 
     return view.getUndoStack().push( command );

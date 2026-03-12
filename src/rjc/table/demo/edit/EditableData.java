@@ -34,15 +34,17 @@ public class EditableData
     ReadOnly, Text, Integer, Double, Date, Time, DateTime, Select, MAX
   }
 
+  private static final Column[] COLUMN_CACHE = Column.values();
+
   // private variables containing the row's data
-  private String   m_readonly;
-  private String   m_text;
-  private int      m_integer;
-  private double   m_double;
-  private Date     m_date;
-  private Time     m_time;
-  private DateTime m_datetime;
-  private Fruit    m_fruit;
+  private String                m_readonly;
+  private String                m_text;
+  private int                   m_integer;
+  private double                m_double;
+  private Date                  m_date;
+  private Time                  m_time;
+  private DateTime              m_datetime;
+  private Fruit                 m_fruit;
 
   public enum Fruit
   {
@@ -50,6 +52,11 @@ public class EditableData
   }
 
   /**************************************** constructor ******************************************/
+  public EditableData()
+  {
+    // empty row with default/blank contents
+  }
+
   public EditableData( int id )
   {
     // populate the private variables with some contents
@@ -66,113 +73,95 @@ public class EditableData
   /****************************************** getValue *******************************************/
   public Object getValue( int dataColumn )
   {
-    // return row value for specified column index
-    switch ( Column.values()[dataColumn] )
+    // return row value using cached column array and switch expression
+    return switch ( COLUMN_CACHE[dataColumn] )
     {
-      case ReadOnly:
-        return m_readonly;
-      case Text:
-        return m_text;
-      case Integer:
-        return m_integer;
-      case Double:
-        return m_double;
-      case Date:
-        return m_date;
-      case Time:
-        return m_time;
-      case DateTime:
-        return m_datetime;
-      case Select:
-        return m_fruit;
-      default:
-        throw new IllegalArgumentException( "Section = " + dataColumn );
-    }
+      case ReadOnly -> m_readonly;
+      case Text -> m_text;
+      case Integer -> m_integer;
+      case Double -> m_double;
+      case Date -> m_date;
+      case Time -> m_time;
+      case DateTime -> m_datetime;
+      case Select -> m_fruit;
+      default -> throw new IllegalStateException( "Unexpected value: " + COLUMN_CACHE[dataColumn] );
+    };
   }
 
   /****************************************** setValue *******************************************/
   public String setValue( int dataColumn, Object newValue, boolean commit )
   {
-    // set/check field value and return null if successful/possible
-    switch ( Column.values()[dataColumn] )
+    // process value update or validation using a switch expression
+    return switch ( COLUMN_CACHE[dataColumn] )
     {
-      case ReadOnly:
-        // can never set ReadOnly field
-        return "Read-only";
+      case ReadOnly -> "Read-only";
 
-      case Text:
-        // can always set Text field
+      case Text -> {
         if ( commit )
           m_text = newValue == null ? null : newValue.toString();
-        return null;
+        yield null;
+      }
 
-      case Integer:
-        // check new value is integer and in range
-        if ( newValue instanceof Integer newInt )
-        {
-          if ( newInt < 1 || newInt > 999 )
-            return "Value not between 1 and 999";
-          if ( commit )
-            m_integer = newInt;
-          return null;
-        }
-        return "Not integer: " + Utils.objectsString( newValue );
+      case Integer -> {
+        // validate that the object is an integer and within the valid range
+        if ( !( newValue instanceof Integer val ) )
+          yield "Not integer: " + Utils.objectsString( newValue );
+        if ( val < 1 || val > 999 )
+          yield "Value not between 1 and 999";
+        if ( commit )
+          m_integer = val;
+        yield null;
+      }
 
-      case Double:
-        // check new value is double and in range
-        if ( newValue instanceof Double newDouble )
-        {
-          if ( newDouble < 0.0 || newDouble > 999.0 )
-            return "Value not between 0.0 and 999.0";
-          if ( commit )
-            m_double = newDouble;
-          return null;
-        }
-        return "Not double: " + Utils.objectsString( newValue );
+      case Double -> {
+        // validate that the object is a double and within the valid range
+        if ( !( newValue instanceof Double val ) )
+          yield "Not double: " + Utils.objectsString( newValue );
+        if ( val < 0.0 || val > 999.0 )
+          yield "Value not between 0.0 and 999.0";
+        if ( commit )
+          m_double = val;
+        yield null;
+      }
 
-      case Date:
-        // check new value is date
-        if ( newValue instanceof Date newDate )
-        {
-          if ( commit )
-            m_date = newDate;
-          return null;
-        }
-        return "Not date: " + Utils.objectsString( newValue );
+      case Date -> {
+        // ensure the input is a date type or null before applying
+        if ( newValue != null && !( newValue instanceof Date ) )
+          yield "Not date: " + Utils.objectsString( newValue );
+        if ( commit )
+          m_date = (Date) newValue;
+        yield null;
+      }
 
-      case Time:
-        // check new value is time
-        if ( newValue instanceof Time newTime )
-        {
-          if ( commit )
-            m_time = newTime;
-          return null;
-        }
-        return "Not time: " + Utils.objectsString( newValue );
+      case Time -> {
+        // ensure the input is a time type or null before applying
+        if ( newValue != null && !( newValue instanceof Time ) )
+          yield "Not time: " + Utils.objectsString( newValue );
+        if ( commit )
+          m_time = (Time) newValue;
+        yield null;
+      }
 
-      case DateTime:
-        // check new value is date-time
-        if ( newValue instanceof DateTime newDT )
-        {
-          if ( commit )
-            m_datetime = newDT;
-          return null;
-        }
-        return "Not date-time: " + Utils.objectsString( newValue );
+      case DateTime -> {
+        // ensure the input is a date-time type or null before applying
+        if ( newValue != null && !( newValue instanceof DateTime ) )
+          yield "Not date-time: " + Utils.objectsString( newValue );
+        if ( commit )
+          m_datetime = (DateTime) newValue;
+        yield null;
+      }
 
-      case Select:
-        // check new value is a fruit
-        if ( newValue instanceof Fruit newFruit )
-        {
-          if ( commit )
-            m_fruit = newFruit;
-          return null;
-        }
-        return "Not fruit: " + Utils.objectsString( newValue );
+      case Select -> {
+        // ensure the input is a valid fruit selection or null
+        if ( newValue != null && !( newValue instanceof Fruit ) )
+          yield "Not fruit: " + Utils.objectsString( newValue );
+        if ( commit )
+          m_fruit = (Fruit) newValue;
+        yield null;
+      }
 
-      default:
-        return "Not implemented";
-    }
+      default -> "Not implemented";
+    };
 
   }
 

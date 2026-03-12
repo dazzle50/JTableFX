@@ -413,23 +413,6 @@ public class TableAxis implements IListener
     truncatePixelCaches( lowestAffectedViewIndex, 0 );
   }
 
-  /***************************************** reorderData *****************************************/
-  /**
-   * Reorders data-indices by moving a set of index sizes to a new position.
-   * <p>
-   * This is typically used when the user drags rows or columns to reorder them.
-   * 
-   * @param dataIndicesToRelocate
-   *    set of view indices to relocate
-   * @param insertIndex
-   *    target position (view index) for insertion
-   */
-  public void reorderData( HashSetInt dataIndicesToRelocate, int insertIndex )
-  {
-    // TODO
-    throw new UnsupportedOperationException( "TableAxis.reorderData() not yet implemented" );
-  }
-
   /************************************* getIndexMappingHash *************************************/
   /**
    * Returns a hash code representing the current index mapping state.
@@ -965,6 +948,22 @@ public class TableAxis implements IListener
     m_viewDataMapping.insertMapping( dataStart, dataCount, captured );
   }
 
+  /**
+   * Adjusts the view-to-data index mapping to account for {@code dataCount} newly inserted
+   * data entries starting at {@code dataStart}.
+   * <p>
+   * Must be called <em>after</em> the corresponding data insertion, consistent with
+   * {@link #insertSizes(int, int)}.
+   *
+   * @param dataStart first data index of the inserted run
+   * @param dataCount number of consecutive data indexes inserted
+   */
+  public void insertMapping( int dataStart, int dataCount )
+  {
+    // delegate to mapping component; pixel caches are invalidated by insertSizes
+    m_viewDataMapping.insertMapping( dataStart, dataCount );
+  }
+
   /***************************************** deleteSizes *****************************************/
   /**
    * Removes the nominal sizes for a contiguous range of data indices, shifting all higher
@@ -1001,6 +1000,24 @@ public class TableAxis implements IListener
   {
     // insert sizes and shift tail; full cache invalidation required
     m_dataNominalSize.insertSizes( start, sizes );
+    m_startPixelCache.clear();
+    m_totalPixelsCache.set( INVALID );
+  }
+
+  /**
+   * Inserts {@code count} default-sized entries at {@code start} in the nominal-size store,
+   * shifting all higher entries upward, then invalidates pixel caches.
+   * <p>
+   * Call this <em>after</em> the corresponding data insertion so that the count-change signal
+   * has already fired before caches are invalidated.
+   *
+   * @param start data index at which to insert
+   * @param count number of consecutive default-sized entries to insert
+   */
+  public void insertSizes( int start, int count )
+  {
+    // insert default slots, shift tail, then invalidate all pixel caches
+    m_dataNominalSize.insertSizes( start, count );
     m_startPixelCache.clear();
     m_totalPixelsCache.set( INVALID );
   }

@@ -357,6 +357,43 @@ public class IndexMapping
     trimIdentityTail();
   }
 
+  /**
+   * Adjusts the stored mapping to account for {@code dataCount} newly inserted data entries
+   * starting at {@code dataStart}.
+   * <p>
+   * All stored data values at or above {@code dataStart} are incremented by {@code dataCount}.
+   * If the insertion point falls within the stored range, {@code dataCount} identity-valued
+   * slots are inserted at {@code dataStart} — shifting the tail right — so that the new view
+   * positions map correctly to the new data entries. View positions beyond {@code m_mappedCount}
+   * are implicitly identity-mapped and remain self-consistent after insertion because both
+   * their view index and the corresponding data index shift by the same amount.
+   *
+   * @param dataStart first data index of the inserted run (inclusive)
+   * @param dataCount number of consecutive data indexes inserted
+   */
+  public void insertMapping( int dataStart, int dataCount )
+  {
+    // increment every stored data value that lies at or above the insertion point
+    for ( int v = 0; v < m_mappedCount; v++ )
+      if ( m_dataIndices[v] >= dataStart )
+        m_dataIndices[v] += dataCount;
+
+    // only stored positions need explicit new slots; identity positions beyond mappedCount
+    // remain self-consistent because view and data shift by the same amount
+    if ( dataStart < m_mappedCount )
+    {
+      ensureCapacity( m_mappedCount + dataCount );
+      // shift stored tail right to open a gap at dataStart
+      System.arraycopy( m_dataIndices, dataStart, m_dataIndices, dataStart + dataCount, m_mappedCount - dataStart );
+      // fill new slots with identity values for the inserted data entries
+      for ( int i = 0; i < dataCount; i++ )
+        m_dataIndices[dataStart + i] = dataStart + i;
+      m_mappedCount += dataCount;
+    }
+
+    trimIdentityTail();
+  }
+
   /************************************** ensureCapacity *****************************************/
   private void ensureCapacity( int requiredCapacity )
   {

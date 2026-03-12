@@ -54,7 +54,7 @@ public class IndexSize
   public static final short DEFAULT = Short.MAX_VALUE;
 
   // compact storage: positive = visible size, negative = hidden (abs is size), DEFAULT = use default
-  private short[] m_sizes;
+  private short[]           m_sizes;
 
   /**************************************** constructor ******************************************/
   /**
@@ -459,6 +459,29 @@ public class IndexSize
     System.arraycopy( m_sizes, 0, newSizes, 0, start ); // prefix
     System.arraycopy( sizes, 0, newSizes, start, count ); // inserted
     System.arraycopy( m_sizes, start, newSizes, start + count, oldLen - start ); // suffix
+    m_sizes = newSizes;
+  }
+
+  /**
+   * Inserts {@code count} default-sized entries at {@code start}, shifting all existing entries
+   * from that position upward by {@code count}. If {@code start} is beyond the stored array,
+   * the new slots are implicitly {@link #DEFAULT} and no allocation is required.
+   *
+   * @param start data index at which to insert
+   * @param count number of consecutive default-sized entries to insert
+   */
+  public void insertSizes( int start, int count )
+  {
+    // nothing to shift if insertion point is beyond stored range — new slots are implicitly DEFAULT
+    if ( start >= m_sizes.length )
+      return;
+
+    // build new array: prefix | DEFAULT slots | shifted suffix
+    int oldLen = m_sizes.length;
+    short[] newSizes = new short[oldLen + count];
+    Arrays.fill( newSizes, DEFAULT );
+    System.arraycopy( m_sizes, 0, newSizes, 0, start ); // prefix
+    System.arraycopy( m_sizes, start, newSizes, start + count, oldLen - start ); // shifted suffix
     m_sizes = newSizes;
   }
 

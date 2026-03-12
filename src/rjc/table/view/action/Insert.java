@@ -22,32 +22,35 @@ import javafx.geometry.Orientation;
 import rjc.table.HashSetInt;
 import rjc.table.data.IDataInsertDeleteColumns;
 import rjc.table.data.IDataInsertDeleteRows;
-import rjc.table.undo.commands.CommandDeleteIndexes;
+import rjc.table.undo.commands.CommandInsertIndexes;
 import rjc.table.view.TableView;
 
 /*************************************************************************************************/
-/************************* Delete table-data columns/rows via undo command ***********************/
+/************************* Insert table-data columns/rows via undo command ***********************/
 /*************************************************************************************************/
 
 /**
- * Provides deletion of table data columns and rows with undo support.
+ * Provides insertion of new visible table-data columns and rows with undo support.
  * <p>
  * Only operates when the data model implements {@link IDataInsertDeleteColumns} or
- * {@link IDataInsertDeleteRows} respectively. 
- * If the targeted column or row is selected, all selected columns or rows are deleted.
+ * {@link IDataInsertDeleteRows} respectively.
+ * If the targeted column or row is selected, one new column or row is inserted before each
+ * selected index (matching Excel behaviour). Otherwise a single column or row is inserted
+ * before the specified index.
  */
-public class Delete
+public class Insert
 {
-  /***************************************** deleteRows ******************************************/
+  /***************************************** insertRows ******************************************/
   /**
-   * Deletes the specified row, or if that row is selected, deletes all selected rows.
+   * Inserts one row before the specified row, or if that row is selected, inserts one row
+   * before each selected row.
    *
    * @param view    the table view to operate on
-   * @param viewRow the view row index to delete (or all selected rows if that row is selected)
+   * @param viewRow the view row index before which to insert (or anchor for selected rows)
    * @return {@code true} if the undo command was successfully pushed to the undo stack,
    *         {@code false} otherwise
    */
-  public static boolean deleteRows( TableView view, int viewRow )
+  public static boolean insertRows( TableView view, int viewRow )
   {
     HashSetInt viewRows;
     if ( view.getSelection().isRowSelected( viewRow ) )
@@ -65,28 +68,28 @@ public class Delete
     else
       viewRows = new HashSetInt( 1 );
 
-    // if no rows selected, delete specified row (usually mouse row)
+    // if no rows selected, insert before specified row (usually mouse row)
     if ( viewRows.isEmpty() )
       viewRows.add( viewRow );
 
-    // delete rows via undo command and push to undo stack
-    var command = new CommandDeleteIndexes( view, Orientation.VERTICAL, viewRows );
+    // insert rows via undo command and push to undo stack
+    var command = new CommandInsertIndexes( view, Orientation.VERTICAL, viewRows );
     if ( command.isValid() )
       view.getSelection().clear();
     return view.getUndoStack().push( command );
   }
 
-  /**************************************** deleteColumns ****************************************/
+  /**************************************** insertColumns ****************************************/
   /**
-   * Deletes the specified column, or if that column is selected, deletes all selected columns.
+   * Inserts one column before the specified column, or if that column is selected, inserts one
+   * column before each selected column.
    *
    * @param view       the table view to operate on
-   * @param viewColumn the view column index to delete (or all selected columns if that column
-   *                   is selected)
+   * @param viewColumn the view column index before which to insert (or anchor for selected columns)
    * @return {@code true} if the undo command was successfully pushed to the undo stack,
    *         {@code false} otherwise
    */
-  public static boolean deleteColumns( TableView view, int viewColumn )
+  public static boolean insertColumns( TableView view, int viewColumn )
   {
     HashSetInt viewColumns;
     if ( view.getSelection().isColumnSelected( viewColumn ) )
@@ -104,14 +107,15 @@ public class Delete
     else
       viewColumns = new HashSetInt( 1 );
 
-    // if no columns selected, delete specified column (usually mouse column)
+    // if no columns selected, insert before specified column (usually mouse column)
     if ( viewColumns.isEmpty() )
       viewColumns.add( viewColumn );
 
-    // delete columns via undo command and push to undo stack
-    var command = new CommandDeleteIndexes( view, Orientation.HORIZONTAL, viewColumns );
+    // insert columns via undo command and push to undo stack
+    var command = new CommandInsertIndexes( view, Orientation.HORIZONTAL, viewColumns );
     if ( command.isValid() )
       view.getSelection().clear();
     return view.getUndoStack().push( command );
   }
+
 }

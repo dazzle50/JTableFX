@@ -131,7 +131,7 @@ public class TableDataEditable extends TableData implements IDataSwapRows, IData
     var toInsert = new ArrayList<EditableData>( rowData.size() );
     int count = 0;
     for ( var data : rowData )
-      toInsert.add( data == null ? new EditableData( insertIndex + count++ ) : (EditableData) data );
+      toInsert.add( data == null ? new EditableData() : (EditableData) data );
 
     m_rows.addAll( insertIndex, toInsert );
     setRowCount( getRowCount() + toInsert.size() );
