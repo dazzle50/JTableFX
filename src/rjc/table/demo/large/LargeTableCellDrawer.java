@@ -16,29 +16,43 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.demo.edit;
+package rjc.table.demo.large;
 
-import javafx.geometry.Pos;
-import rjc.table.view.axis.TableAxis;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 import rjc.table.view.cell.CellDrawer;
 
 /*************************************************************************************************/
 /******************************** Example customised cell drawer *********************************/
 /*************************************************************************************************/
 
-public class CellDrawerEditable extends CellDrawer
+public class LargeTableCellDrawer extends CellDrawer
 {
-  /************************************ getTextAlignment *************************************/
-  @Override
-  protected Pos getTextAlignment()
-  {
-    // return left alignment for the two text columns
-    if ( viewRow > TableAxis.HEADER )
-      if ( dataColumn == EditableData.Column.ReadOnly.ordinal() || dataColumn == EditableData.Column.Text.ordinal() )
-        return Pos.CENTER_LEFT;
 
-    // otherwise centre alignment
-    return Pos.CENTER;
-  }
+  /************************************* getBackgroundPaint **************************************/
+  @Override
+  protected Paint getBackgroundPaint()
+  {
+    // get default background paint
+    Paint paint = super.getBackgroundPaint();
+
+    // if white background shade different colour if mouse pointer on row/column
+    if ( paint == Color.WHITE )
+    {
+      int col = view.getMouseCell().getColumn();
+      int row = view.getMouseCell().getRow();
+
+      // highlight cell green where mouse is positioned
+      if ( viewColumn == col && viewRow == row )
+        return Color.PALEGREEN;
+
+      // highlight row and column pale green where mouse is positioned
+      if ( viewColumn == col || viewRow == row )
+        return Color.PALEGREEN.desaturate().desaturate().desaturate().desaturate();
+    }
+
+    // otherwise default
+    return paint;
+  };
 
 }

@@ -25,7 +25,6 @@ import java.util.List;
 import rjc.table.data.IDataInsertDeleteRows;
 import rjc.table.data.IDataSwapRows;
 import rjc.table.data.TableData;
-import rjc.table.demo.edit.EditableData.Column;
 
 /*************************************************************************************************/
 /******************** Example customised table data source for editable table ********************/
@@ -34,25 +33,25 @@ import rjc.table.demo.edit.EditableData.Column;
 /**
  * Editable table data source supporting row reordering, insertion, and deletion.
  */
-public class TableDataEditable extends TableData implements IDataSwapRows, IDataInsertDeleteRows
+public class EditableTableData extends TableData implements IDataSwapRows, IDataInsertDeleteRows
 {
-  private static final int   COLUMN_COUNT = Column.MAX.ordinal();
-  private static final int   ROW_COUNT    = 10;
+  private static final int       COLUMN_COUNT = EditableTableRow.COLUMN_CACHE.length;
+  private static final int       ROW_COUNT    = 10;
 
-  private List<EditableData> m_rows       = new ArrayList<>();
+  private List<EditableTableRow> m_rows       = new ArrayList<>();
 
   /**************************************** constructor ******************************************/
   /**
-   * Initialises the table data with {@code ROW_COUNT} rows of default {@link EditableData}.
+   * Initialises the table data with {@code ROW_COUNT} rows of default {@link EditableTableRow}.
    */
-  public TableDataEditable()
+  public EditableTableData()
   {
     // populate the private variables with table contents
     setColumnCount( COLUMN_COUNT );
     setRowCount( ROW_COUNT );
 
     for ( int row = 0; row < ROW_COUNT; row++ )
-      m_rows.add( new EditableData( row ) );
+      m_rows.add( new EditableTableRow( row ) );
   }
 
   /****************************************** getValue *******************************************/
@@ -76,7 +75,7 @@ public class TableDataEditable extends TableData implements IDataSwapRows, IData
 
     // return column value for specified column index
     if ( dataRow == HEADER )
-      return Column.values()[dataColumn];
+      return EditableTableRow.COLUMN_CACHE[dataColumn];
 
     // return cell value for body cell
     return m_rows.get( dataRow ).getValue( dataColumn );
@@ -128,10 +127,9 @@ public class TableDataEditable extends TableData implements IDataSwapRows, IData
   public boolean insertRows( int insertIndex, List<Object> rowData )
   {
     // build the list of rows to insert, substituting defaults for null elements
-    var toInsert = new ArrayList<EditableData>( rowData.size() );
-    int count = 0;
+    var toInsert = new ArrayList<EditableTableRow>( rowData.size() );
     for ( var data : rowData )
-      toInsert.add( data == null ? new EditableData() : (EditableData) data );
+      toInsert.add( data == null ? new EditableTableRow() : (EditableTableRow) data );
 
     m_rows.addAll( insertIndex, toInsert );
     setRowCount( getRowCount() + toInsert.size() );
@@ -144,7 +142,7 @@ public class TableDataEditable extends TableData implements IDataSwapRows, IData
    *
    * @param deleteIndex  data-based index of the first row to delete; must be &gt;= 0
    * @param count        number of consecutive rows to delete; must be &gt; 0
-   * @return a list of the deleted {@link EditableData} rows, or {@code null} if the
+   * @return a list of the deleted {@link EditableTableRow} rows, or {@code null} if the
    *         operation failed
    * @throws IllegalArgumentException if {@code deleteIndex} is out of range or
    *                                  {@code count} is not positive

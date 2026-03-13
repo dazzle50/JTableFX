@@ -20,32 +20,28 @@ package rjc.table.demo;
 
 import javafx.scene.control.Tab;
 import rjc.table.data.TableData;
-import rjc.table.demo.large.LargeView;
+import rjc.table.demo.edit.EditableTableData;
+import rjc.table.demo.edit.EditableTableView;
 import rjc.table.signal.ObservableStatus;
 import rjc.table.undo.UndoStack;
-import rjc.table.view.TableView;
 
 /*************************************************************************************************/
-/*************************** Demonstrates a very large table and view ****************************/
+/********************** Demonstrates a table and view with editable values ***********************/
 /*************************************************************************************************/
 
-public class DemoTableLarge extends Tab
+public class DemoEditableTab extends Tab
 {
   private static TableData m_data; // data for the table view
 
   /**************************************** constructor ******************************************/
-  public DemoTableLarge( UndoStack undostack, ObservableStatus status )
+  public DemoEditableTab( UndoStack undostack, ObservableStatus status )
   {
-    // create default table (but with many rows & columns)
+    // create customised table
     if ( m_data == null )
-    {
-      m_data = new TableData();
-      m_data.setColumnCount( 1_000_000 );
-      m_data.setRowCount( 1_000_000 );
-    }
+      m_data = new EditableTableData();
 
-    // create specialised view
-    TableView view = new LargeView( m_data, "Large" );
+    // create customised view
+    EditableTableView view = new EditableTableView( m_data, "Editable" );
     view.setUndostack( undostack );
     view.setStatus( status );
 

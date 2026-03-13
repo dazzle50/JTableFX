@@ -18,41 +18,34 @@
 
 package rjc.table.demo.large;
 
-import javafx.scene.paint.Color;
-import javafx.scene.paint.Paint;
+import rjc.table.data.TableData;
+import rjc.table.view.TableView;
 import rjc.table.view.cell.CellDrawer;
 
 /*************************************************************************************************/
-/******************************** Example customised cell drawer *********************************/
+/********************** Example customised table view for extra large table **********************/
 /*************************************************************************************************/
 
-public class LargeCellDrawer extends CellDrawer
+public class LargeTableView extends TableView
 {
 
-  /************************************* getBackgroundPaint **************************************/
-  @Override
-  protected Paint getBackgroundPaint()
+  /**************************************** constructor ******************************************/
+  public LargeTableView( TableData data, String name )
   {
-    // get default background paint
-    Paint paint = super.getBackgroundPaint();
+    // construct customised table view
+    super( data, name );
+    getColumnsAxis().setHeaderNominalSize( 60 );
 
-    // if white background shade different colour if mouse pointer on row/column
-    if ( paint == Color.WHITE )
-    {
-      int col = view.getMouseCell().getColumn();
-      int row = view.getMouseCell().getRow();
+    // when mouse moved to new cell, redraw table to move shading
+    getMouseCell().addListener( ( sender, msg ) -> redraw() );
+  }
 
-      // highlight cell green where mouse is positioned
-      if ( viewColumn == col && viewRow == row )
-        return Color.PALEGREEN;
-
-      // highlight row and column pale green where mouse is positioned
-      if ( viewColumn == col || viewRow == row )
-        return Color.PALEGREEN.desaturate().desaturate().desaturate().desaturate();
-    }
-
-    // otherwise default
-    return paint;
-  };
+  /**************************************** getCellDrawer ****************************************/
+  @Override
+  public CellDrawer getCellDrawer()
+  {
+    // return new instance of class that draws table cells
+    return new LargeTableCellDrawer();
+  }
 
 }

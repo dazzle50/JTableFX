@@ -345,9 +345,8 @@ public class TableData implements ISignal
     // implement comparator using cell values from specified column
     return ( dataRow1, dataRow2 ) ->
     {
-      var data = this; // cast to TableData to access getValue method
-      var obj1 = data.getValue( dataColumn, dataRow1 );
-      var obj2 = data.getValue( dataColumn, dataRow2 );
+      var obj1 = getValue( dataColumn, dataRow1 );
+      var obj2 = getValue( dataColumn, dataRow2 );
       return GenericComparator.compare( obj1, obj2 );
     };
   }

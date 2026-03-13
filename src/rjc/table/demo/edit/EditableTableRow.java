@@ -27,24 +27,27 @@ import rjc.table.data.types.Time;
 /**************************** Contains one row of editable-table data ****************************/
 /*************************************************************************************************/
 
-public class EditableData
+/**
+ * Holds the data for a single row in the editable table demo, with one field per supported column type.
+ */
+public class EditableTableRow
 {
   public enum Column
   {
-    ReadOnly, Text, Integer, Double, Date, Time, DateTime, Select, MAX
+    ReadOnly, Text, Integer, Double, Date, Time, DateTime, Select
   }
 
-  private static final Column[] COLUMN_CACHE = Column.values();
+  static final Column[] COLUMN_CACHE = Column.values();
 
   // private variables containing the row's data
-  private String                m_readonly;
-  private String                m_text;
-  private int                   m_integer;
-  private double                m_double;
-  private Date                  m_date;
-  private Time                  m_time;
-  private DateTime              m_datetime;
-  private Fruit                 m_fruit;
+  private String        m_readonly;
+  private String        m_text;
+  private int           m_integer;
+  private double        m_double;
+  private Date          m_date;
+  private Time          m_time;
+  private DateTime      m_datetime;
+  private Fruit         m_fruit;
 
   public enum Fruit
   {
@@ -52,12 +55,20 @@ public class EditableData
   }
 
   /**************************************** constructor ******************************************/
-  public EditableData()
+  /**
+   * Constructs an empty row with default or blank field values.
+   */
+  public EditableTableRow()
   {
     // empty row with default/blank contents
   }
 
-  public EditableData( int id )
+  /**
+   * Constructs a row populated with sample data derived from the given row index.
+   *
+   * @param id  zero-based row index used to seed the initial field values
+   */
+  public EditableTableRow( int id )
   {
     // populate the private variables with some contents
     m_readonly = "Read-only text " + ( id + 1 );
@@ -71,6 +82,12 @@ public class EditableData
   }
 
   /****************************************** getValue *******************************************/
+  /**
+   * Returns the value stored in the specified column for this row.
+   *
+   * @param dataColumn  zero-based column index, mapped via {@link #COLUMN_CACHE}
+   * @return the column value; may be {@code null} for uninitialised fields
+   */
   public Object getValue( int dataColumn )
   {
     // return row value using cached column array and switch expression
@@ -84,11 +101,18 @@ public class EditableData
       case Time -> m_time;
       case DateTime -> m_datetime;
       case Select -> m_fruit;
-      default -> throw new IllegalStateException( "Unexpected value: " + COLUMN_CACHE[dataColumn] );
     };
   }
 
   /****************************************** setValue *******************************************/
+  /**
+   * Validates, and optionally commits, a new value for the specified column.
+   *
+   * @param dataColumn  zero-based column index, mapped via {@link #COLUMN_CACHE}
+   * @param newValue    the candidate value; may be {@code null} where permitted
+   * @param commit      {@code true} to apply the value; {@code false} to validate only
+   * @return {@code null} on success, or an error message if the value is invalid or read-only
+   */
   public String setValue( int dataColumn, Object newValue, boolean commit )
   {
     // process value update or validation using a switch expression
@@ -160,7 +184,6 @@ public class EditableData
         yield null;
       }
 
-      default -> "Not implemented";
     };
 
   }

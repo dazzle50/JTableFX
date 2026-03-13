@@ -16,36 +16,46 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.demo.large;
+package rjc.table.demo;
 
+import javafx.scene.control.Tab;
 import rjc.table.data.TableData;
+import rjc.table.demo.large.LargeTableView;
+import rjc.table.signal.ObservableStatus;
+import rjc.table.undo.UndoStack;
 import rjc.table.view.TableView;
-import rjc.table.view.cell.CellDrawer;
 
 /*************************************************************************************************/
-/********************** Example customised table view for extra large table **********************/
+/*************************** Demonstrates a very large table and view ****************************/
 /*************************************************************************************************/
 
-public class LargeView extends TableView
+public class DemoLargeTab extends Tab
 {
+  private static TableData m_data; // data for the table view
 
   /**************************************** constructor ******************************************/
-  public LargeView( TableData data, String name )
+  public DemoLargeTab( UndoStack undostack, ObservableStatus status )
   {
-    // construct customised table view
-    super( data, name );
-    getColumnsAxis().setHeaderNominalSize( 60 );
+    // create default table (but with many rows & columns)
+    if ( m_data == null )
+    {
+      m_data = new TableData();
+      m_data.setColumnCount( 1_000_000 );
+      m_data.setRowCount( 1_000_000 );
+    }
 
-    // when mouse moved to new cell, redraw table to move shading
-    getMouseCell().addListener( ( sender, msg ) -> redraw() );
-  }
+    // create specialised view
+    TableView view = new LargeTableView( m_data, "Large" );
+    view.setUndostack( undostack );
+    view.setStatus( status );
 
-  /**************************************** getCellDrawer ****************************************/
-  @Override
-  public CellDrawer getCellDrawer()
-  {
-    // return new instance of class that draws table cells
-    return new LargeCellDrawer();
+    // make view only visible when tab is selected
+    view.visibleProperty().bind( selectedProperty() );
+
+    // configure the tab
+    setText( view.getId() );
+    setClosable( false );
+    setContent( view );
   }
 
 }

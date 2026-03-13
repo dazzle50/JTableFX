@@ -19,8 +19,8 @@
 package rjc.table.demo.edit;
 
 import rjc.table.data.TableData;
-import rjc.table.demo.edit.EditableData.Column;
-import rjc.table.demo.edit.EditableData.Fruit;
+import rjc.table.demo.edit.EditableTableRow.Column;
+import rjc.table.demo.edit.EditableTableRow.Fruit;
 import rjc.table.view.TableView;
 import rjc.table.view.cell.CellDrawer;
 import rjc.table.view.editor.AbstractCellEditor;
@@ -36,17 +36,30 @@ import rjc.table.view.editor.EditorTime;
 /*********************** Example customised table view for editable table ************************/
 /*************************************************************************************************/
 
-public class TableViewEditable extends TableView
+/**
+ * Customised table view for the editable table demo, configuring column widths and providing
+ * appropriate cell editors and drawers.
+ */
+public class EditableTableView extends TableView
 {
 
-  /**************************************** constructor ******************************************/
-  public TableViewEditable( TableData data, String name )
+  /************************************* EditableTableView ***************************************/
+  /**
+   * Constructs an editable table view bound to the given data source.
+   *
+   * @param data  the table data source
+   * @param name  the display name of this view
+   */
+  public EditableTableView( TableData data, String name )
   {
     // construct the table view
     super( data, name );
   }
 
-  /******************************************** reset ********************************************/
+  /******************************************* reset *********************************************/
+  /**
+   * Resets the view to its custom default settings, including nominal column widths.
+   */
   @Override
   public void reset()
   {
@@ -61,7 +74,13 @@ public class TableViewEditable extends TableView
     axis.setNominalSize( Column.DateTime.ordinal(), 180 );
   }
 
-  /**************************************** getCellEditor ****************************************/
+  /*************************************** getCellEditor *****************************************/
+  /**
+   * Returns the appropriate cell editor for the given cell, or {@code null} for read-only cells.
+   *
+   * @param cell  the cell drawer describing the cell to be edited
+   * @return an {@link AbstractCellEditor} appropriate for the column type, or {@code null}
+   */
   @Override
   public AbstractCellEditor getCellEditor( CellDrawer cell )
   {
@@ -87,12 +106,17 @@ public class TableViewEditable extends TableView
     }
   }
 
-  /**************************************** getCellDrawer ****************************************/
+  /*************************************** getCellDrawer *****************************************/
+  /**
+   * Returns a new instance of the customised cell drawer used to render table cells.
+   *
+   * @return a new {@link EditableTableCellDrawer}
+   */
   @Override
   public CellDrawer getCellDrawer()
   {
     // return new instance of class responsible for drawing the cells on canvas
-    return new CellDrawerEditable();
+    return new EditableTableCellDrawer();
   }
 
 }

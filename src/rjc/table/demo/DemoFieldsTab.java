@@ -33,7 +33,7 @@ import rjc.table.control.MonthSpinField;
 import rjc.table.control.NumberSpinField;
 import rjc.table.control.TimeField;
 import rjc.table.control.TimeWidget;
-import rjc.table.demo.edit.EditableData;
+import rjc.table.demo.edit.EditableTableRow;
 import rjc.table.signal.ObservableStatus;
 import rjc.table.undo.UndoStack;
 
@@ -41,12 +41,12 @@ import rjc.table.undo.UndoStack;
 /********************** Demonstrates the enhanced controls for cell editors **********************/
 /*************************************************************************************************/
 
-public class DemoFields extends Tab
+public class DemoFieldsTab extends Tab
 {
   private ObservableStatus m_status;
 
   /**************************************** constructor ******************************************/
-  public DemoFields( UndoStack undostack, ObservableStatus status )
+  public DemoFieldsTab( UndoStack undostack, ObservableStatus status )
   {
     // create grid layout for field controls demo
     GridPane grid = new GridPane();
@@ -70,7 +70,7 @@ public class DemoFields extends Tab
     addToGrid( grid, "DateField", new DateField(), 0, row++ );
     addToGrid( grid, "TimeField", new TimeField(), 0, row++ );
     addToGrid( grid, "DateTimeField", new DateTimeField(), 0, row++ );
-    addToGrid( grid, "ChooseField", new ChooseField( EditableData.Fruit.values() ), 0, row++ );
+    addToGrid( grid, "ChooseField", new ChooseField( EditableTableRow.Fruit.values() ), 0, row++ );
     addToGrid( grid, "TimeWidget", new TimeWidget(), 0, row++ );
 
     row = 0;

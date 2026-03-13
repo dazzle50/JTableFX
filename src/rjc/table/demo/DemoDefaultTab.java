@@ -20,28 +20,25 @@ package rjc.table.demo;
 
 import javafx.scene.control.Tab;
 import rjc.table.data.TableData;
-import rjc.table.demo.edit.TableDataEditable;
-import rjc.table.demo.edit.TableViewEditable;
 import rjc.table.signal.ObservableStatus;
 import rjc.table.undo.UndoStack;
+import rjc.table.view.TableView;
 
 /*************************************************************************************************/
-/********************** Demonstrates a table and view with editable values ***********************/
+/**************************** Demonstrates the default table and view ****************************/
 /*************************************************************************************************/
 
-public class DemoTableEditable extends Tab
+public class DemoDefaultTab extends Tab
 {
   private static TableData m_data; // data for the table view
 
   /**************************************** constructor ******************************************/
-  public DemoTableEditable( UndoStack undostack, ObservableStatus status )
+  public DemoDefaultTab( UndoStack undostack, ObservableStatus status )
   {
-    // create customised table
+    // create default table with default view
     if ( m_data == null )
-      m_data = new TableDataEditable();
-
-    // create customised view
-    TableViewEditable view = new TableViewEditable( m_data, "Editable" );
+      m_data = new TableData();
+    TableView view = new TableView( m_data, "Default" );
     view.setUndostack( undostack );
     view.setStatus( status );
 

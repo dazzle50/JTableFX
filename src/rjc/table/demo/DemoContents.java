@@ -37,7 +37,7 @@ import rjc.table.control.DateTimeField;
 import rjc.table.control.MonthSpinField;
 import rjc.table.control.NumberSpinField;
 import rjc.table.control.TimeField;
-import rjc.table.demo.edit.EditableData;
+import rjc.table.demo.edit.EditableTableRow;
 import rjc.table.signal.ObservableStatus;
 import rjc.table.signal.ObservableStatus.Level;
 import rjc.table.undo.UndoStack;
@@ -120,10 +120,10 @@ public class DemoContents extends GridPane
         ( property, oldTab, newTab ) -> Platform.runLater( () -> ( newTab.getContent() ).requestFocus() ) );
 
     // create demo tabs with shared undostack & status
-    tabs.getTabs().add( new DemoTableDefault( m_undostack, m_status ) );
-    tabs.getTabs().add( new DemoTableLarge( m_undostack, m_status ) );
-    tabs.getTabs().add( new DemoTableEditable( m_undostack, m_status ) );
-    tabs.getTabs().add( new DemoFields( m_undostack, m_status ) );
+    tabs.getTabs().add( new DemoDefaultTab( m_undostack, m_status ) );
+    tabs.getTabs().add( new DemoLargeTab( m_undostack, m_status ) );
+    tabs.getTabs().add( new DemoEditableTab( m_undostack, m_status ) );
+    tabs.getTabs().add( new DemoFieldsTab( m_undostack, m_status ) );
 
     return tabs;
   }
@@ -205,7 +205,7 @@ public class DemoContents extends GridPane
       new DateTimeField();
       new MonthSpinField();
       new NumberSpinField();
-      new ChooseField( EditableData.Fruit.values() );
+      new ChooseField( EditableTableRow.Fruit.values() );
     }, 1000 );
 
     addBenchmark( benchmarks, "Garbage collection", () ->

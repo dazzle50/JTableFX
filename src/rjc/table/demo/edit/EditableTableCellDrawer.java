@@ -16,39 +16,39 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/    *
  **************************************************************************/
 
-package rjc.table.demo;
+package rjc.table.demo.edit;
 
-import javafx.scene.control.Tab;
-import rjc.table.data.TableData;
-import rjc.table.signal.ObservableStatus;
-import rjc.table.undo.UndoStack;
-import rjc.table.view.TableView;
+import javafx.geometry.Pos;
+import rjc.table.view.axis.TableAxis;
+import rjc.table.view.cell.CellDrawer;
 
 /*************************************************************************************************/
-/**************************** Demonstrates the default table and view ****************************/
+/******************************** Example customised cell drawer *********************************/
 /*************************************************************************************************/
 
-public class DemoTableDefault extends Tab
+/**
+ * Customised cell drawer for the editable table demo that overrides text alignment
+ * for string-based columns.
+ */
+public class EditableTableCellDrawer extends CellDrawer
 {
-  private static TableData m_data; // data for the table view
-
-  /**************************************** constructor ******************************************/
-  public DemoTableDefault( UndoStack undostack, ObservableStatus status )
+  /************************************** getTextAlignment ***************************************/
+  /**
+   * Returns left alignment for the read-only and text columns; centre alignment for all others.
+   *
+   * @return the {@link Pos} constant representing the desired text alignment
+   */
+  @Override
+  protected Pos getTextAlignment()
   {
-    // create default table with default view
-    if ( m_data == null )
-      m_data = new TableData();
-    TableView view = new TableView( m_data, "Default" );
-    view.setUndostack( undostack );
-    view.setStatus( status );
+    // return left alignment for the two text columns
+    if ( viewRow > TableAxis.HEADER )
+      if ( dataColumn == EditableTableRow.Column.ReadOnly.ordinal()
+          || dataColumn == EditableTableRow.Column.Text.ordinal() )
+        return Pos.CENTER_LEFT;
 
-    // make view only visible when tab is selected
-    view.visibleProperty().bind( selectedProperty() );
-
-    // configure the tab
-    setText( view.getId() );
-    setClosable( false );
-    setContent( view );
+    // otherwise centre alignment
+    return Pos.CENTER;
   }
 
 }
