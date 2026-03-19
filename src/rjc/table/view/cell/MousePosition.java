@@ -165,6 +165,11 @@ public class MousePosition extends ObservablePosition
   /****************************************** setCursor ******************************************/
   private void setCursor()
   {
+    // if scene has wait cursor, do nothing
+    var scene = m_view.getScene();
+    if ( scene != null && scene.getCursor() == Cursors.WAIT )
+      return;
+
     // if over table headers corner, set cursor to default
     int column = m_view.getMouseCell().getColumn();
     int row = m_view.getMouseCell().getRow();

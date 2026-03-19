@@ -27,6 +27,7 @@ import javafx.scene.Cursor;
 public final class Cursors
 {
   public static final Cursor DEFAULT         = Cursor.DEFAULT;
+  public static final Cursor WAIT            = Cursor.WAIT;
 
   public static final Cursor CELLS_HOVER     = new CellHoverCursor( "cross.png", 16, 20 );
   public static final Cursor CELLS_SELECT    = new SelectCursor( "cross.png", 16, 20 );

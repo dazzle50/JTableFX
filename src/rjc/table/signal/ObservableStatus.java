@@ -18,6 +18,7 @@
 
 package rjc.table.signal;
 
+import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -41,11 +42,12 @@ public class ObservableStatus implements ISignal
   // enumeration of status severity levels from info through fatal.
   public static enum Level // status types
   {
-    INFO, WARNING, ERROR, FATAL
+    INFO, BUSY, WARNING, ERROR, FATAL
   }
 
-  private static final String STYLE_INFO    = "-fx-text-fill: black;";
-  private static final String STYLE_WARNING = "-fx-text-fill: maroon;";
+  private static final String STYLE_INFO    = "-fx-text-fill: -fx-text-base-color;";
+  private static final String STYLE_BUSY    = "-fx-text-fill: -fx-text-base-color; -fx-background-color: linear-gradient(derive(lightyellow, -10%), lightyellow)";
+  private static final String STYLE_WARNING = "-fx-text-fill: derive(orange, -20%);";
   private static final String STYLE_ERROR   = "-fx-text-fill: red;";
   private static final String STYLE_FATAL   = "-fx-text-fill: white; -fx-font-weight: bold; -fx-background-color: red";
 
@@ -85,7 +87,7 @@ public class ObservableStatus implements ISignal
   public void update( Level severity, String msg )
   {
     // update severity and message
-    if ( severity != m_severity || msg != m_msg )
+    if ( severity != m_severity || !Objects.equals( msg, m_msg ) )
     {
       m_severity = severity;
       m_msg = msg;
@@ -111,7 +113,7 @@ public class ObservableStatus implements ISignal
    * 
    * @return true if severity is ERROR or FATAL, false otherwise
    */
-  public Boolean isError()
+  public boolean isError()
   {
     // return if status in error state
     return m_severity == Level.ERROR || m_severity == Level.FATAL;
@@ -200,19 +202,14 @@ public class ObservableStatus implements ISignal
   public static String getStyle( Level severity )
   {
     // return suitable style css for specified severity
-    switch ( severity )
+    return switch ( severity )
     {
-      case INFO:
-        return STYLE_INFO;
-      case WARNING:
-        return STYLE_WARNING;
-      case ERROR:
-        return STYLE_ERROR;
-      case FATAL:
-        return STYLE_FATAL;
-      default:
-        throw new UnsupportedOperationException( severity.toString() );
-    }
+      case INFO -> STYLE_INFO;
+      case BUSY -> STYLE_BUSY;
+      case WARNING -> STYLE_WARNING;
+      case ERROR -> STYLE_ERROR;
+      case FATAL -> STYLE_FATAL;
+    };
   }
 
   /****************************************** getStyle *******************************************/

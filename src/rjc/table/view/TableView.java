@@ -23,8 +23,10 @@ import rjc.table.Utils;
 import rjc.table.data.TableData;
 import rjc.table.data.TableData.Signal;
 import rjc.table.signal.ObservablePosition;
+import rjc.table.signal.ObservableStatus.Level;
 import rjc.table.view.axis.TableAxis;
 import rjc.table.view.cell.CellDrawer;
+import rjc.table.view.cursor.Cursors;
 import rjc.table.view.cursor.ITableViewCursor;
 import rjc.table.view.cursor.SelectCursor;
 import rjc.table.view.editor.AbstractCellEditor;
@@ -438,6 +440,35 @@ public class TableView extends TableViewComponents
   {
     // show context menu for this table-view at mouse click position
     TableContextMenu.show( this, event.getScreenX(), event.getScreenY() );
+  }
+
+  /**************************************** setBusyState *****************************************/
+  /**
+   * Sets the busy state of the scene containing this table-view, updating the mouse cursor and 
+   * observable status accordingly.
+   *
+   * <p>When entering busy state, this node's own cursor is cleared ({@code null}) so the
+   * scene-level wait cursor takes visual precedence. On exit, {@link #getMouseCell()}
+   * rechecks the pointer position so the correct cursor is restored immediately.
+   *
+   * @param busy    {@code true} to enter busy state; {@code false} to leave it
+   * @param message the status message to display; must not be {@code null}
+   */
+  public void setBusyState( boolean busy, String message )
+  {
+    // set busy state of the scene containing this table-view
+    if ( busy )
+    {
+      setCursor( null );
+      getScene().setCursor( Cursors.WAIT );
+      getStatus().update( Level.BUSY, message );
+    }
+    else
+    {
+      getScene().setCursor( Cursors.DEFAULT );
+      getMouseCell().checkXY();
+      getStatus().update( Level.INFO, message );
+    }
   }
 
   /****************************************** toString *******************************************/
