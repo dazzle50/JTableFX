@@ -19,6 +19,7 @@
 package rjc.table.view.action;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.IntFunction;
 
 import javafx.application.Platform;
@@ -159,9 +160,10 @@ public class Sort
           // choose command based on whether the data layer supports direct swapping
           boolean canSwapData = orientation == Orientation.VERTICAL ? data instanceof IDataSwapRows
               : data instanceof IDataSwapColumns;
+          var axes = List.of( orientation == Orientation.VERTICAL ? view.getRowsAxis() : view.getColumnsAxis() );
 
           IUndoCommand command = canSwapData
-              ? new CommandSortData( data, orientation, beforeDataIndices, afterDataIndices, dataKeyIndex, type )
+              ? new CommandSortData( data, orientation, beforeDataIndices, afterDataIndices, dataKeyIndex, type, axes )
               : new CommandSortView( view, reorderAxis, visibleViewIndices, afterDataIndices, dataKeyIndex, type );
           view.getUndoStack().push( command );
         }

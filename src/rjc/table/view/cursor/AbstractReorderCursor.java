@@ -18,6 +18,8 @@
 
 package rjc.table.view.cursor;
 
+import java.util.List;
+
 import javafx.geometry.Orientation;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.StrokeLineCap;
@@ -173,14 +175,15 @@ abstract public class AbstractReorderCursor extends AbstractCursor
     {
       // columns
       command = m_view.getData() instanceof IDataSwapColumns
-          ? new CommandReorderData( m_view.getData(), orientation, m_selected, m_pos )
+          ? new CommandReorderData( m_view.getData(), orientation, m_selected, m_pos,
+              List.of( m_view.getColumnsAxis() ) )
           : new CommandReorderView( m_view, m_view.getColumnsAxis(), m_selected, m_pos );
     }
     else
     {
       // rows
       command = m_view.getData() instanceof IDataSwapRows
-          ? new CommandReorderData( m_view.getData(), orientation, m_selected, m_pos )
+          ? new CommandReorderData( m_view.getData(), orientation, m_selected, m_pos, List.of( m_view.getRowsAxis() ) )
           : new CommandReorderView( m_view, m_view.getRowsAxis(), m_selected, m_pos );
     }
 

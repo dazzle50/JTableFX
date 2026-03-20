@@ -92,25 +92,31 @@ public class IndexSize
       int newCapacity = Math.max( requiredCapacity + 4, m_sizes.length + ( m_sizes.length >> 2 ) );
       short[] newSizes = new short[newCapacity];
       System.arraycopy( m_sizes, 0, newSizes, 0, m_sizes.length );
-      // initialise new slots to default
-      for ( int i = m_sizes.length; i < newSizes.length; i++ )
-        newSizes[i] = DEFAULT;
+      // initialise new slots to DEFAULT (not zero)
+      Arrays.fill( newSizes, m_sizes.length, newCapacity, DEFAULT );
       m_sizes = newSizes;
     }
   }
 
   /******************************************* setSize *******************************************/
   /**
-   * Sets the size for the specified index, DEFAULT for default and negative for hidden.
-   * 
+   * Sets the nominal size for the specified index.
+   * <p>
+   * If {@code size} is {@link #DEFAULT} and {@code dataIndex} is beyond the stored array,
+   * the call is a no-op — indices in that region are implicitly {@link #DEFAULT} and no
+   * allocation is required.
+   *
    * @param dataIndex
    *          the cell index (data index, not view index)
    * @param size
-   *          the size value (use DEFAULT for default size, negative to mark as hidden)
+   *          the size value ({@link #DEFAULT} for default size, negative to mark as hidden)
    */
   public void setSize( int dataIndex, short size )
   {
-    // expand array capacity if needed
+    // no allocation needed — beyond array is implicitly DEFAULT
+    if ( size == DEFAULT && dataIndex >= m_sizes.length )
+      return;
+
     ensureCapacity( dataIndex );
     m_sizes[dataIndex] = size;
   }
@@ -315,9 +321,9 @@ public class IndexSize
   /**
    * Reorders the size and hidden data when indices are moved in the data-model.
    * <p>
-   * This handles the complex case where multiple indices are moved together to a new position,
+   * Handles the complex case where multiple indices are moved together to a new position,
    * requiring all other indices to shift accordingly.
-   * 
+   *
    * @param sortedIndexes
    *          sorted array of source data-indices being moved
    * @param insertIndex
@@ -342,8 +348,7 @@ public class IndexSize
 
     // create new array with default values
     short[] newSizes = new short[maxIndex + 1];
-    for ( int i = 0; i < newSizes.length; i++ )
-      newSizes[i] = DEFAULT;
+    Arrays.fill( newSizes, DEFAULT );
 
     // copy moved indices to their new positions
     for ( int i = 0; i < sortedIndexes.length; i++ )
@@ -357,7 +362,7 @@ public class IndexSize
     for ( int sourceIndex = 0; sourceIndex < m_sizes.length; sourceIndex++ )
     {
       // skip moved indices
-      if ( java.util.Arrays.binarySearch( sortedIndexes, sourceIndex ) >= 0 )
+      if ( Arrays.binarySearch( sortedIndexes, sourceIndex ) >= 0 )
         continue;
 
       // calculate where this index moves to after reordering

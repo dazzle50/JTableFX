@@ -1022,6 +1022,27 @@ public class TableAxis implements IListener
     m_totalPixelsCache.set( INVALID );
   }
 
+  /****************************************** swapSizes ******************************************/
+  /**
+   * Swaps the nominal sizes of two data indices, invalidating pixel caches.
+   * Used during reorder operations to keep index sizes aligned with data positions.
+   *
+   * @param dataIndex1 first data index
+   * @param dataIndex2 second data index
+   */
+  public void swapSizes( int dataIndex1, int dataIndex2 )
+  {
+    short s1 = m_dataNominalSize.getSize( dataIndex1 );
+    short s2 = m_dataNominalSize.getSize( dataIndex2 );
+    // skip if identical — avoids redundant cache thrashing during batch reorders
+    if ( s1 == s2 )
+      return;
+    m_dataNominalSize.setSize( dataIndex1, s2 );
+    m_dataNominalSize.setSize( dataIndex2, s1 );
+    m_startPixelCache.clear();
+    m_totalPixelsCache.set( INVALID );
+  }
+
   /************************************* truncatePixelCaches *************************************/
   /**
    * Invalidates pixel caches from the specified index onwards, optionally adjusting total pixels.

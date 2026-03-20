@@ -302,7 +302,7 @@ public class TableOverlay extends Canvas
 
     // calculate base position for the shape
     double x = m_view.getColumnStartX( viewColumn ) + xOffset;
-    double y = ( m_view.getRowStartY( viewRow ) + m_view.getRowStartY( viewRow + 1 ) ) / 2.0 + yOffset;
+    double y = ( m_view.getRowStartY( viewRow ) + m_view.getRowsAxis().getPixelSize( viewRow ) ) / 2.0 + yOffset;
 
     // draw each scan line as a filled 1px-high rectangle
     for ( int i = 0; i < shape.length; i++ )
