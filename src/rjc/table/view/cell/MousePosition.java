@@ -28,6 +28,19 @@ import rjc.table.view.cursor.Cursors;
 /********************** Observable table-view cell position from mouse x-y ***********************/
 /*************************************************************************************************/
 
+/**
+ * Tracks the table-view cell column and row indices that correspond to the current mouse
+ * x-y pixel coordinates, invalidating and re-validating the cached cell boundaries as the
+ * mouse moves. Also updates the view cursor to reflect the current hover region (corner,
+ * column header, row header, or body cells) and whether a resize or reorder operation is
+ * being indicated.
+ *
+ * <p>Direct calls to {@link #setPosition(int, int)} are prohibited; use
+ * {@link #setXY(int, int, boolean)} or {@link #setInvalid()} instead.</p>
+ *
+ * @see ObservablePosition
+ * @see TableView
+ */
 public class MousePosition extends ObservablePosition
 {
   private TableView        m_view;                       // associated table-view
@@ -47,6 +60,11 @@ public class MousePosition extends ObservablePosition
   final static private int INVALID   = TableAxis.INVALID;
 
   /**************************************** constructor ******************************************/
+  /**
+   * Constructs a {@code MousePosition} bound to the specified table view.
+   *
+   * @param view the {@link TableView} whose mouse position this instance tracks; must not be null
+   */
   public MousePosition( TableView view )
   {
     // construct
@@ -54,6 +72,16 @@ public class MousePosition extends ObservablePosition
   }
 
   /***************************************** setPosition *****************************************/
+  /**
+   * Unsupported operation — direct position assignment is prohibited for this class.
+   *
+   * <p>Use {@link #setXY(int, int, boolean)} to update from mouse coordinates, or
+   * {@link #setInvalid()} to mark the position as invalid.</p>
+   *
+   * @param columnIndex ignored
+   * @param rowIndex    ignored
+   * @throws UnsupportedOperationException always
+   */
   @Override
   public void setPosition( int columnIndex, int rowIndex )
   {
@@ -62,6 +90,11 @@ public class MousePosition extends ObservablePosition
   }
 
   /***************************************** setInvalid ******************************************/
+  /**
+   * Marks this position as invalid, clearing all cached cell boundary values and resetting
+   * the stored mouse coordinates. The underlying {@link ObservablePosition} is updated with
+   * {@code INVALID} indices, notifying any registered observers.
+   */
   public void setInvalid()
   {
     // set position index to invalid
@@ -72,8 +105,15 @@ public class MousePosition extends ObservablePosition
     super.setPosition( INVALID, INVALID );
   }
 
-  /******************************************* checkXY *******************************************/
-  public void checkXY()
+  /************************************* revalidatePosition **************************************/
+  /**
+   * Schedules a re-evaluation of the current mouse cell position on the JavaFX Application
+   * Thread using the last recorded x-y coordinates, without updating the view cursor.
+   *
+   * <p>Call this after a structural change (e.g. column/row resize or scroll) that may have
+   * moved the cell boundaries beneath the stationary mouse pointer.</p>
+   */
+  public void revalidatePosition()
   {
     // re-check mouse cell position
     m_cellXend = INVALID;
@@ -81,7 +121,32 @@ public class MousePosition extends ObservablePosition
     Platform.runLater( () -> setXY( m_x, m_y, false ) );
   }
 
+  /************************************ revalidateCursor *****************************************/
+  /**
+   * Schedules a re-evaluation of the current mouse cell position <em>and</em> the view cursor
+   * on the JavaFX Application Thread using the last recorded x-y coordinates.
+   *
+   * <p>Use in preference to {@link #revalidatePosition()} when the cursor appearance may also
+   * have been invalidated, e.g. after a selection change.</p>
+   */
+  public void revalidateCursor()
+  {
+    // re-check mouse cell position and cursor
+    m_cellXend = INVALID;
+    m_cellYend = INVALID;
+    Platform.runLater( () -> setXY( m_x, m_y, true ) );
+  }
+
   /******************************************** setXY ********************************************/
+  /**
+   * Updates the tracked cell position from the given mouse pixel coordinates, recomputing
+   * column and row indices only when the mouse has moved outside the currently cached cell
+   * boundaries. Optionally refreshes the view cursor to reflect the new hover region.
+   *
+   * @param x             the mouse x coordinate in view-local pixels
+   * @param y             the mouse y coordinate in view-local pixels
+   * @param updateCursor  {@code true} to invoke {@link #setCursor()} after updating the position
+   */
   public void setXY( int x, int y, boolean updateCursor )
   {
     // determine mouse cell position
@@ -163,6 +228,23 @@ public class MousePosition extends ObservablePosition
   }
 
   /****************************************** setCursor ******************************************/
+  /**
+   * Determines and applies the appropriate view cursor for the current mouse position.
+   *
+   * <p>Cursor selection precedence:</p>
+   * <ol>
+   *   <li>If the scene already shows a {@link Cursors#WAIT} cursor, no change is made.</li>
+   *   <li>Header corner cell → {@link Cursors#CORNER_CELL}.</li>
+   *   <li>Beyond table bounds → {@link Cursors#DEFAULT}.</li>
+   *   <li>Column header — near a resizable edge → {@link Cursors#COLUMNS_RESIZE};
+   *       selected column → {@link Cursors#COLUMNS_REORDER};
+   *       otherwise → {@link Cursors#COLUMNS_HOVER}.</li>
+   *   <li>Row header — near a resizable edge → {@link Cursors#ROWS_RESIZE};
+   *       selected row → {@link Cursors#ROWS_REORDER};
+   *       otherwise → {@link Cursors#ROWS_HOVER}.</li>
+   *   <li>Table body → {@link Cursors#CELLS_HOVER}.</li>
+   * </ol>
+   */
   private void setCursor()
   {
     // if scene has wait cursor, do nothing
@@ -171,8 +253,8 @@ public class MousePosition extends ObservablePosition
       return;
 
     // if over table headers corner, set cursor to default
-    int column = m_view.getMouseCell().getColumn();
-    int row = m_view.getMouseCell().getRow();
+    int column = getColumn();
+    int row = getRow();
 
     int headerHeight = m_view.getHeaderHeight();
     int headerWidth = m_view.getHeaderWidth();
@@ -194,12 +276,14 @@ public class MousePosition extends ObservablePosition
     // if over column header, check if resize, move, or select
     if ( m_y < headerHeight )
     {
-      if ( ( m_x - m_cellXstart <= PROXIMITY && m_view.isColumnResizable( column - 1 ) )
-          || ( m_cellXend - m_x <= PROXIMITY && m_view.isColumnResizable( column ) ) )
-      {
-        m_view.setCursor( Cursors.COLUMNS_RESIZE );
-        return;
-      }
+      // if near column edge, set cursor to resize
+      if ( m_x > headerWidth + PROXIMITY )
+        if ( ( m_x - m_cellXstart <= PROXIMITY && m_view.isColumnResizable( column - 1 ) )
+            || ( m_cellXend - m_x <= PROXIMITY && m_view.isColumnResizable( column ) ) )
+        {
+          m_view.setCursor( Cursors.COLUMNS_RESIZE );
+          return;
+        }
 
       // if column is selected, set cursor to move
       if ( m_view.getSelection().isColumnSelected( column ) )
@@ -217,12 +301,13 @@ public class MousePosition extends ObservablePosition
     if ( m_x < headerWidth )
     {
       // if near row edge, set cursor to resize
-      if ( ( m_y - m_cellYstart <= PROXIMITY && m_view.isRowResizable( row - 1 ) )
-          || ( m_cellYend - m_y <= PROXIMITY && m_view.isRowResizable( row ) ) )
-      {
-        m_view.setCursor( Cursors.ROWS_RESIZE );
-        return;
-      }
+      if ( m_y > headerHeight + PROXIMITY )
+        if ( ( m_y - m_cellYstart <= PROXIMITY && m_view.isRowResizable( row - 1 ) )
+            || ( m_cellYend - m_y <= PROXIMITY && m_view.isRowResizable( row ) ) )
+        {
+          m_view.setCursor( Cursors.ROWS_RESIZE );
+          return;
+        }
 
       // if row is selected, set cursor to move
       if ( m_view.getSelection().isRowSelected( row ) )

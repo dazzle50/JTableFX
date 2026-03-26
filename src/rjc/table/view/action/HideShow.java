@@ -43,6 +43,16 @@ public class HideShow
     var viewRows = view.getSelection().isRowSelected( viewRow ) ? view.getSelection().getSelectedRows()
         : new HashSetInt( 1 );
 
+    // if all visible rows are selected, hide all visible rows
+    if ( viewRows == null )
+    {
+      int count = view.getRowsAxis().getCount();
+      viewRows = new HashSetInt( view.getRowsAxis().getCount() );
+      for ( int row = 0; row < count; row++ )
+        if ( view.getRowsAxis().isVisible( row ) )
+          viewRows.add( row );
+    }
+
     // if no rows selected, hide specified row (usually mouse row)
     if ( viewRows.isEmpty() )
       viewRows.add( viewRow );
@@ -65,6 +75,16 @@ public class HideShow
     // if mouse column is selected, hide all selected columns, else just hide mouse column
     var viewColumns = view.getSelection().isColumnSelected( viewColumn ) ? view.getSelection().getSelectedColumns()
         : new HashSetInt( 1 );
+
+    // if all visible columns are selected, hide all visible columns
+    if ( viewColumns == null )
+    {
+      int count = view.getColumnsAxis().getCount();
+      viewColumns = new HashSetInt( view.getColumnsAxis().getCount() );
+      for ( int col = 0; col < count; col++ )
+        if ( view.getColumnsAxis().isVisible( col ) )
+          viewColumns.add( col );
+    }
 
     // if no columns selected, hide specified column (usually mouse column)
     if ( viewColumns.isEmpty() )

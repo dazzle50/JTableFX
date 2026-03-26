@@ -184,14 +184,21 @@ public class TableOverlay extends Canvas
     Color colour = m_view.isFocused() ? Colours.SELECTED_BORDER : Colours.SELECTED_BORDER.desaturate();
     m_gc.setFill( colour );
 
-    // determine visible row range
-    int firstVisible = m_view.getRowIndex( m_view.getHeaderHeight() );
+    // determine row range to be checked
+    int firstVisible = m_view.getRowIndex( m_view.getHeaderHeight() ) - 1;
     int lastVisible = Math.min( m_view.getRowIndex( (int) getHeight() ), m_view.getData().getRowCount() );
+    double x = 0;
+    double w = m_view.getHeaderWidth() - 1;
+
+    // all rows in the viewport are hidden — draw a single marker at the header boundary and exit
+    if ( lastVisible < firstVisible && m_view.getData().getRowCount() > 0 )
+    {
+      m_gc.fillRect( x, m_view.getHeaderHeight() - 1.5, w, 2 );
+      return;
+    }
 
     int previousStartY = Integer.MIN_VALUE; // initialise to impossible y value
     boolean previousWasHidden = false;
-    double x = 0;
-    double w = m_view.getHeaderWidth() - 1;
 
     for ( int row = firstVisible; row <= lastVisible; row++ )
     {
@@ -218,14 +225,21 @@ public class TableOverlay extends Canvas
     Color colour = m_view.isFocused() ? Colours.SELECTED_BORDER : Colours.SELECTED_BORDER.desaturate();
     m_gc.setFill( colour );
 
-    // determine visible column range
-    int firstVisible = m_view.getColumnIndex( m_view.getHeaderWidth() );
+    // determine column range to be checked
+    int firstVisible = m_view.getColumnIndex( m_view.getHeaderWidth() ) - 1;
     int lastVisible = Math.min( m_view.getColumnIndex( (int) getWidth() ), m_view.getData().getColumnCount() );
+    double y = 0;
+    double h = m_view.getHeaderHeight() - 1;
+
+    // all columns in the viewport are hidden — draw a single marker at the header boundary and exit
+    if ( lastVisible < firstVisible && m_view.getData().getColumnCount() > 0 )
+    {
+      m_gc.fillRect( m_view.getHeaderWidth() - 1.5, y, 2, h );
+      return;
+    }
 
     int previousStartX = Integer.MIN_VALUE; // initialise to impossible x value
     boolean previousWasHidden = false;
-    double y = 0;
-    double h = m_view.getHeaderHeight() - 1;
 
     for ( int column = firstVisible; column <= lastVisible; column++ )
     {

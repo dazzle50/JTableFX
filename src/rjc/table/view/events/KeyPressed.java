@@ -104,6 +104,10 @@ public class KeyPressed implements EventHandler<KeyEvent>
           m_view.redraw();
           return;
 
+        case F12: // F12 key - breakpoint
+          Utils.trace( "Breakpoint" );
+          return;
+
         default:
           break;
       }

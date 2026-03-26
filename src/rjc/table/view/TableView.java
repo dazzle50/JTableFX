@@ -21,7 +21,7 @@ package rjc.table.view;
 import javafx.scene.input.ContextMenuEvent;
 import rjc.table.Utils;
 import rjc.table.data.TableData;
-import rjc.table.data.TableData.Signal;
+import rjc.table.data.TableData.DataChange;
 import rjc.table.signal.ObservablePosition;
 import rjc.table.signal.ObservableStatus.Level;
 import rjc.table.view.axis.TableAxis;
@@ -141,37 +141,32 @@ public class TableView extends TableViewComponents
    */
   protected void addDataListeners()
   {
-    // react to data model signals, convert data indexes into view indexes
-    getData().addListener( ( sender, msg ) ->
+    // react to data-model signals; convert data indices to view indices
+    getData().addListener( ( _, msg ) ->
     {
-      Signal change = (Signal) msg[0];
-      // handle different types of data change signals
-      if ( change == Signal.TABLE_VALUES_CHANGED )
-        redraw();
-      else if ( change == Signal.COLUMN_VALUES_CHANGED )
-      {
-        // redraw only the affected column
-        int viewColumn = getColumnsAxis().getViewIndex( (int) msg[1] );
-        getCanvas().redrawColumn( viewColumn );
-      }
-      else if ( change == Signal.ROW_VALUES_CHANGED )
-      {
-        // redraw only the affected row
-        int viewRow = getRowsAxis().getViewIndex( (int) msg[1] );
-        getCanvas().redrawRow( viewRow );
-      }
-      else if ( change == Signal.CELL_VALUE_CHANGED )
-      {
-        // redraw only the affected cell
-        int viewColumn = getColumnsAxis().getViewIndex( (int) msg[1] );
-        int viewRow = getRowsAxis().getViewIndex( (int) msg[2] );
-        getCanvas().redrawCell( viewColumn, viewRow );
-      }
+      if ( msg[0] instanceof DataChange change )
+        switch ( change )
+        {
+          case WHOLE_TABLE -> redraw();
+          case COLUMN_VALUES -> {
+            int viewColumn = getColumnsAxis().getViewIndex( (int) msg[1] );
+            getCanvas().redrawColumn( viewColumn );
+          }
+          case ROW_VALUES -> {
+            int viewRow = getRowsAxis().getViewIndex( (int) msg[1] );
+            getCanvas().redrawRow( viewRow );
+          }
+          case CELL_VALUE -> {
+            int viewColumn = getColumnsAxis().getViewIndex( (int) msg[1] );
+            int viewRow = getRowsAxis().getViewIndex( (int) msg[2] );
+            getCanvas().redrawCell( viewColumn, viewRow );
+          }
+        }
     } );
 
-    // react to column & row count changes
-    getData().columnCountProperty().addListener( ( sender, msg ) -> tableModified() );
-    getData().rowCountProperty().addListener( ( sender, msg ) -> tableModified() );
+    // react to structural changes (column/row count)
+    getData().columnCountProperty().addListener( ( _, _ ) -> tableModified() );
+    getData().rowCountProperty().addListener( ( _, _ ) -> tableModified() );
   }
 
   /************************************** addMouseHandlers ***************************************/
@@ -330,7 +325,7 @@ public class TableView extends TableViewComponents
     redraw();
 
     // revalidate mouse cell position in case it's now invalid
-    getMouseCell().checkXY();
+    getMouseCell().revalidatePosition();
 
     // end any active cell editing as view state has changed
     AbstractCellEditor.endEditing();
@@ -466,7 +461,7 @@ public class TableView extends TableViewComponents
     else
     {
       getScene().setCursor( Cursors.DEFAULT );
-      getMouseCell().checkXY();
+      getMouseCell().revalidateCursor();
       getStatus().update( Level.INFO, message );
     }
   }
