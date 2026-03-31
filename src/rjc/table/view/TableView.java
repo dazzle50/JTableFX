@@ -191,15 +191,21 @@ public class TableView extends TableViewComponents
     overlay.setOnMouseExited( event -> getMouseCell().setInvalid() );
 
     // react to mouse button pressed events
-    overlay.setOnMousePressed( event ->
+    setOnMousePressed( event ->
     {
       // delegate to cursor if it implements table view cursor interface
       if ( getCursor() instanceof ITableViewCursor cursor )
         cursor.handlePressed( event );
+      else
+      {
+        // ensure view has focus
+        requestFocus();
+        event.consume();
+      }
     } );
 
     // react to mouse dragged events (mouse moved whilst mouse button down)
-    overlay.setOnMouseDragged( event ->
+    setOnMouseDragged( event ->
     {
       // delegate to cursor for drag handling (typically for selections)
       if ( getCursor() instanceof ITableViewCursor cursor )
@@ -207,7 +213,7 @@ public class TableView extends TableViewComponents
     } );
 
     // react to mouse button released events
-    overlay.setOnMouseReleased( event ->
+    setOnMouseReleased( event ->
     {
       // delegate to cursor to complete any drag or press operations
       if ( getCursor() instanceof ITableViewCursor cursor )
@@ -215,7 +221,7 @@ public class TableView extends TableViewComponents
     } );
 
     // react to mouse mouse button clicked events
-    overlay.setOnMouseClicked( event ->
+    setOnMouseClicked( event ->
     {
       // delegate to cursor for click handling (e.g. cell selection)
       if ( getCursor() instanceof ITableViewCursor cursor )
@@ -223,7 +229,7 @@ public class TableView extends TableViewComponents
     } );
 
     // react to context-menu request events
-    overlay.setOnContextMenuRequested( event -> openContextMenu( event ) );
+    setOnContextMenuRequested( event -> openContextMenu( event ) );
 
     // react to mouse wheel scroll events
     setOnScroll( event ->
@@ -433,8 +439,12 @@ public class TableView extends TableViewComponents
    */
   public void openContextMenu( ContextMenuEvent event )
   {
-    // show context menu for this table-view at mouse click position
-    TableContextMenu.show( this, event.getScreenX(), event.getScreenY() );
+    // build context menu
+    var menu = new TableContextMenu( this );
+
+    // show the context menu if it has any items
+    if ( menu != null && !menu.getItems().isEmpty() )
+      menu.show( getScene().getWindow(), event.getScreenX(), event.getScreenY() );
   }
 
   /**************************************** setBusyState *****************************************/

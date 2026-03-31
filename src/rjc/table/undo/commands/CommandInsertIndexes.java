@@ -85,8 +85,14 @@ public class CommandInsertIndexes implements IUndoCommand
     // convert view indexes to sorted data indexes
     int[] viewArray = viewIndexes.toArray();
     int[] raw = new int[viewArray.length];
+    int count = m_axis.getCount();
     for ( int i = 0; i < viewArray.length; i++ )
-      raw[i] = m_axis.getDataIndex( viewArray[i] );
+    {
+      if ( viewArray[i] == count ) // adding to end
+        raw[i] = count;
+      else
+        raw[i] = m_axis.getDataIndex( viewArray[i] );
+    }
     Arrays.sort( raw );
 
     // build contiguous runs in descending order (insertion order)

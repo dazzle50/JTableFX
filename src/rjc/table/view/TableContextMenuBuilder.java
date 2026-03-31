@@ -23,6 +23,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.SeparatorMenuItem;
+import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import rjc.table.data.IDataInsertDeleteColumns;
 import rjc.table.data.IDataInsertDeleteRows;
@@ -50,33 +51,22 @@ public class TableContextMenuBuilder
   private int         m_triggerCol; // column view-index where context menu triggered
   private ContextMenu m_menu;       // the context menu being built
 
-  /****************************************** constructor *****************************************/
-  /**
-   * Creates a new context menu builder for the specified table view and cell location.
-   *
-   * @param view the table view the menu is for
-   * @param triggerRow the row index where the context menu was triggered
-   * @param triggerCol the column index where the context menu was triggered
-   */
-  public TableContextMenuBuilder( TableView view, int triggerRow, int triggerCol )
-  {
-    // initialise builder with table view and mouse cell coordinates
-    m_view = view;
-    m_triggerRow = triggerRow;
-    m_triggerCol = triggerCol;
-    m_menu = new ContextMenu();
-  }
-
   /********************************************* build *******************************************/
   /**
-   * Orchestrates the construction of the context menu based on the cell coordinates 
+   * Orchestrates the construction of the context menu based on the cell coordinates
    * provided during instantiation.
    *
    * @return the constructed context menu
    * @throws IllegalStateException if the mouse coordinates do not map to a valid region
    */
-  public ContextMenu build()
+  public ContextMenu buildMenu( ContextMenu menu, TableView view, int triggerRow, int triggerCol )
   {
+    // initialise builder with menu, table view and mouse cell coordinates
+    m_menu = menu;
+    m_view = view;
+    m_triggerRow = triggerRow;
+    m_triggerCol = triggerCol;
+
     // determine which type of menu to build based on cell location
     if ( m_triggerRow == TableAxis.AFTER || m_triggerCol == TableAxis.AFTER )
       return buildAfter();
@@ -98,9 +88,11 @@ public class TableContextMenuBuilder
    *
    * @return the constructed context menu
    */
-  public ContextMenu buildAfter()
+  protected ContextMenu buildAfter()
   {
     // build context menu for after last table-view body row/column - currently no context menu
+    addAppendRow();
+    addAppendColumn();
     return m_menu;
   }
 
@@ -110,10 +102,10 @@ public class TableContextMenuBuilder
    *
    * @return the constructed context menu
    */
-  public ContextMenu buildCorner()
+  protected ContextMenu buildCorner()
   {
     // build context menu for table-view corner cell - currently no context menu
-    addTODO( "corner" );
+    // addTODO( "corner" );
     return m_menu;
   }
 
@@ -123,7 +115,7 @@ public class TableContextMenuBuilder
    *
    * @return the constructed context menu
    */
-  public ContextMenu buildColumnHeader()
+  protected ContextMenu buildColumnHeader()
   {
     // build context menu for table-view column header row - add relevant menu items
     addFilterTextColumn().addSortColumn().addHideColumn().addShowColumn().addInsertColumn().addDeleteColumn();
@@ -136,7 +128,7 @@ public class TableContextMenuBuilder
    *
    * @return the constructed context menu
    */
-  public ContextMenu buildRowHeader()
+  protected ContextMenu buildRowHeader()
   {
     // build context menu for table-view row header column - add relevant menu items
     addFilterTextRow().addSortRow().addHideRow().addShowRow().addInsertRow().addDeleteRow();
@@ -149,10 +141,10 @@ public class TableContextMenuBuilder
    *
    * @return the constructed context menu
    */
-  public ContextMenu buildBody()
+  protected ContextMenu buildBody()
   {
     // build context menu for table-view body cells - currently no context menu
-    addTODO( "body" );
+    // addTODO( "body" );
     return m_menu;
   }
 
@@ -199,7 +191,7 @@ public class TableContextMenuBuilder
     // add a show column(s) menu item if option is enabled for this table-view
     if ( TableContextMenu.isEnabled( m_view, TableContextMenu.TableMenuItems.COLUMN_SHOW ) )
     {
-      var item = new MenuItem( "Show" );
+      var item = new MenuItem( "Unhide" );
       item.setOnAction( event -> HideShow.showColumns( m_view ) );
       m_menu.getItems().add( item );
     }
@@ -220,7 +212,7 @@ public class TableContextMenuBuilder
     // add a show rows menu item if option is enabled for this table-view
     if ( TableContextMenu.isEnabled( m_view, TableContextMenu.TableMenuItems.ROW_SHOW ) )
     {
-      var item = new MenuItem( "Show" );
+      var item = new MenuItem( "Unhide" );
       item.setOnAction( event -> HideShow.showRows( m_view ) );
       m_menu.getItems().add( item );
     }
@@ -270,6 +262,52 @@ public class TableContextMenuBuilder
     {
       var item = new MenuItem( "Insert" );
       item.setOnAction( event -> Insert.insertRows( m_view, m_triggerRow ) );
+      m_menu.getItems().add( item );
+    }
+
+    return this;
+  }
+
+  /*************************************** addAppendColumn ***************************************/
+  /**
+   * Adds a menu item to append a column to the end of table.
+   * <p>
+   * The item is added if {@link TableContextMenu.TableMenuItems#COLUMN_INSERT} is enabled for
+   * this table view and the data model implements {@link IDataInsertDeleteColumns}.
+   *
+   * @return this builder for method chaining
+   */
+  protected TableContextMenuBuilder addAppendColumn()
+  {
+    // add an insert column(s) menu item if option is enabled for this table-view
+    if ( TableContextMenu.isEnabled( m_view, TableContextMenu.TableMenuItems.COLUMN_INSERT )
+        && m_view.getData() instanceof IDataInsertDeleteColumns )
+    {
+      var item = new MenuItem( "Add column" );
+      item.setOnAction( event -> Insert.insertColumns( m_view, m_view.getData().getColumnCount() ) );
+      m_menu.getItems().add( item );
+    }
+
+    return this;
+  }
+
+  /**************************************** addAppendRow *****************************************/
+  /**
+   * Adds a menu item to append a row to the end of table.
+   * <p>
+   * The item is added if {@link TableContextMenu.TableMenuItems#ROW_INSERT} is enabled for
+   * this table view and the data model implements {@link IDataInsertDeleteRows}.
+   *
+   * @return this builder for method chaining
+   */
+  protected TableContextMenuBuilder addAppendRow()
+  {
+    // add an insert row(s) menu item if option is enabled for this table-view
+    if ( TableContextMenu.isEnabled( m_view, TableContextMenu.TableMenuItems.ROW_INSERT )
+        && m_view.getData() instanceof IDataInsertDeleteRows )
+    {
+      var item = new MenuItem( "Add row" );
+      item.setOnAction( event -> Insert.insertRows( m_view, m_view.getData().getRowCount() ) );
       m_menu.getItems().add( item );
     }
 
@@ -347,7 +385,8 @@ public class TableContextMenuBuilder
       // ensure aligned when menu shown, and text-fill is correct (otherwise lost)
       filterText.setOnShown( event ->
       {
-        Paint textFill = ( (Label) m_menu.getStyleableNode().lookup( ".label" ) ).getTextFill();
+        var node = m_menu.getStyleableNode().lookup( ".label" );
+        Paint textFill = node instanceof Label lbl ? lbl.getTextFill() : Color.BLACK;
         MenuItemTextField.align( textFill, contains, starts, regex );
       } );
 
@@ -363,7 +402,7 @@ public class TableContextMenuBuilder
    * Adds a submenu with text filtering options for the row.
    * Includes "Contains", "Starts with", and "Regex" filter types.
    * The items are added if {@link TableContextMenu.TableMenuItems#ROW_FILTER_TEXT}
-   * is enabled for this table view. 
+   * is enabled for this table view.
    *
    * @return this builder for method chaining
    */
@@ -387,7 +426,8 @@ public class TableContextMenuBuilder
       // ensure aligned when menu shown, and text-fill is correct (otherwise lost)
       filterText.setOnShown( event ->
       {
-        Paint textFill = ( (Label) m_menu.getStyleableNode().lookup( ".label" ) ).getTextFill();
+        var node = m_menu.getStyleableNode().lookup( ".label" );
+        Paint textFill = node instanceof Label lbl ? lbl.getTextFill() : Color.BLACK;
         MenuItemTextField.align( textFill, contains, starts, regex );
       } );
 
@@ -403,7 +443,7 @@ public class TableContextMenuBuilder
    * Adds menu items to sort the column in ascending or descending order.
    * The items are added if {@link TableContextMenu.TableMenuItems#COLUMN_SORT}
    * is enabled for this table view.
-   * 
+   *
    * @return this builder for method chaining
    */
   protected TableContextMenuBuilder addSortColumn()
@@ -428,7 +468,7 @@ public class TableContextMenuBuilder
    * Adds menu items to sort the row in ascending or descending order.
    * The items are added if {@link TableContextMenu.TableMenuItems#ROW_SORT}
    * is enabled for this table view.
-   * 
+   *
    * @return this builder for method chaining
    */
   protected TableContextMenuBuilder addSortRow()
@@ -493,5 +533,4 @@ public class TableContextMenuBuilder
 
     return this;
   }
-
 }

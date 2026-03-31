@@ -23,7 +23,6 @@ import javafx.scene.image.Image;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import rjc.table.Utils;
-import rjc.table.view.TableOverlay;
 import rjc.table.view.TableScrollBar;
 import rjc.table.view.TableView;
 import rjc.table.view.cell.MousePosition;
@@ -67,7 +66,7 @@ abstract public class AbstractCursor extends ImageCursor implements ITableViewCu
     mouseEvent.consume();
     m_x = (int) mouseEvent.getX();
     m_y = (int) mouseEvent.getY();
-    m_view = ( (TableOverlay) mouseEvent.getSource() ).getView();
+    m_view = (TableView) mouseEvent.getSource();
     m_button = mouseEvent.getButton();
     m_selectCell = m_view.getSelectCell();
     m_focusCell = m_view.getFocusCell();

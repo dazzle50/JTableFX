@@ -181,7 +181,7 @@ public class TableOverlay extends Canvas
    */
   private void highlightHiddenRows()
   {
-    Color colour = m_view.isFocused() ? Colours.SELECTED_BORDER : Colours.SELECTED_BORDER.desaturate();
+    Color colour = m_view.isFocused() ? Colours.SELECTED_BORDER : Colours.SELECTED_BORDER_UNFOCUSED;
     m_gc.setFill( colour );
 
     // determine row range to be checked
@@ -222,7 +222,7 @@ public class TableOverlay extends Canvas
    */
   private void highlightHiddenColumns()
   {
-    Color colour = m_view.isFocused() ? Colours.SELECTED_BORDER : Colours.SELECTED_BORDER.desaturate();
+    Color colour = m_view.isFocused() ? Colours.SELECTED_BORDER : Colours.SELECTED_BORDER_UNFOCUSED;
     m_gc.setFill( colour );
 
     // determine column range to be checked
@@ -310,8 +310,7 @@ public class TableOverlay extends Canvas
    */
   private void drawShape( int viewColumn, int viewRow, int[] shape, double xOffset, double yOffset )
   {
-    // use desaturated colour when the view does not have focus
-    Color colour = m_view.isFocused() ? Colours.SELECTED_BORDER : Colours.SELECTED_BORDER.desaturate();
+    Color colour = m_view.isFocused() ? Colours.SELECTED_BORDER : Colours.SELECTED_BORDER_UNFOCUSED;
     m_gc.setFill( colour );
 
     // calculate base position for the shape
@@ -335,7 +334,7 @@ public class TableOverlay extends Canvas
    */
   private void highlightSelectedAreas( ArrayList<int[]> areas )
   {
-    Color fill = m_view.isFocused() ? Colours.SELECTED_HIGHLIGHT : Colours.SELECTED_HIGHLIGHT.desaturate();
+    Color fill = m_view.isFocused() ? Colours.SELECTED_HIGHLIGHT : Colours.SELECTED_HIGHLIGHT_UNFOCUSED;
     m_gc.setFill( fill );
     m_gc.setStroke( Colours.SELECTED_BORDER );
 
@@ -368,7 +367,7 @@ public class TableOverlay extends Canvas
    */
   private void highlightFocusCell( ViewPosition focus )
   {
-    Color colour = m_view.isFocused() ? Colours.SELECTED_BORDER : Colours.SELECTED_BORDER.desaturate();
+    Color colour = m_view.isFocused() ? Colours.SELECTED_BORDER : Colours.SELECTED_BORDER_UNFOCUSED;
     m_gc.setStroke( colour );
 
     if ( focus.isVisible() )

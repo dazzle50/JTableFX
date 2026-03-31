@@ -280,7 +280,7 @@ public class UndoStackView extends Parent
         if ( m_canvas.isFocused() )
           gc.setFill( Colours.TEXT_SELECTED_BACKGROUND );
         else
-          gc.setFill( Colours.TEXT_SELECTED_BACKGROUND.desaturate().desaturate() );
+          gc.setFill( Colours.TEXT_SELECTED_BACKGROUND_UNFOCUSED );
 
         gc.fillRect( 0.0, y, getWidth(), m_rowHeight );
         gc.setFill( Colours.TEXT_SELECTED );

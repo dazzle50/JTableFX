@@ -46,10 +46,10 @@ public class ObservableStatus implements ISignal
   }
 
   private static final String STYLE_INFO    = "-fx-text-fill: -fx-text-base-color;";
-  private static final String STYLE_BUSY    = "-fx-text-fill: -fx-text-base-color; -fx-background-color: linear-gradient(derive(lightyellow, -10%), lightyellow)";
+  private static final String STYLE_BUSY    = "-fx-text-fill: gray;";
   private static final String STYLE_WARNING = "-fx-text-fill: derive(orange, -20%);";
   private static final String STYLE_ERROR   = "-fx-text-fill: red;";
-  private static final String STYLE_FATAL   = "-fx-text-fill: white; -fx-font-weight: bold; -fx-background-color: red";
+  private static final String STYLE_FATAL   = "-fx-text-fill: white; -fx-font-weight: bold; -fx-background-color: red;";
 
   /**************************************** constructor ******************************************/
   /**
