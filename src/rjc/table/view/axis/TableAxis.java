@@ -390,6 +390,26 @@ public class TableAxis implements IListener
     return m_viewDataMapping.getViewIndex( dataIndex );
   }
 
+  /*************************************** getDataIndexes ****************************************/
+  /**
+   * Converts a set of view indexes into an array of their corresponding data indexes.
+   *
+   * @param viewIndexes  set of view indices to convert
+   * @return array of corresponding data indices
+   */
+  public int[] getDataIndexes( HashSetInt viewIndexes )
+  {
+    // allocate array for mapped results
+    int[] dataIndexes = new int[viewIndexes.size()];
+    var it = viewIndexes.iterator();
+
+    // map each view index to its underlying data index
+    for ( int i = 0; i < dataIndexes.length; i++ )
+      dataIndexes[i] = getDataIndex( it.next() );
+
+    return dataIndexes;
+  }
+
   /***************************************** reorderView *****************************************/
   /**
    * Reorders view-indices by moving a set of indices to a new position in the view-to-data mapping.

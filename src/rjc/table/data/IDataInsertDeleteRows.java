@@ -37,7 +37,7 @@ import java.util.List;
  */
 public interface IDataInsertDeleteRows
 {
-  /* **************************************** insertRows ******************************************/
+  /***************************************** insertRows ******************************************/
   /**
    * Inserts one or more rows at the specified position using the provided row data.
    * <p>
@@ -66,7 +66,7 @@ public interface IDataInsertDeleteRows
     return false;
   }
 
-  /* **************************************** deleteRows ******************************************/
+  /***************************************** deleteRows ******************************************/
   /**
    * Deletes a contiguous range of rows from the table data model.
    * <p>
@@ -83,6 +83,26 @@ public interface IDataInsertDeleteRows
   default List<Object> deleteRows( int deleteIndex, int count )
   {
     // default: no-op — override to provide deletion behaviour
+    return null;
+  }
+
+  /************************************** checkRowsDeletable *************************************/
+  /**
+   * Returns whether specified rows are deletable.
+   * <p>
+   * This method is called by the table's delete-row action to check if the specified rows
+   * can be deleted. If it returns a non-null string, deletion is prevented and the string is
+   * displayed as an error mesage to the user.
+   *
+   * @param dataRows    array of data-row indices to check for deletability
+   * @return {@code null} if the rows are deletable, or a non-null string containing human-readable
+   *         text to be shown to the user explaining why deletion is not allowed
+   * @throws Exceptions if invalid input parameters are provided
+   * @implNote The default implementation returns {@code null} (all rows are deletable).
+   */
+  default String checkRowsDeletable( int[] dataRows )
+  {
+    // default: all rows are deletable — override to provide row-specific deletability
     return null;
   }
 }

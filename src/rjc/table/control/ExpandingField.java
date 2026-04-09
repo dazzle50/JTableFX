@@ -68,7 +68,11 @@ public class ExpandingField extends TextField implements IObservableStatus
     String newText = oldText.substring( 0, start ) + text + oldText.substring( end );
 
     if ( isAllowed( newText ) )
+    {
+      if ( m_status != null && !newText.equals( oldText ) )
+        m_status.clear(); // assume any errors cleared until re-checked & found
       super.replaceText( start, end, text );
+    }
   }
 
   /****************************************** setAllowed *****************************************/

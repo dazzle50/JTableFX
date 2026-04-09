@@ -132,7 +132,7 @@ public class NumberSpinField extends ButtonField implements ISignal
     allow.append( "\\d{0," + m_numberFormat.getMaximumIntegerDigits() + "}" );
 
     if ( m_numberFormat.getMaximumFractionDigits() > 0 )
-      allow.append( "\\.?\\d{0," + m_numberFormat.getMaximumFractionDigits() + "}" );
+      allow.append( "(\\.\\d{0," + m_numberFormat.getMaximumFractionDigits() + "})?" );
 
     allow.append( Pattern.quote( getSuffix() ) );
     setAllowed( allow.toString() );

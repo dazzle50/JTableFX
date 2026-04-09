@@ -19,6 +19,7 @@
 package rjc.table.view.action;
 
 import javafx.geometry.Orientation;
+import javafx.scene.control.Alert;
 import rjc.table.HashSetInt;
 import rjc.table.data.IDataInsertDeleteColumns;
 import rjc.table.data.IDataInsertDeleteRows;
@@ -30,15 +31,21 @@ import rjc.table.view.TableView;
 /*************************************************************************************************/
 
 /**
- * Provides deletion of table data columns and rows with undo support.
+ * Utility class providing deletion of table-data columns and rows with undo support.
  * <p>
- * Only operates when the data model implements {@link IDataInsertDeleteColumns} or
- * {@link IDataInsertDeleteRows} respectively. 
- * If the targeted column or row is selected, all selected columns or rows are deleted.
+ * Callers supply a data model implementing {@link IDataInsertDeleteColumns} or
+ * {@link IDataInsertDeleteRows}. If the targeted index is part of the current selection,
+ * all selected columns or rows are deleted; otherwise only the specified index is deleted.
  */
 public class Delete
 {
-  /***************************************** deleteRows ******************************************/
+  /***************************************** constructor *****************************************/
+  private Delete()
+  {
+    // private constructor to prevent instantiation of this utility class
+  }
+
+  /**************************************** deleteRows *******************************************/
   /**
    * Deletes the specified row, or if that row is selected, deletes all selected rows.
    *
@@ -49,34 +56,26 @@ public class Delete
    */
   public static boolean deleteRows( TableView view, int viewRow )
   {
-    HashSetInt viewRows;
-    if ( view.getSelection().isRowSelected( viewRow ) )
+    var viewRows = getViewIndexes( view.getSelection().isRowSelected( viewRow ), view.getSelection().getSelectedRows(),
+        viewRow, view.getData().getRowCount() );
+    var dataRows = view.getRowsAxis().getDataIndexes( viewRows );
+
+    // check rows can be deleted, show warning and abort if not
+    String deletable = ( (IDataInsertDeleteRows) view.getData() ).checkRowsDeletable( dataRows );
+    if ( deletable != null )
     {
-      // null means all rows selected — populate explicitly with every view row index
-      viewRows = view.getSelection().getSelectedRows();
-      if ( viewRows == null )
-      {
-        int count = view.getData().getRowCount();
-        viewRows = new HashSetInt( count );
-        for ( int i = 0; i < count; i++ )
-          viewRows.add( i );
-      }
+      showWarning( deletable );
+      return false;
     }
-    else
-      viewRows = new HashSetInt( 1 );
 
-    // if no rows selected, delete specified row (usually mouse row)
-    if ( viewRows.isEmpty() )
-      viewRows.add( viewRow );
-
-    // delete rows via undo command and push to undo stack
-    var command = new CommandDeleteIndexes( view, Orientation.VERTICAL, viewRows );
+    // push delete command to undo stack, clearing selection if command is valid
+    var command = new CommandDeleteIndexes( view, Orientation.VERTICAL, dataRows );
     if ( command.isValid() )
       view.getSelection().clear();
     return view.getUndoStack().push( command );
   }
 
-  /**************************************** deleteColumns ****************************************/
+  /*************************************** deleteColumns *****************************************/
   /**
    * Deletes the specified column, or if that column is selected, deletes all selected columns.
    *
@@ -88,30 +87,73 @@ public class Delete
    */
   public static boolean deleteColumns( TableView view, int viewColumn )
   {
-    HashSetInt viewColumns;
-    if ( view.getSelection().isColumnSelected( viewColumn ) )
+    var viewColumns = getViewIndexes( view.getSelection().isColumnSelected( viewColumn ),
+        view.getSelection().getSelectedColumns(), viewColumn, view.getData().getColumnCount() );
+    var dataColumns = view.getColumnsAxis().getDataIndexes( viewColumns );
+
+    // check columns can be deleted, show warning and abort if not
+    String deletable = ( (IDataInsertDeleteColumns) view.getData() ).checkColumnsDeletable( dataColumns );
+    if ( deletable != null )
     {
-      // null means all columns selected — populate explicitly with every view column index
-      viewColumns = view.getSelection().getSelectedColumns();
-      if ( viewColumns == null )
-      {
-        int count = view.getData().getColumnCount();
-        viewColumns = new HashSetInt( count );
-        for ( int i = 0; i < count; i++ )
-          viewColumns.add( i );
-      }
+      showWarning( deletable );
+      return false;
     }
-    else
-      viewColumns = new HashSetInt( 1 );
 
-    // if no columns selected, delete specified column (usually mouse column)
-    if ( viewColumns.isEmpty() )
-      viewColumns.add( viewColumn );
-
-    // delete columns via undo command and push to undo stack
-    var command = new CommandDeleteIndexes( view, Orientation.HORIZONTAL, viewColumns );
+    // push delete command to undo stack, clearing selection if command is valid
+    var command = new CommandDeleteIndexes( view, Orientation.HORIZONTAL, dataColumns );
     if ( command.isValid() )
       view.getSelection().clear();
     return view.getUndoStack().push( command );
   }
+
+  /*************************************** getViewIndexes ****************************************/
+  /**
+   * Returns the set of view indexes that should be operated on, taking into account
+   * the current selection state and fallback index.
+   * <p>
+   * If {@code isSelected} is {@code false}, returns a single-element set containing
+   * {@code fallbackIndex}. If {@code isSelected} is {@code true} and {@code selected} is
+   * non-null, returns {@code selected} directly. If {@code selected} is {@code null}
+   * (indicating all indexes are selected), returns a new set containing every index from
+   * {@code 0} to {@code totalCount − 1}.
+   *
+   * @param isSelected    whether the fallback index is within the current selection
+   * @param selected      the currently selected view indexes, or {@code null} if all are selected
+   * @param fallbackIndex the index to use when nothing is selected
+   * @param totalCount    the total number of indexes; used only when all are selected
+   * @return a non-empty {@link HashSetInt} of view indexes to delete
+   */
+  private static HashSetInt getViewIndexes( boolean isSelected, HashSetInt selected, int fallbackIndex, int totalCount )
+  {
+    if ( !isSelected )
+    {
+      // nothing selected — operate on the single fallback index only
+      var single = new HashSetInt( 1 );
+      single.add( fallbackIndex );
+      return single;
+    }
+    if ( selected != null )
+      return selected;
+    // null means all indexes selected — expand explicitly
+    var all = new HashSetInt( totalCount );
+    for ( int i = 0; i < totalCount; i++ )
+      all.add( i );
+    return all;
+  }
+
+  /**************************************** showWarning ******************************************/
+  /**
+   * Displays a modal warning alert titled "Cannot delete" with the given message.
+   *
+   * @param message the warning text to display
+   */
+  private static void showWarning( String message )
+  {
+    var alert = new Alert( Alert.AlertType.WARNING );
+    alert.setTitle( "Cannot delete" );
+    alert.setHeaderText( null );
+    alert.setContentText( message );
+    alert.showAndWait();
+  }
+
 }

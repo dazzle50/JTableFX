@@ -26,7 +26,6 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
 import javafx.geometry.Orientation;
-import rjc.table.HashSetInt;
 import rjc.table.data.IDataInsertDeleteColumns;
 import rjc.table.data.IDataInsertDeleteRows;
 import rjc.table.data.TableData;
@@ -41,9 +40,8 @@ import rjc.table.view.axis.TableAxis;
 /**
  * Undoable command for deleting an arbitrary set of columns or rows from a table data model.
  * <p>
- * View-based indexes are converted to data-based indexes and grouped into the fewest possible
- * contiguous runs, each resolved with a single call to
- * {@link IDataInsertDeleteColumns#deleteColumns} or {@link IDataInsertDeleteRows#deleteRows}.
+ * Indexes are grouped into the fewest possible contiguous runs, each resolved with a single call
+ * to {@link IDataInsertDeleteColumns#deleteColumns} or {@link IDataInsertDeleteRows#deleteRows}.
  * Deletion is applied high-to-low so that lower run indexes remain valid throughout. For each
  * run, axis view-to-data mapping entries and nominal sizes are both captured and shifted
  * <em>before</em> the data deletion so that view reordering and custom widths/heights remain
@@ -68,39 +66,31 @@ public class CommandDeleteIndexes implements IUndoCommand
 
   /***************************************** constructor *****************************************/
   /**
-   * Creates and immediately executes a delete command for the specified view-based indexes.
+   * Creates and immediately executes a delete command for the specified data-indexes.
    * <p>
-   * View indexes are resolved to data indexes via the appropriate axis, grouped into contiguous
-   * runs, and deleted from highest to lowest to preserve index validity throughout the operation.
-   * Axis nominal sizes are captured and shifted in lock-step with each data deletion so that
-   * custom column/row sizes remain correctly aligned after the operation and after undo.
+   * Indexes are grouped into contiguous runs, and deleted from highest to lowest to preserve
+   * index validity throughout the operation.  Axis nominal sizes are captured and shifted in
+   * lock-step with each data deletion so that custom column/row sizes remain correctly aligned
+   * after the operation and after undo.
    *
    * @param view        the table view providing axis and data access
    * @param orientation {@code HORIZONTAL} to delete columns, {@code VERTICAL} to delete rows
-   * @param viewIndexes non-null, non-empty set of view-based indexes to delete
+   * @param dataIndexes non-null, non-empty array of data-indexes to delete
    */
   @SuppressWarnings( "unchecked" )
-  public CommandDeleteIndexes( TableView view, Orientation orientation, HashSetInt viewIndexes )
+  public CommandDeleteIndexes( TableView view, Orientation orientation, int[] dataIndexes )
   {
     m_data = view.getData();
     m_orientation = orientation;
-
-    // resolve the correct axis for view->data index conversion and size management
     m_axis = orientation == Orientation.HORIZONTAL ? view.getColumnsAxis() : view.getRowsAxis();
 
-    // convert view indexes to data indexes
-    int[] viewArray = viewIndexes.toArray();
-    int[] raw = new int[viewArray.length];
-    for ( int i = 0; i < viewArray.length; i++ )
-      raw[i] = m_axis.getDataIndex( viewArray[i] );
-    Arrays.sort( raw );
-
     // build contiguous runs in descending order (deletion order)
-    m_runs = buildRuns( raw );
+    Arrays.sort( dataIndexes );
+    m_runs = buildRuns( dataIndexes );
     m_deletedData = new List[m_runs.length];
     m_capturedSizes = new short[m_runs.length][];
     m_capturedMapping = new int[m_runs.length][][];
-    m_totalCount = raw.length;
+    m_totalCount = dataIndexes.length;
 
     redo();
   }

@@ -85,4 +85,24 @@ public interface IDataInsertDeleteColumns
     // default: no-op — override to provide deletion behaviour
     return null;
   }
+
+  /************************************ checkColumnsDeletable ************************************/
+  /**
+   * Returns whether specified columns are deletable.
+   * <p>
+   * This method is called by the table's delete-column action to check if the specified columns
+   * can be deleted. If it returns a non-null string, deletion is prevented and the string is
+   * displayed as an error message to the user.
+   *
+   * @param dataColumns   array of data-column indices to check for deletability
+   * @return {@code null} if the columns are deletable, or a non-null string containing human-readable text
+   *         to be shown to the user explaining why deletion is not allowed
+   * @throws Exceptions if invalid input parameters are provided
+   * @implNote The default implementation returns {@code null} (all columns are deletable).
+   */
+  default String checkColumnsDeletable( int[] dataColumns )
+  {
+    // default: all columns are deletable — override to provide column-specific deletability
+    return null;
+  }
 }
