@@ -276,8 +276,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
   /**
    * Returns a copy with the specified number of milliseconds added.
    * <p>
-   * Day-boundary overflow and underflow are handled via floor division so negative values
-   * behave correctly.
+   * Handles day boundary crossings correctly, including the special case of {@code 24:00}.
    *
    * @param millis milliseconds to add (may be negative)
    * @return {@code this} if {@code millis == 0}, otherwise a new {@code DateTime}
@@ -287,10 +286,22 @@ public final class DateTime implements Serializable, Comparable<DateTime>
     if ( millis == 0 )
       return this;
 
-    // floor division ensures correct handling of negative values
+    // add millis to current time, then calculate day shift and new millis within the day
     long total = m_milliseconds + millis;
-    int dayShift = (int) Math.floorDiv( total, Time.MILLIS_PER_DAY );
-    int newMillis = Math.floorMod( total, Time.MILLIS_PER_DAY );
+    int dayShift = (int) ( total / Time.MILLIS_PER_DAY );
+    int newMillis = (int) ( total - (long) dayShift * Time.MILLIS_PER_DAY );
+
+    // handle negative millis that shift back into the previous day
+    if ( newMillis < 0 )
+    {
+      newMillis += Time.MILLIS_PER_DAY;
+      dayShift--;
+    }
+
+    // if we crossed a day boundary and ended up at exactly 00:00, return 24:00 of the previous day
+    if ( millis > 0 && newMillis == 0 )
+      return new DateTime( m_epochDay + dayShift - 1, Time.MILLIS_PER_DAY );
+
     return new DateTime( m_epochDay + dayShift, newMillis );
   }
 

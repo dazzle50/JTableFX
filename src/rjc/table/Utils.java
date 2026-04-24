@@ -37,7 +37,7 @@ import java.util.regex.Pattern;
 public class Utils
 {
   // current version of the JTableFX library
-  public static final String             VERSION      = "v0.2.0 WIP";
+  public static final String             VERSION      = "v0.2.0";
 
   // pre-compiled formatter and pattern for better performance
   private static final DateTimeFormatter TIMESTAMP    = DateTimeFormatter.ofPattern( "uuuu-MM-dd HH:mm:ss.SSS " );

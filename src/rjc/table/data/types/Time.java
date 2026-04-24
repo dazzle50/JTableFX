@@ -353,22 +353,25 @@ public final class Time implements Serializable, Comparable<Time>
   /**
    * Returns a copy of this time with the specified milliseconds added, wrapping at day boundaries.
    * <p>
-   * Negative values subtract. The result is always in {@code [00:00:00.000, 23:59:59.999]};
-   * note that end-of-day ({@code 24:00:00.000}) wraps to midnight on any non-zero addition.
+   * Negative values subtract milliseconds. If a positive addition lands exactly at the end of
+   * the day, {@link #MAX_VALUE} is returned to preserve the special {@code 24:00} value.
    *
-   * @param millisToAdd milliseconds to add (may be negative)
-   * @return a new {@code Time} with milliseconds added, wrapped within a day
+   * @param millisToAdd the milliseconds to add, negative to subtract
+   * @return the adjusted time, or this instance if no change is required
    */
   public Time plusMilliseconds( long millisToAdd )
   {
     if ( millisToAdd == 0 )
       return this;
 
-    // use long arithmetic to avoid int overflow before the modulo
+    // add and wrap around day boundaries using modulo arithmetic
     int ms = (int) ( ( m_milliseconds + millisToAdd ) % MILLIS_PER_DAY );
-    // correct negative remainder (Java truncates toward zero)
     if ( ms < 0 )
       ms += MILLIS_PER_DAY;
+
+    // when adding a positive amount, if we land exactly at the end of the day, return MAX_VALUE to preserve 24:00
+    if ( millisToAdd > 0 && ms == 0 )
+      return MAX_VALUE;
 
     return new Time( ms );
   }

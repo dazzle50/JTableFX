@@ -20,6 +20,7 @@ package rjc.table.view.action;
 
 import javafx.geometry.Orientation;
 import javafx.scene.control.Alert;
+import javafx.stage.Window;
 import rjc.table.HashSetInt;
 import rjc.table.data.IDataInsertDeleteColumns;
 import rjc.table.data.IDataInsertDeleteRows;
@@ -64,7 +65,7 @@ public class Delete
     String deletable = ( (IDataInsertDeleteRows) view.getData() ).checkRowsDeletable( dataRows );
     if ( deletable != null )
     {
-      showWarning( deletable );
+      showWarning( view.getScene().getWindow(), deletable );
       return false;
     }
 
@@ -95,7 +96,7 @@ public class Delete
     String deletable = ( (IDataInsertDeleteColumns) view.getData() ).checkColumnsDeletable( dataColumns );
     if ( deletable != null )
     {
-      showWarning( deletable );
+      showWarning( view.getScene().getWindow(), deletable );
       return false;
     }
 
@@ -145,11 +146,13 @@ public class Delete
   /**
    * Displays a modal warning alert titled "Cannot delete" with the given message.
    *
+   * @param owner   the owner window for the alert dialog
    * @param message the warning text to display
    */
-  private static void showWarning( String message )
+  private static void showWarning( Window owner, String message )
   {
     var alert = new Alert( Alert.AlertType.WARNING );
+    alert.initOwner( owner );
     alert.setTitle( "Cannot delete" );
     alert.setHeaderText( null );
     alert.setContentText( message );
