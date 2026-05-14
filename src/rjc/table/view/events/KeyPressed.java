@@ -22,6 +22,7 @@ import javafx.event.EventHandler;
 import javafx.scene.input.KeyEvent;
 import rjc.table.Utils;
 import rjc.table.view.TableView;
+import rjc.table.view.action.Content;
 import rjc.table.view.action.Zoom;
 import rjc.table.view.axis.TableAxis;
 
@@ -89,7 +90,7 @@ public class KeyPressed implements EventHandler<KeyEvent>
           return;
 
         case DELETE: // delete key - delete selected cells content
-          // Content.delete( m_view );
+          Content.delete( m_view );
           return;
 
         case INSERT: // insert key - insert row or column

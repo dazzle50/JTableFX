@@ -173,63 +173,52 @@ public class CommandSortData implements IUndoCommand
 
   /************************************** applyPermutation ***************************************/
   /**
-   * Reorders elements using minimal swaps via cycle decomposition, keeping data
-   * and all axis index-sizes in lockstep.
+   * Reorders the table from {@code oldOrder} to {@code newOrder} using the minimum number of
+   * swaps, while keeping all axis index-sizes synchronised with the data.
    * <p>
-   * Treats the transformation from {@code oldOrder} to {@code newOrder} as a permutation,
-   * decomposing it into disjoint cycles. Each cycle is resolved with
-   * {@code (cycle_length - 1)} swaps, which is the theoretical minimum.
-   * <p>
-   * Example: {@code oldOrder=[5,3,7,1]}, {@code newOrder=[1,7,3,5]} means position 0
-   * currently holds data-index 5 but should hold data-index 1. The swapper is called
-   * with positions, not data-indices.
+   * The algorithm implicitly performs cycle decomposition. For each local position, it repeatedly
+   * swaps the wanted data-index into place. A cycle of length {@code n} is therefore resolved with
+   * {@code n - 1} swaps, which is optimal.
    *
-   * @param oldOrder array mapping positions to current data-indices
-   * @param newOrder array mapping positions to desired data-indices
+   * @param oldOrder data-indices in their current order
+   * @param newOrder data-indices in their desired order
    */
   private void applyPermutation( int[] oldOrder, int[] newOrder )
   {
-    // build reverse lookup: data-index -> current position
+    // track the current data-index held by each local position in the affected subset
     int[] currentOrder = oldOrder.clone();
+
+    // reverse lookup: data-index -> local position currently holding that data-index
     int[] dataIndexToPosition = createInverseMapping( currentOrder );
 
-    // track visited positions to avoid redundant cycle processing
-    boolean[] visited = new boolean[currentOrder.length];
-
-    // process each position, following cycles until all resolved
+    // fix each local position, already-correct positions naturally require no work
     for ( int pos = 0; pos < currentOrder.length; pos++ )
     {
-      if ( visited[pos] || currentOrder[pos] == newOrder[pos] )
-        continue;
-
-      // follow cycle until it closes
-      int currentPos = pos;
-      while ( currentOrder[currentPos] != newOrder[currentPos] )
+      while ( currentOrder[pos] != newOrder[pos] )
       {
-        visited[currentPos] = true;
+        // the data-index currently here, and the data-index that should be here.
+        int current = currentOrder[pos];
+        int wanted = newOrder[pos];
 
-        // find where the required data-index currently sits
-        int targetDataIndex = newOrder[currentPos];
-        int targetPos = dataIndexToPosition[targetDataIndex];
+        // find the local position currently holding the wanted data-index.
+        int targetPos = dataIndexToPosition[wanted];
 
-        // swap data and sizes by position (not data-index)
-        m_dataSwapper.swap( currentPos, targetPos );
-        m_sizeSwapper.swap( currentPos, targetPos );
+        // convert local subset positions back to actual table positions.
+        int swapIndex1 = oldOrder[pos];
+        int swapIndex2 = oldOrder[targetPos];
 
-        // keep currentOrder and dataIndexToPosition consistent after swap
-        int temp = currentOrder[currentPos];
-        currentOrder[currentPos] = currentOrder[targetPos];
-        currentOrder[targetPos] = temp;
+        // swap data and matching axis sizes at the actual table positions.
+        m_dataSwapper.swap( swapIndex1, swapIndex2 );
+        m_sizeSwapper.swap( swapIndex1, swapIndex2 );
 
-        dataIndexToPosition[currentOrder[currentPos]] = currentPos;
-        dataIndexToPosition[currentOrder[targetPos]] = targetPos;
+        // mirror the swap in the local order model.
+        currentOrder[pos] = wanted;
+        currentOrder[targetPos] = current;
 
-        // advance to the position just vacated
-        currentPos = targetPos;
+        // keep the reverse lookup consistent with currentOrder.
+        dataIndexToPosition[wanted] = pos;
+        dataIndexToPosition[current] = targetPos;
       }
-
-      // mark the last position in the cycle as visited
-      visited[currentPos] = true;
     }
   }
 

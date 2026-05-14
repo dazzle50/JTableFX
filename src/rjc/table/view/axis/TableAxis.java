@@ -18,6 +18,7 @@
 
 package rjc.table.view.axis;
 
+import java.util.Arrays;
 import java.util.Map;
 
 import rjc.table.HashSetInt;
@@ -205,20 +206,40 @@ public class TableAxis implements IListener
 
   /**************************************** getAllVisible ****************************************/
   /**
-   * Returns an array of all body cell view indices that are visible.
-   * 
-   * @return array of all visible view indices
+   * Returns all visible view body indices across the full range.
+   *
+   * @return array of visible view indices; never {@code null}
    */
   public int[] getAllVisible()
   {
-    // allocate array (worst case: all indices visible)
     int count = getCount();
-    int[] visible = new int[count];
-    int visibleCount = 0;
-    int pixelStart = getPixelStart( 0, 0 );
+    if ( count == 0 )
+      return new int[0];
+    return getAllVisible( FIRSTCELL, count - 1 );
+  }
 
-    // scan through all indices checking for non-zero pixel spans
-    for ( int viewIndex = 0; viewIndex < count; viewIndex++ )
+  /**
+   * Returns all visible view indices within the specified inclusive range.
+   *
+   * @param minViewIndex the first view index to inspect (inclusive)
+   * @param maxViewIndex the last view index to inspect (inclusive)
+   * @return array of visible view indices in ascending order; never {@code null}
+   * @throws IllegalArgumentException if the range is invalid or out of bounds
+   */
+  public int[] getAllVisible( int minViewIndex, int maxViewIndex )
+  {
+    int count = getCount();
+    // reject empty model or invalid range
+    if ( count == 0 || minViewIndex < FIRSTCELL || maxViewIndex >= count || minViewIndex > maxViewIndex )
+      throw new IllegalArgumentException( "Invalid view index range: " + minViewIndex + " to " + maxViewIndex );
+
+    // worst case: every index in the inclusive range is visible
+    int[] visible = new int[maxViewIndex - minViewIndex + 1];
+    int visibleCount = 0;
+    int pixelStart = getPixelStart( minViewIndex, 0 );
+
+    // inclusive upper bound — fixes the off-by-one drop of maxViewIndex
+    for ( int viewIndex = minViewIndex; viewIndex <= maxViewIndex; viewIndex++ )
     {
       int pixelEnd = getPixelStart( viewIndex + 1, 0 );
       if ( pixelEnd - pixelStart > 0 )
@@ -226,12 +247,7 @@ public class TableAxis implements IListener
       pixelStart = pixelEnd;
     }
 
-    // if all visible, return array containing all indices, otherwise trim to actual visible count
-    if ( visibleCount == count )
-      return visible;
-    int[] trimmed = new int[visibleCount];
-    System.arraycopy( visible, 0, trimmed, 0, visibleCount );
-    return trimmed;
+    return Arrays.copyOf( visible, visibleCount );
   }
 
   /***************************************** getVisible ******************************************/
