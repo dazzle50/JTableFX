@@ -40,23 +40,27 @@ public class ExpandingField extends TextField implements IObservableStatus
   /**************************************** constructor ******************************************/
   public ExpandingField()
   {
-    // listen to text changes to check if field width needs changing
-    textProperty().addListener( ( property, oldText, newText ) ->
+    // listen to text changes or padding changes to check if field width needs changing
+    textProperty().addListener( ( property, oldText, newText ) -> checkWidth() );
+    paddingProperty().addListener( ( property, oldPadding, newPadding ) -> checkWidth() );
+  }
+
+  /***************************************** checkWidth ******************************************/
+  private void checkWidth()
+  {
+    // if min & max width set, increase editor width if needed to show whole text
+    if ( m_minWidth > 0.0 && m_maxWidth > m_minWidth )
     {
-      // if min & max width set, increase editor width if needed to show whole text
-      if ( m_minWidth > 0.0 && m_maxWidth > m_minWidth )
+      Text text = new Text( getText() );
+      text.setFont( getFont() );
+      double width = text.getLayoutBounds().getWidth() + getPadding().getLeft() + getPadding().getRight() + 2;
+      width = Math.ceil( Utils.clamp( width, m_minWidth, m_maxWidth ) );
+      if ( getWidth() != width )
       {
-        Text text = new Text( newText );
-        text.setFont( getFont() );
-        double width = text.getLayoutBounds().getWidth() + getPadding().getLeft() + getPadding().getRight() + 2;
-        width = Utils.clamp( width, m_minWidth, m_maxWidth );
-        if ( getWidth() != width )
-        {
-          setMinWidth( width );
-          setMaxWidth( width );
-        }
+        setMinWidth( width );
+        setMaxWidth( width );
       }
-    } );
+    }
   }
 
   /***************************************** replaceText *****************************************/

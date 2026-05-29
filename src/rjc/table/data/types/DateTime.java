@@ -102,7 +102,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
    * @param year   proleptic Gregorian year
    * @param month  month (1 = January … 12 = December)
    * @param day    day-of-month (1–31 depending on month and year)
-   * @param hour   hour (0–23)
+   * @param hour   hour (0–24, where 24:00 represents end of day)
    * @param minute minute (0–59)
    * @param second second (0–59)
    * @return a new {@code DateTime} instance
@@ -131,21 +131,21 @@ public final class DateTime implements Serializable, Comparable<DateTime>
 
   /********************************************* now **********************************************/
   /**
-   * Creates a {@code DateTime} representing the current system date and time.
+   * Creates a {@code DateTime} representing the current local system date and time.
    *
    * @return a {@code DateTime} for the current moment
    */
   public static DateTime now()
   {
-    return ofMilliseconds( System.currentTimeMillis() );
+    return of( LocalDateTime.now() );
   }
 
   /******************************************** parse *********************************************/
   /**
    * Parses a date-time string with automatic format detection.
    * <p>
-   * Splits on the last {@code ' '} or {@code 'T'} separator (tried in order), then delegates
-   * each part to {@link DateParser} and {@link TimeParser} respectively.
+   * First tries explicit date-time forms separated by {@code ' '} or {@code 'T'}, then accepts
+   * date-only values as midnight and time-only values as today at that time.
    *
    * @param text the date-time string to parse, must not be null
    * @return a new {@code DateTime} instance
@@ -157,12 +157,21 @@ public final class DateTime implements Serializable, Comparable<DateTime>
     Objects.requireNonNull( text, "text must not be null" );
     String trimmed = text.trim();
 
-    // try common date-time separators in order of preference
+    if ( trimmed.equalsIgnoreCase( "now" ) )
+      return now();
+
+    // try explicit date-time forms, including times containing spaces such as "9 pm"
     for ( String sep : new String[] { " ", "T" } )
-    {
-      int idx = trimmed.lastIndexOf( sep );
-      if ( idx > 0 )
+      for ( int from = trimmed.length();; )
       {
+        int idx = trimmed.lastIndexOf( sep, from - 1 );
+        if ( idx < 0 )
+          break;
+        from = idx;
+
+        if ( idx == 0 || idx == trimmed.length() - 1 )
+          continue;
+
         try
         {
           Date date = DateParser.parse( trimmed.substring( 0, idx ) );
@@ -171,9 +180,27 @@ public final class DateTime implements Serializable, Comparable<DateTime>
         }
         catch ( IllegalArgumentException | DateTimeParseException ignored )
         {
-          // try next separator
+          // try next separator position
         }
       }
+
+    // try date-only and time-only forms as fallbacks
+    try
+    {
+      Date date = DateParser.parse( trimmed );
+      return new DateTime( date.getEpochDay(), 0 );
+    }
+    catch ( IllegalArgumentException | DateTimeParseException ignored )
+    {
+    }
+
+    try
+    {
+      Time time = TimeParser.parse( trimmed );
+      return new DateTime( Date.now().getEpochDay(), time.toMillisecondsOfDay() );
+    }
+    catch ( IllegalArgumentException | DateTimeParseException ignored )
+    {
     }
 
     throw new DateTimeParseException( "Unable to parse DateTime: " + text, trimmed, 0 );
@@ -442,6 +469,23 @@ public final class DateTime implements Serializable, Comparable<DateTime>
     };
   }
 
+  /****************************************** unitMillis ******************************************/
+  // returns the millisecond span of a sub-day interval unit; throws for day/calendar units
+  private static int unitMillis( IntervalUnit unit )
+  {
+    return switch ( unit )
+    {
+      case SECOND -> Time.MILLIS_PER_SECOND;
+      case MINUTE -> Time.MILLIS_PER_MINUTE;
+      case TEN_MINUTE -> 10 * Time.MILLIS_PER_MINUTE;
+      case HALF_HOUR -> 30 * Time.MILLIS_PER_MINUTE;
+      case HOUR -> Time.MILLIS_PER_HOUR;
+      case QUARTER_DAY -> 6 * Time.MILLIS_PER_HOUR;
+      case HALF_DAY -> 12 * Time.MILLIS_PER_HOUR;
+      default -> throw new IllegalArgumentException( "no millis for: " + unit );
+    };
+  }
+
   /****************************************** roundDown *******************************************/
   /**
    * Returns a copy truncated (rounded down) to the specified unit boundary.
@@ -460,46 +504,17 @@ public final class DateTime implements Serializable, Comparable<DateTime>
 
     return switch ( unit )
     {
-      case SECOND -> {
-        int t = ( m_milliseconds / Time.MILLIS_PER_SECOND ) * Time.MILLIS_PER_SECOND;
-        yield t == m_milliseconds ? this : new DateTime( m_epochDay, t );
-      }
-
-      case MINUTE -> {
-        int t = ( m_milliseconds / Time.MILLIS_PER_MINUTE ) * Time.MILLIS_PER_MINUTE;
-        yield t == m_milliseconds ? this : new DateTime( m_epochDay, t );
-      }
-
-      case TEN_MINUTE -> {
-        int t = ( m_milliseconds / Time.MILLIS_PER_MINUTE / 10 ) * 10 * Time.MILLIS_PER_MINUTE;
-        yield t == m_milliseconds ? this : new DateTime( m_epochDay, t );
-      }
-
-      case HALF_HOUR -> {
-        int t = ( m_milliseconds / Time.MILLIS_PER_MINUTE / 30 ) * 30 * Time.MILLIS_PER_MINUTE;
-        yield t == m_milliseconds ? this : new DateTime( m_epochDay, t );
-      }
-
-      case HOUR -> {
-        int t = ( m_milliseconds / Time.MILLIS_PER_HOUR ) * Time.MILLIS_PER_HOUR;
-        yield t == m_milliseconds ? this : new DateTime( m_epochDay, t );
-      }
-
-      case QUARTER_DAY -> {
-        // 6-hour boundaries: 00:00, 06:00, 12:00, 18:00
-        int t = ( m_milliseconds / ( 6 * Time.MILLIS_PER_HOUR ) ) * ( 6 * Time.MILLIS_PER_HOUR );
-        yield t == m_milliseconds ? this : new DateTime( m_epochDay, t );
-      }
-
-      case HALF_DAY -> {
-        // 12-hour boundaries: 00:00 and 12:00
-        int t = ( m_milliseconds / ( 12 * Time.MILLIS_PER_HOUR ) ) * ( 12 * Time.MILLIS_PER_HOUR );
+      // sub-day: floor to nearest unit-span multiple.
+      // MILLIS_PER_DAY % every sub-day span == 0, so 24:00 is always aligned and returned unchanged.
+      case SECOND, MINUTE, TEN_MINUTE, HALF_HOUR, HOUR, QUARTER_DAY, HALF_DAY -> {
+        int span = unitMillis( unit );
+        int t = ( m_milliseconds / span ) * span;
         yield t == m_milliseconds ? this : new DateTime( m_epochDay, t );
       }
 
       case DAY -> m_milliseconds == 0 ? this : new DateTime( m_epochDay, 0 );
 
-      // calendar units delegate entirely to Date.roundDown to avoid duplicating logic
+      // calendar units delegate entirely to Date.roundDown to avoid duplicating calendar logic
       case WEEK, MONTH, QUARTER_YEAR, HALF_YEAR, YEAR -> {
         int newDay = Date.ofEpochDay( m_epochDay ).roundDown( toDateUnit( unit ) ).getEpochDay();
         yield ( newDay == m_epochDay && m_milliseconds == 0 ) ? this : new DateTime( newDay, 0 );
@@ -509,24 +524,75 @@ public final class DateTime implements Serializable, Comparable<DateTime>
 
   /******************************************* roundUp ********************************************/
   /**
-   * Returns a copy rounded up (ceiling) to the specified unit boundary.
+   * Returns a copy rounded up (ceiling) to the end of the current unit period.
    * <p>
-   * Returns {@code this} if already aligned.
+   * "End of period" is defined as:
+   * <ul>
+   *   <li><b>Sub-day units</b> ({@code SECOND} through {@code HALF_DAY}): the next exact
+   *       multiple of the unit span within the same day, up to and including {@code 24:00}.
+   *       {@code MILLIS_PER_DAY} is exactly divisible by every sub-day unit span, so
+   *       {@code 24:00} is always aligned and is returned unchanged.</li>
+   *   <li><b>{@code DAY}</b>: {@code 24:00} of the same day. Both {@code 00:00} (start) and
+   *       {@code 24:00} (end) are considered aligned.</li>
+   *   <li><b>Calendar units</b> ({@code WEEK} through {@code YEAR}): {@code 24:00} of the
+   *       last day of the current period (e.g., {@code roundUp(MONTH)} on any date in January
+   *       yields {@code Jan 31 24:00}). Both the period start ({@code Jan 1 00:00}) and the
+   *       period end ({@code Jan 31 24:00}) are considered aligned and returned unchanged.</li>
+   * </ul>
+   * For alignment purposes, {@code 24:00} of day N is treated as chronologically equivalent to
+   * {@code 00:00} of day N+1, so {@code Jan 31 24:00} is recognised as the start of February.
    *
    * @param unit the unit to round up to, must not be null
-   * @return {@code this} if already aligned, otherwise the next unit boundary
+   * @return {@code this} if already at a period boundary, otherwise the end of the current period
    * @throws NullPointerException if {@code unit} is null
    */
   public DateTime roundUp( IntervalUnit unit )
   {
-    DateTime truncated = roundDown( unit );
+    Objects.requireNonNull( unit, "unit must not be null" );
 
-    // if already on a boundary, return this unchanged
-    if ( equals( truncated ) )
-      return this;
+    return switch ( unit )
+    {
+      // sub-day: ceiling to next unit-span multiple within the day.
+      // rem == 0 covers 24:00 automatically — MILLIS_PER_DAY % every sub-day span == 0.
+      case SECOND, MINUTE, TEN_MINUTE, HALF_HOUR, HOUR, QUARTER_DAY, HALF_DAY -> {
+        int span = unitMillis( unit );
+        int rem = m_milliseconds % span;
+        yield rem == 0 ? this : new DateTime( m_epochDay, m_milliseconds - rem + span );
+      }
 
-    // advance to next boundary
-    return truncated.plusInterval( 1, unit );
+      // day: both 00:00 (start) and 24:00 (end) are aligned; anything between rounds to 24:00
+      case DAY -> ( m_milliseconds == 0 || m_milliseconds == Time.MILLIS_PER_DAY ) ? this
+          : new DateTime( m_epochDay, Time.MILLIS_PER_DAY );
+
+      // calendar: aligned at period start (day D, 00:00) or period end (day D-1, 24:00).
+      // resolve 24:00 of day N → 00:00 of day N+1 before checking period membership.
+      case WEEK, MONTH, QUARTER_YEAR, HALF_YEAR, YEAR -> {
+        // effective midnight: 24:00 of day N is chronologically 00:00 of day N+1
+        boolean isEndOfDay = m_milliseconds == Time.MILLIS_PER_DAY;
+        int effectiveDay = isEndOfDay ? m_epochDay + 1 : m_epochDay;
+        int effectiveMs = isEndOfDay ? 0 : m_milliseconds;
+
+        // find the start of the period that contains the effective midnight
+        Date.IntervalUnit dateUnit = toDateUnit( unit );
+        int periodStart = Date.ofEpochDay( effectiveDay ).roundDown( dateUnit ).getEpochDay();
+
+        // aligned if effective midnight lands exactly on a period start (covers both boundaries)
+        if ( effectiveMs == 0 && periodStart == effectiveDay )
+          yield this;
+
+        // end-of-period = 24:00 of the day before the next period starts
+        Date nextStart = switch ( unit )
+        {
+          case WEEK -> Date.ofEpochDay( periodStart ).plusDays( 7 );
+          case MONTH -> Date.ofEpochDay( periodStart ).plusMonths( 1 );
+          case QUARTER_YEAR -> Date.ofEpochDay( periodStart ).plusMonths( 3 );
+          case HALF_YEAR -> Date.ofEpochDay( periodStart ).plusMonths( 6 );
+          case YEAR -> Date.ofEpochDay( periodStart ).plusYears( 1 );
+          default -> throw new AssertionError( "unreachable: " + unit );
+        };
+        yield new DateTime( nextStart.getEpochDay() - 1, Time.MILLIS_PER_DAY );
+      }
+    };
   }
 
   // ================================= Conversion Methods =================================
@@ -551,6 +617,7 @@ public final class DateTime implements Serializable, Comparable<DateTime>
   /**************************************** toMilliseconds ****************************************/
   /**
    * Converts this {@code DateTime} to milliseconds since the Unix epoch (1970-01-01T00:00:00.000).
+   * Note {@code 24:00} of day N and {@code 00:00} of day N+1 give same milliseconds. 
    *
    * @return milliseconds since the Unix epoch
    */
@@ -614,7 +681,9 @@ public final class DateTime implements Serializable, Comparable<DateTime>
 
   /******************************************* isEqual ********************************************/
   /**
-   * Returns {@code true} if this represents the same instant as {@code other}.
+   * Returns {@code true} if both epoch-day and milliseconds match exactly.
+   * Note {@code 24:00} of day N is not considered equal to {@code 00:00} of day N+1,
+   * since they have different field values, even though they represent the same instant.
    * <p>
    * Null-safe: returns {@code false} rather than throwing when {@code other} is null.
    *
@@ -705,7 +774,8 @@ public final class DateTime implements Serializable, Comparable<DateTime>
 
   /******************************************** equals ********************************************/
   /**
-   * Returns {@code true} if {@code obj} is a {@code DateTime} with identical fields.
+   * Returns {@code true} if {@code obj} is a {@code DateTime} with identical fields
+   * (date epoch day and milliseconds of day).
    *
    * @param obj the object to compare with (may be null)
    * @return {@code true} if both epoch-day and milliseconds are equal
