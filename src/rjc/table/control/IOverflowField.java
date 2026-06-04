@@ -22,10 +22,21 @@ package rjc.table.control;
 /************************** Interface for fields that support overflow ***************************/
 /*************************************************************************************************/
 
+/**
+ * Field contract for controls whose value can be stepped by a delta.
+ * <p>
+ * Implementations may use this for simple stepping, or may pass overflow to another field when
+ * their own value wraps beyond its range. Modifier flags allow callers to request larger or
+ * alternate step behaviour.
+ */
 public interface IOverflowField
 {
   /***************************************** changeValue *****************************************/
-  // change value by delta overflowing to overflow-field if available
+  /**
+   * Changes the field value by the supplied delta with no modifier-key behaviour.
+   *
+   * @param delta amount to add to the current value
+   */
   default void changeValue( double delta )
   {
     // change value assuming no shift/ctrl/alt behaviour
@@ -33,7 +44,14 @@ public interface IOverflowField
   }
 
   /***************************************** changeValue *****************************************/
-  // change value by delta/shift/ctrl overflowing to overflow-field if available
+  /**
+   * Changes the field value by the supplied delta, optionally using modifier-key behaviour.
+   *
+   * @param delta amount to add to the current value
+   * @param shift whether Shift was held for this change
+   * @param ctrl  whether Control was held for this change
+   * @param alt   whether Alt was held for this change
+   */
   default void changeValue( double delta, boolean shift, boolean ctrl, boolean alt )
   {
     // default behaviour is to ignore shift/ctrl/alt

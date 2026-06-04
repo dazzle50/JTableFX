@@ -19,6 +19,8 @@
 package rjc.table.control;
 
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 import rjc.table.signal.ISignal;
@@ -29,12 +31,25 @@ import rjc.table.signal.ObservableStatus.Level;
 /**************************** Generic spin control for number values *****************************/
 /*************************************************************************************************/
 
+/**
+ * Numeric {@link ButtonField} that formats, filters, and steps number values.
+ * <p>
+ * Formatting uses {@link Locale#ROOT} symbols with grouping disabled, so the decimal separator is
+ * always {@code .}. This matches the allowed-text pattern and parsing used by {@link #getDouble()}.
+ * <p>
+ * The field emits an {@link ISignal} message containing the current double value whenever the
+ * parsed value changes. Blank or invalid text parses as a sentinel value below the configured
+ * minimum.
+ */
 public class NumberSpinField extends ButtonField implements ISignal
 {
   private DecimalFormat m_numberFormat; // number decimal format
   private double        m_lastSignal;   // last value signalled to avoid signals when no change
 
   /**************************************** constructor ******************************************/
+  /**
+   * Creates an integer spin field with range 1 to 999, format {@code "0"}, and an up/down button.
+   */
   public NumberSpinField()
   {
     // set default spin editor characteristics
@@ -64,17 +79,32 @@ public class NumberSpinField extends ButtonField implements ISignal
   }
 
   /****************************************** setValue *******************************************/
+  /**
+   * Sets the displayed value.
+   * <p>
+   * Strings are used as raw text, null is displayed as blank text, and other values are formatted
+   * with the current {@link DecimalFormat}.
+   *
+   * @param value value to display
+   */
   @Override
   public void setValue( Object value )
   {
     // if string then set as specified, otherwise use number formatter
-    if ( value instanceof String )
+    if ( value == null )
+      super.setValue( "" );
+    else if ( value instanceof String )
       super.setValue( value );
     else
       super.setValue( m_numberFormat.format( value ) );
   }
 
   /***************************************** getInteger ******************************************/
+  /**
+   * Returns the current value truncated to an integer.
+   *
+   * @return current value as an integer, or the invalid-value sentinel truncated to an integer
+   */
   public int getInteger()
   {
     // return field value as integer
@@ -82,6 +112,17 @@ public class NumberSpinField extends ButtonField implements ISignal
   }
 
   /****************************************** setFormat ******************************************/
+  /**
+   * Sets the numeric display format and the maximum digits accepted by the input filter.
+   * <p>
+   * Existing text is not reformatted. The regular expression used by {@link #setAllowed(String)} is
+   * rebuilt from the digit limits, current range, and current prefix/suffix.
+   *
+   * @param format            decimal format pattern
+   * @param maxIntegerDigits  maximum digits before the decimal point
+   * @param maxFractionDigits maximum digits after the decimal point
+   * @throws IllegalArgumentException if either digit limit is outside the supported range
+   */
   public void setFormat( String format, int maxIntegerDigits, int maxFractionDigits )
   {
     // check inputs
@@ -91,28 +132,44 @@ public class NumberSpinField extends ButtonField implements ISignal
       throw new IllegalArgumentException( "Digits before decimal place out of 0-99 range! " + maxIntegerDigits );
 
     // set number format
-    m_numberFormat = new DecimalFormat( format );
+    m_numberFormat = new DecimalFormat( format, DecimalFormatSymbols.getInstance( Locale.ROOT ) );
+    m_numberFormat.setGroupingUsed( false );
     m_numberFormat.setMaximumIntegerDigits( maxIntegerDigits );
     m_numberFormat.setMaximumFractionDigits( maxFractionDigits );
     determineAllowed();
   }
 
   /******************************************* setRange ******************************************/
+  /**
+   * Sets the numeric range and rebuilds the allowed-text pattern.
+   *
+   * @param minValue minimum allowed stepped value
+   * @param maxValue maximum allowed stepped value
+   * @throws IllegalArgumentException if minValue is greater than maxValue
+   */
   @Override
   public void setRange( double minValue, double maxValue )
   {
-    // set range and number of digits after decimal point
+    // set range and rebuild allowed text
     super.setRange( minValue, maxValue );
     determineAllowed();
   }
 
   /*************************************** setPrefixSuffix ***************************************/
+  /**
+   * Sets the prefix and suffix while preserving the current raw value.
+   *
+   * @param prefix prefix text, or null for no prefix
+   * @param suffix suffix text, or null for no suffix
+   */
   @Override
   public void setPrefixSuffix( String prefix, String suffix )
   {
-    // set prefix and suffix, translating null to ""
+    // preserve current raw value while changing prefix & suffix
+    String value = getValue();
     super.setPrefixSuffix( prefix, suffix );
     determineAllowed();
+    super.setValue( value );
   }
 
   /************************************** determineAllowed ***************************************/

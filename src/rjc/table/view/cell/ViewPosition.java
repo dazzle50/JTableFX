@@ -25,11 +25,24 @@ import rjc.table.view.TableView;
 /****************************** Observable table-view cell position ******************************/
 /*************************************************************************************************/
 
+/**
+ * Observable table-view cell position with helper methods for navigating through visible rows and
+ * columns.
+ *
+ * <p>The stored column and row are view indices for the associated {@link TableView}. Navigation
+ * methods use the table view's row and column axes, so hidden rows and columns are skipped where
+ * appropriate.</p>
+ */
 public class ViewPosition extends ObservablePosition
 {
   private TableView m_view; // associated table view
 
   /**************************************** constructor ******************************************/
+  /**
+   * Creates a view position associated with the specified table view.
+   *
+   * @param view the table view whose axes and data model are used by this position
+   */
   public ViewPosition( TableView view )
   {
     // construct
@@ -37,6 +50,14 @@ public class ViewPosition extends ObservablePosition
   }
 
   /****************************************** getData ********************************************/
+  /**
+   * Returns the data value for the current view position.
+   *
+   * <p>The current view column and row are mapped through the table view's axes before the value is
+   * requested from the data model.</p>
+   *
+   * @return the data-model value at the current position
+   */
   public Object getData()
   {
     // return data-model object for specified view index
@@ -46,6 +67,11 @@ public class ViewPosition extends ObservablePosition
   }
 
   /****************************************** isVisible ******************************************/
+  /**
+   * Returns whether the current view position is visible in both axes.
+   *
+   * @return {@code true} if both the current column and row are visible
+   */
   public boolean isVisible()
   {
     // return true if position is visible
@@ -53,6 +79,12 @@ public class ViewPosition extends ObservablePosition
   }
 
   /**************************************** moveToVisible ****************************************/
+  /**
+   * Moves this position to visible column and row indices.
+   *
+   * <p>If either current index is hidden, the table view's axes choose the nearest visible index
+   * according to their visibility rules.</p>
+   */
   public void moveToVisible()
   {
     // if position is not visible, move to a visible
@@ -62,6 +94,11 @@ public class ViewPosition extends ObservablePosition
   }
 
   /***************************************** moveRight *******************************************/
+  /**
+   * Moves this position to the next visible column to the right.
+   *
+   * <p>The row is normalised to a visible row before the new position is stored.</p>
+   */
   public void moveRight()
   {
     // move position right one visible column
@@ -71,6 +108,11 @@ public class ViewPosition extends ObservablePosition
   }
 
   /*************************************** moveRightEdge *****************************************/
+  /**
+   * Moves this position to the right-most visible column.
+   *
+   * <p>The row is normalised to a visible row before the new position is stored.</p>
+   */
   public void moveRightEdge()
   {
     // move position to right-most visible column
@@ -80,6 +122,11 @@ public class ViewPosition extends ObservablePosition
   }
 
   /***************************************** moveLeft ********************************************/
+  /**
+   * Moves this position to the previous visible column to the left.
+   *
+   * <p>The row is normalised to a visible row before the new position is stored.</p>
+   */
   public void moveLeft()
   {
     // move position left one visible column
@@ -89,6 +136,11 @@ public class ViewPosition extends ObservablePosition
   }
 
   /**************************************** moveLeftEdge *****************************************/
+  /**
+   * Moves this position to the left-most visible column.
+   *
+   * <p>The row is normalised to a visible row before the new position is stored.</p>
+   */
   public void moveLeftEdge()
   {
     // move position to left-most visible column
@@ -98,6 +150,11 @@ public class ViewPosition extends ObservablePosition
   }
 
   /******************************************* moveUp ********************************************/
+  /**
+   * Moves this position to the previous visible row above the current row.
+   *
+   * <p>The column is normalised to a visible column before the new position is stored.</p>
+   */
   public void moveUp()
   {
     // move position up one visible row
@@ -107,6 +164,11 @@ public class ViewPosition extends ObservablePosition
   }
 
   /****************************************** moveTop ********************************************/
+  /**
+   * Moves this position to the top-most visible row.
+   *
+   * <p>The column is normalised to a visible column before the new position is stored.</p>
+   */
   public void moveTop()
   {
     // move position to top-most visible row
@@ -116,6 +178,11 @@ public class ViewPosition extends ObservablePosition
   }
 
   /****************************************** moveDown *******************************************/
+  /**
+   * Moves this position to the next visible row below the current row.
+   *
+   * <p>The column is normalised to a visible column before the new position is stored.</p>
+   */
   public void moveDown()
   {
     // move position down one visible row
@@ -125,6 +192,11 @@ public class ViewPosition extends ObservablePosition
   }
 
   /**************************************** moveBottom *******************************************/
+  /**
+   * Moves this position to the bottom-most visible row.
+   *
+   * <p>The column is normalised to a visible column before the new position is stored.</p>
+   */
   public void moveBottom()
   {
     // move position to bottom visible row
@@ -134,6 +206,11 @@ public class ViewPosition extends ObservablePosition
   }
 
   /*************************************** isColumnAfter *****************************************/
+  /**
+   * Returns whether the current column is positioned after the last body column.
+   *
+   * @return {@code true} if the current column is greater than or equal to the column count
+   */
   public boolean isColumnAfter()
   {
     // return true if column position is after
@@ -141,6 +218,11 @@ public class ViewPosition extends ObservablePosition
   }
 
   /***************************************** isRowAfter ******************************************/
+  /**
+   * Returns whether the current row is positioned after the last body row.
+   *
+   * @return {@code true} if the current row is greater than or equal to the row count
+   */
   public boolean isRowAfter()
   {
     // return true if row position is after

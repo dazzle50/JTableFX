@@ -27,10 +27,35 @@ import rjc.table.view.axis.TableAxis;
 /*************************************** Draws table cell ****************************************/
 /*************************************************************************************************/
 
+/**
+ * Draws a single table cell onto the table canvas using the location, value, and visual state
+ * prepared for the current view cell.
+ *
+ * <p>Instances are created by {@link rjc.table.view.TableView#getCellDrawer()} and are normally
+ * reused while a visible row or column is being redrawn. Before {@link #draw()} is called, the
+ * inherited cell location fields identify the table view, graphics context, view indices, and
+ * canvas rectangle to draw.</p>
+ *
+ * <p>Subclasses can customise rendering by overriding the protected drawing hooks, style accessors
+ * inherited from {@link CellStyle}, or both. The default implementation clips drawing to the cell
+ * rectangle, resolves the cell value and {@link CellVisual}, then draws background, text content,
+ * and border in that order.</p>
+ *
+ * @see CellStyle
+ * @see CellLocation
+ * @see rjc.table.view.TableView#getCellDrawer()
+ */
 public class CellDrawer extends CellStyle
 {
 
   /******************************************** draw *********************************************/
+  /**
+   * Draws the current cell clipped to its visible canvas rectangle.
+   *
+   * <p>Body cells are additionally clipped so they cannot draw over the fixed header row or
+   * column. Header cells are clipped to their full cell rectangle. The actual drawing sequence is
+   * delegated to {@link #drawUnclipped()}.</p>
+   */
   public void draw()
   {
     // clip drawing to cell boundaries
@@ -60,6 +85,13 @@ public class CellDrawer extends CellStyle
   }
 
   /**************************************** drawUnclipped ****************************************/
+  /**
+   * Draws the current cell after clipping has already been applied.
+   *
+   * <p>The default implementation resolves the cell value and visual settings, then draws the
+   * background, content, and border. Subclasses may override this method to replace the full drawing
+   * sequence, or override the narrower drawing hooks for targeted customisation.</p>
+   */
   protected void drawUnclipped()
   {
     // draw table body or header cell
@@ -70,6 +102,11 @@ public class CellDrawer extends CellStyle
   }
 
   /*************************************** drawBackground ****************************************/
+  /**
+   * Draws the current cell background using {@link #getBackgroundPaint()}.
+   *
+   * <p>No background is drawn when the background paint is {@code null}.</p>
+   */
   protected void drawBackground()
   {
     // draw cell background
@@ -81,6 +118,12 @@ public class CellDrawer extends CellStyle
   }
 
   /***************************************** drawBorder ******************************************/
+  /**
+   * Draws the current cell border using {@link #getBorderPaint()}.
+   *
+   * <p>The default border is drawn on the right and bottom edges of the cell. No border is drawn
+   * when the border paint is {@code null}.</p>
+   */
   protected void drawBorder()
   {
     // draw cell border
@@ -93,6 +136,12 @@ public class CellDrawer extends CellStyle
   }
 
   /**************************************** drawContent ******************************************/
+  /**
+   * Draws the current cell content.
+   *
+   * <p>The default implementation draws the text returned by {@link #getText()} when
+   * {@link #getTextPaint()} is not {@code null}.</p>
+   */
   protected void drawContent()
   {
     // draw cell contents
@@ -101,6 +150,14 @@ public class CellDrawer extends CellStyle
   }
 
   /****************************************** drawText *******************************************/
+  /**
+   * Draws cell text using the current font, alignment, insets, and text paint.
+   *
+   * <p>The supplied text is formatted by {@link CellText} to fit within the current cell rectangle,
+   * including wrapping, truncation, and ellipsis handling where needed.</p>
+   *
+   * @param cellText the text to draw, or {@code null} to draw nothing
+   */
   protected void drawText( String cellText )
   {
     // get text inserts, font, alignment, and convert string into text lines
