@@ -40,7 +40,7 @@ public class EditorDate extends AbstractCellEditor
   @Override
   public Object getValue()
   {
-    // get editor integer value
+    // get editor date value
     return m_editor.getDate();
   }
 

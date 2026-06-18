@@ -43,6 +43,9 @@ import rjc.table.view.Colours;
  * wheel stepping, and can overflow step changes into another {@link IOverflowField}. When focused,
  * scroll events are captured with temporary event filters and released again on focus loss.
  * <p>
+ * When a button is visible, extra right padding is derived from the external caller/CSS/editor
+ * padding so text does not overlap the button.
+ * <p>
  * Subclasses usually override {@link #setValue(Object)}, {@link #getDouble()}, or
  * {@link #changeValue(double)} when the raw value is not a simple number.
  */
@@ -63,6 +66,8 @@ public class ButtonField extends ExpandingField implements IOverflowField
   private IOverflowField  m_overflowField;       // field for overflow support
   private Parent          m_scrollRoot;          // scene root with scroll filter installed
   private Parent          m_popupParentRoot;     // popup owner root with scroll filter installed
+  private Insets          m_basePadding;         // external padding before button space is added
+  private boolean         m_settingPadding;      // true so derived padding is not saved as base
 
   public static final int BUTTONS_WIDTH_MAX = 16;
   public static final int BUTTONS_PADDING   = 2;
@@ -93,6 +98,16 @@ public class ButtonField extends ExpandingField implements IOverflowField
     setRange( 1.0, 999.0 );
     setStepPage( 1.0, 10.0 );
     setOnKeyPressed( event -> keyPressed( event ) );
+
+    // remember external padding as the base before deriving extra space for the button
+    paddingProperty().addListener( ( property, oldPadding, newPadding ) ->
+    {
+      if ( !m_settingPadding )
+      {
+        m_basePadding = newPadding;
+        drawButton();
+      }
+    } );
 
     // remove scroll filters when the field is detached from a scene
     sceneProperty().addListener( ( property, oldScene, newScene ) ->
@@ -277,7 +292,8 @@ public class ButtonField extends ExpandingField implements IOverflowField
   /**
    * Creates the button if needed and sets the glyph drawn inside it.
    * <p>
-   * Passing null removes the button from the field without discarding it.
+   * Passing null removes the button from the field without discarding it, and restores the base
+   * padding.
    *
    * @param type button glyph type, or null for no button
    */
@@ -290,9 +306,12 @@ public class ButtonField extends ExpandingField implements IOverflowField
       if ( m_button != null )
       {
         getChildren().remove( m_button );
+        if ( m_basePadding == null )
+          m_basePadding = getPadding();
 
-        Insets padding = getPadding();
-        setPadding( new Insets( padding.getTop(), padding.getLeft(), padding.getBottom(), padding.getLeft() ) );
+        m_settingPadding = true;
+        setPadding( m_basePadding );
+        m_settingPadding = false;
       }
       return;
     }
@@ -375,21 +394,24 @@ public class ButtonField extends ExpandingField implements IOverflowField
     if ( m_button == null || m_buttonType == null || !getChildren().contains( m_button ) )
       return;
 
-    // determine size and draw button
+    // determine size, waiting for layout before deriving padding
     double h = getHeight() - 2 * BUTTONS_PADDING;
     double w = getWidth() / 2;
     if ( w > BUTTONS_WIDTH_MAX )
       w = BUTTONS_WIDTH_MAX;
+    if ( h <= 0.0 || w <= 0.0 )
+      return;
 
-    // set editor insets and button position
-    double pad = getPadding().getLeft();
-    setPadding( new Insets( getPadding().getTop(), w + pad, getPadding().getBottom(), pad ) );
+    // derive editor insets from base padding and position the button
+    if ( m_basePadding == null )
+      m_basePadding = getPadding();
+
+    Insets padding = m_basePadding;
+    m_settingPadding = true;
+    setPadding( new Insets( padding.getTop(), padding.getRight() + w, padding.getBottom(), padding.getLeft() ) );
+    m_settingPadding = false;
     m_button.setLayoutX( getWidth() - w - BUTTONS_PADDING );
     m_button.setLayoutY( BUTTONS_PADDING );
-
-    // if size has not changed, no need to re-draw
-    if ( m_button.getHeight() == h && m_button.getWidth() == w )
-      return;
 
     // set size and fill background
     m_button.setHeight( h );

@@ -62,8 +62,17 @@ public final class Time implements Serializable, Comparable<Time>
   public static final int   MILLIS_PER_DAY    = 24 * MILLIS_PER_HOUR;
 
   // ---- commonly used named instances ----
+  /**
+   * Represents the start of the day (00:00:00.000).
+   */
   public static final Time  MIN_VALUE         = new Time( 0 );                    // 00:00:00.000
+  /**
+   * Represents the middle of the day (12:00:00.000).
+   */
   public static final Time  NOON              = new Time( 12 * MILLIS_PER_HOUR ); // 12:00:00.000 (noon)
+  /**
+   * Represents the end of the day (24:00:00.000).
+   */
   public static final Time  MAX_VALUE         = new Time( MILLIS_PER_DAY );       // 24:00:00.000 (end of day)
 
   // internal state - milliseconds since midnight 00:00:00.000 (0 to MILLIS_PER_DAY inclusive)
