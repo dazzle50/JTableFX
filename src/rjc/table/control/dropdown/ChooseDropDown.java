@@ -22,6 +22,8 @@ import javafx.beans.value.ChangeListener;
 import javafx.geometry.Bounds;
 import javafx.geometry.Orientation;
 import javafx.geometry.Point2D;
+import javafx.geometry.Rectangle2D;
+import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.ScrollBar;
@@ -30,6 +32,7 @@ import javafx.scene.text.FontSmoothingType;
 import javafx.scene.text.Text;
 import javafx.stage.Popup;
 import javafx.stage.Screen;
+import javafx.stage.Window;
 import rjc.table.Utils;
 import rjc.table.control.ButtonField;
 import rjc.table.control.ChooseField;
@@ -41,16 +44,17 @@ import rjc.table.view.Colours;
 
 public class ChooseDropDown extends Popup
 {
-  private ChooseField                   m_parent;
-  private Canvas                        m_canvas;
-  private ScrollBar                     m_scrollbar;
-  private int                           m_rowHeight;
-  private int                           m_rowDescent;
-  private DropShadow                    m_shadow;
+  private ChooseField            m_parent;
+  private Canvas                 m_canvas;
+  private ScrollBar              m_scrollbar;
+  private int                    m_rowHeight;
+  private int                    m_rowDescent;
+  private DropShadow             m_shadow;
 
-  private static final int              BORDER = 2;
+  private static final int       BORDER         = 2;
 
-  private static ChangeListener<Object> HIDE_LISTENER;
+  private Window                 m_observedWindow;
+  private ChangeListener<Number> m_hideListener = ( property, oldValue, newValue ) -> hideDropDown();
 
   /**************************************** constructor ******************************************/
   public ChooseDropDown( ChooseField parent )
@@ -72,27 +76,41 @@ public class ChooseDropDown extends Popup
     m_rowHeight = (int) Math.ceil( bounds.getHeight() );
     m_rowDescent = (int) Math.floor( -bounds.getMinY() );
 
+    // configure fixed canvas and scrollbar characteristics
+    GraphicsContext gc = m_canvas.getGraphicsContext2D();
+    gc.setFont( m_parent.getFont() );
+    gc.setFontSmoothingType( FontSmoothingType.LCD );
+    m_scrollbar.setOrientation( Orientation.VERTICAL );
+    m_scrollbar.setMin( 0.0 );
+    m_scrollbar.setUnitIncrement( m_rowHeight );
+    m_scrollbar.setPrefWidth( ButtonField.BUTTONS_WIDTH_MAX );
+    m_scrollbar.setLayoutY( 1 );
+
     // react to mouse events
     m_canvas.setOnMouseMoved( event -> redraw( getIndexAtY( (int) event.getY() ) ) );
     m_canvas.setOnMousePressed( event -> m_parent.setSelectedIndex( getIndexAtY( (int) event.getY() ) ) );
     m_canvas.setOnMouseDragged( event -> m_parent.setSelectedIndex( getIndexAtY( (int) event.getY() ) ) );
-    m_canvas.setOnMouseReleased( event -> hide() );
+    m_canvas.setOnMouseReleased( event -> hideDropDown() );
     m_canvas.setOnScroll( parent.SCROLL_HANDLER );
 
     // react to scroll-bar changes
     m_scrollbar.valueProperty().addListener( ( value ) -> redraw( m_parent.getSelectedIndex() ) );
 
     // toggle pop-up when parent is pressed or to hide when parent loses focus
-    parent.getButton().setOnMousePressed( event -> toggle() );
-    parent.focusedProperty().addListener( ( focus ) ->
+    parent.getButton().setOnMousePressed( event ->
     {
-      if ( isShowing() && !m_parent.isFocused() )
-        toggle();
+      event.consume();
+      parent.requestFocus();
+      toggle();
+    } );
+    parent.focusedProperty().addListener( ( property, oldFocus, newFocus ) ->
+    {
+      if ( !newFocus )
+        hideDropDown();
     } );
 
-    // create listener for hiding drop-down on window movement
-    if ( HIDE_LISTENER == null )
-      HIDE_LISTENER = ( o, oldV, newV ) -> toggle();
+    // ensure movement listeners are removed however the pop-up is hidden
+    setOnHidden( event -> detachWindowListeners() );
   }
 
   /******************************************* toggle ********************************************/
@@ -100,53 +118,106 @@ public class ChooseDropDown extends Popup
   {
     // if drop-down is showing, hide, otherwise show
     if ( isShowing() )
+      hideDropDown();
+    else
+      showDropDown();
+  }
+
+  /*************************************** showDropDown ******************************************/
+  private void showDropDown()
+  {
+    // only show when parent is attached to a window and has choices
+    Scene scene = m_parent.getScene();
+    Window window = scene == null ? null : scene.getWindow();
+    if ( window == null || m_parent.getCount() <= 0 )
+      return;
+
+    // location and default size cannot be determined in constructor
+    Point2D top = m_parent.localToScreen( 0.0, 0.0 );
+    Point2D bottom = m_parent.localToScreen( 0.0, m_parent.getHeight() );
+    if ( top == null || bottom == null )
+      return;
+
+    int width = (int) Math.ceil( m_parent.getWidth() );
+    int prefHeight = m_parent.getCount() * m_rowHeight + BORDER * 2;
+    if ( width <= 0 || prefHeight <= 0 )
+      return;
+
+    // select screen containing parent, falling back to primary screen
+    var screens = Screen.getScreensForRectangle( bottom.getX(), bottom.getY(), 1.0, 1.0 );
+    Screen screen = screens.isEmpty() ? Screen.getPrimary() : screens.get( 0 );
+    Rectangle2D visual = screen.getVisualBounds();
+
+    // constrain width and choose side with sufficient/more available height
+    width = Math.min( width, (int) visual.getWidth() );
+    double below = visual.getMaxY() - bottom.getY() - m_shadow.getRadius();
+    double above = top.getY() - visual.getMinY() - m_shadow.getRadius();
+    boolean openBelow = prefHeight <= below || below >= above;
+    int availableHeight = (int) Math.floor( Math.max( 0.0, openBelow ? below : above ) );
+    int height = Math.min( prefHeight, availableHeight );
+    if ( width <= 0 || height <= 0 )
+      return;
+
+    // align canvas with parent while accounting for shadow around pop-up root
+    double contentX = Utils.clamp( bottom.getX(), visual.getMinX(), visual.getMaxX() - width );
+    double x = contentX - m_shadow.getRadius() + 1.0;
+    double y = ( openBelow ? bottom.getY() : top.getY() - height ) - m_shadow.getRadius() + 1.0;
+
+    // size canvas and configure scrollbar if content does not fit
+    m_canvas.setWidth( width );
+    m_canvas.setHeight( height );
+    if ( prefHeight > height )
     {
-      m_parent.getScene().getWindow().xProperty().removeListener( HIDE_LISTENER );
-      m_parent.getScene().getWindow().yProperty().removeListener( HIDE_LISTENER );
-      hide();
+      m_scrollbar.setVisible( true );
+      m_scrollbar.setMax( prefHeight - height );
+      m_scrollbar.setVisibleAmount( height );
+      m_scrollbar.setBlockIncrement( height );
+      m_scrollbar.setPrefHeight( Math.max( 0, height - 2 ) );
+      m_scrollbar.setLayoutX( width - ButtonField.BUTTONS_WIDTH_MAX - 1 );
+      m_scrollbar.setValue( 0.0 );
     }
     else
     {
-      // location and default size - CANNOT do in drop-down constructor
-      Point2D point = m_parent.localToScreen( 0.0, m_parent.getHeight() );
-      double x = point.getX() - m_shadow.getRadius() + 1.0;
-      double y = point.getY() - m_shadow.getRadius() + 1.0;
-      int width = (int) m_parent.getWidth();
-      int prefHeight = m_parent.getCount() * m_rowHeight + BORDER * 2;
-
-      // determine if scroll-bar needed
-      Screen screen = Screen.getScreensForRectangle( x, y, 0.0, 0.0 ).get( 0 );
-      int maxHeight = (int) ( screen.getVisualBounds().getMaxY() - point.getY() - m_shadow.getRadius() );
-      if ( prefHeight > maxHeight )
-      {
-        // scroll-bar needed
-        m_canvas.setHeight( maxHeight );
-        m_scrollbar.setVisible( true );
-        m_scrollbar.setOrientation( Orientation.VERTICAL );
-        m_scrollbar.setMax( prefHeight - maxHeight );
-        m_scrollbar.setVisibleAmount( m_scrollbar.getMax() * maxHeight / prefHeight );
-        m_scrollbar.setPrefHeight( maxHeight - 2 );
-        m_scrollbar.setPrefWidth( ButtonField.BUTTONS_WIDTH_MAX );
-        m_scrollbar.setLayoutX( width - ButtonField.BUTTONS_WIDTH_MAX - 1 );
-        m_scrollbar.setLayoutY( 1 );
-        m_scrollbar.setValue( 0 );
-      }
-      else
-      {
-        // no scroll-bar needed
-        m_scrollbar.setVisible( false );
-        m_canvas.setHeight( prefHeight );
-      }
-      m_canvas.setWidth( width );
-
-      // show pop-up and redraw canvas
-      show( m_parent, x, y );
-      scrollToIndex( m_parent.getSelectedIndex() );
-
-      // if parent window moves need to hide this drop-down
-      m_parent.getScene().getWindow().xProperty().addListener( HIDE_LISTENER );
-      m_parent.getScene().getWindow().yProperty().addListener( HIDE_LISTENER );
+      m_scrollbar.setVisible( false );
+      m_scrollbar.setMax( 0.0 );
+      m_scrollbar.setValue( 0.0 );
     }
+
+    // show, redraw, and observe owner movement only while visible
+    show( m_parent, x, y );
+    attachWindowListeners( window );
+    scrollToIndex( m_parent.getSelectedIndex() );
+  }
+
+  /*************************************** hideDropDown ******************************************/
+  private void hideDropDown()
+  {
+    // always release listeners before hiding
+    detachWindowListeners();
+    if ( isShowing() )
+      hide();
+  }
+
+  /************************************ attachWindowListeners ************************************/
+  private void attachWindowListeners( Window window )
+  {
+    // hide this drop-down if its owner window moves
+    detachWindowListeners();
+    m_observedWindow = window;
+    window.xProperty().addListener( m_hideListener );
+    window.yProperty().addListener( m_hideListener );
+  }
+
+  /************************************ detachWindowListeners ************************************/
+  private void detachWindowListeners()
+  {
+    // release movement listeners from previously observed owner
+    if ( m_observedWindow == null )
+      return;
+
+    m_observedWindow.xProperty().removeListener( m_hideListener );
+    m_observedWindow.yProperty().removeListener( m_hideListener );
+    m_observedWindow = null;
   }
 
   /**************************************** scrollToIndex ****************************************/
@@ -174,7 +245,6 @@ public class ChooseDropDown extends Popup
     GraphicsContext gc = m_canvas.getGraphicsContext2D();
     double w = m_canvas.getWidth();
     double h = m_canvas.getHeight();
-    gc.setFontSmoothingType( FontSmoothingType.LCD );
 
     // fill background
     gc.setFill( Colours.TEXT_DEFAULT_BACKGROUND );
