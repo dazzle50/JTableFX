@@ -27,6 +27,24 @@ import rjc.table.signal.ISignal;
 /********************************** Stack of UndoCommand objects *********************************/
 /*************************************************************************************************/
 
+/**
+ * Maintains an ordered history of undoable commands and the current position within that history.
+ * <p>
+ * Commands below {@link #getIndex()} are considered executed; commands at or above the index are
+ * available for redo. Pushing a command after one or more undo operations discards the redo branch.
+ * Commands supplied to {@link #push(IUndoCommand)} are expected to have already performed their
+ * initial action, normally during construction or an interactive operation.
+ * <p>
+ * The stack can record a clean position, typically after saving, using {@link #setClean()}. If a
+ * history change makes that position unreachable, the clean marker is invalidated until explicitly
+ * reset. Stack changes emit an {@link ISignal} notification so controls and application state can
+ * update immediately.
+ * <p>
+ * This class is mutable and is not thread-safe. Commands and stack operations should normally be
+ * confined to the JavaFX application thread.
+ *
+ * @see IUndoCommand
+ */
 public class UndoStack implements ISignal
 {
   private ArrayList<IUndoCommand> m_stack;      // list of undo commands
@@ -34,6 +52,9 @@ public class UndoStack implements ISignal
   private int                     m_cleanIndex; // index when declared clean
 
   /**************************************** constructor ******************************************/
+  /**
+   * Creates an empty stack whose initial position is clean.
+   */
   public UndoStack()
   {
     // initialise private variables
@@ -42,6 +63,9 @@ public class UndoStack implements ISignal
   }
 
   /******************************************** clear ********************************************/
+  /**
+   * Removes all commands and marks the resulting empty stack as clean.
+   */
   public void clear()
   {
     // clean the stack
@@ -51,6 +75,9 @@ public class UndoStack implements ISignal
   }
 
   /****************************************** setClean *******************************************/
+  /**
+   * Marks the current history position as clean and notifies listeners.
+   */
   public void setClean()
   {
     // declare current index position as being clean (for example after file saved)
@@ -59,6 +86,11 @@ public class UndoStack implements ISignal
   }
 
   /****************************************** isClean ********************************************/
+  /**
+   * Returns whether the current history position is the recorded clean position.
+   *
+   * @return {@code true} when no tracked changes exist relative to the clean position
+   */
   public boolean isClean()
   {
     // stack is clean if current index equals clean index
@@ -66,6 +98,11 @@ public class UndoStack implements ISignal
   }
 
   /******************************************* getSize *******************************************/
+  /**
+   * Returns the total number of commands, including commands currently available for redo.
+   *
+   * @return number of commands in the history
+   */
   public int getSize()
   {
     // return stack command list size
@@ -73,6 +110,11 @@ public class UndoStack implements ISignal
   }
 
   /******************************************* getIndex ******************************************/
+  /**
+   * Returns the number of commands currently considered executed.
+   *
+   * @return current history position, from zero through {@link #getSize()}
+   */
   public int getIndex()
   {
     // return current executed command index
@@ -80,6 +122,16 @@ public class UndoStack implements ISignal
   }
 
   /******************************************** push *********************************************/
+  /**
+   * Adds an already-executed command to the history.
+   * <p>
+   * Invalid commands are ignored. On success, any redo branch is discarded, the command becomes
+   * the most recent executed command, and listeners are notified.
+   *
+   * @param command valid, already-executed command to record
+   * @return {@code true} if the command was added; {@code false} if it was invalid
+   * @throws NullPointerException if {@code command} is {@code null}
+   */
   public boolean push( IUndoCommand command )
   {
     // if command not valid, then return false and don't push on stack
@@ -105,19 +157,58 @@ public class UndoStack implements ISignal
     return true;
   }
 
+  /**************************************** commandMerged ****************************************/
+  /**
+   * Updates stack bookkeeping after the most recent executed command has been changed in place.
+   * <p>
+   * A merge is a new operation, so any redo branch is no longer valid. If the clean state includes
+   * the changed command, that exact state is no longer reachable and the clean marker is invalidated.
+   * The caller must update and execute the command before invoking this method.
+   *
+   * @throws IllegalStateException if there is no executed command to merge
+   */
+  public void commandMerged()
+  {
+    // a merge requires a most recent executed command
+    if ( m_index == 0 )
+      throw new IllegalStateException( "No undo command to merge" );
+
+    // a new operation after undoing invalidates the redo branch
+    if ( m_stack.size() > m_index )
+      m_stack.subList( m_index, m_stack.size() ).clear();
+
+    // if the clean state includes the changed command, it is no longer reachable
+    if ( m_cleanIndex >= m_index )
+      m_cleanIndex = Integer.MIN_VALUE;
+
+    signal();
+  }
+
   /******************************************** undo *********************************************/
+  /**
+   * Undoes the most recent executed command, if one exists, and notifies listeners.
+   * <p>
+   * If the command throws an exception, the history index is left unchanged and the exception is
+   * propagated to the caller.
+   */
   public void undo()
   {
     // revert command and decrement index (or no action if nothing to revert)
     if ( m_index > 0 )
     {
+      m_stack.get( m_index - 1 ).undo();
       m_index--;
-      m_stack.get( m_index ).undo();
       signal();
     }
   }
 
   /******************************************** redo *********************************************/
+  /**
+   * Redoes the next command, if one exists, and notifies listeners.
+   * <p>
+   * If the command throws an exception, the history index is left unchanged and the exception is
+   * propagated to the caller.
+   */
   public void redo()
   {
     // action command and increment index (or no action if nothing to redo)
@@ -130,6 +221,11 @@ public class UndoStack implements ISignal
   }
 
   /**************************************** getUndoCommand ***************************************/
+  /**
+   * Returns the most recent executed command, primarily to support command merging.
+   *
+   * @return command that would next be undone, or {@code null} when no command is executed
+   */
   public IUndoCommand getUndoCommand()
   {
     // return current undo command (or null if none), useful for when wanting to merging commands
@@ -139,6 +235,12 @@ public class UndoStack implements ISignal
   }
 
   /***************************************** getUndoText *****************************************/
+  /**
+   * Returns the description of the command that would next be undone.
+   *
+   * @return undo description, an empty string if the command returns {@code null}, or {@code null}
+   *         when no undo is available
+   */
   public String getUndoText()
   {
     // return text associated with next potential undo (no need to check index as getText does)
@@ -146,6 +248,12 @@ public class UndoStack implements ISignal
   }
 
   /***************************************** getRedoText *****************************************/
+  /**
+   * Returns the description of the command that would next be redone.
+   *
+   * @return redo description, an empty string if the command returns {@code null}, or {@code null}
+   *         when no redo is available
+   */
   public String getRedoText()
   {
     // return text associated with next potential redo (no need to check index as getText does)
@@ -153,6 +261,13 @@ public class UndoStack implements ISignal
   }
 
   /******************************************* getText *******************************************/
+  /**
+   * Returns the description of the command at a history-list index.
+   *
+   * @param index zero-based command index
+   * @return command description, an empty string if the command returns {@code null}, or
+   *         {@code null} when {@code index} is outside the history
+   */
   public String getText( int index )
   {
     // return text associated with command at index (or null if outside range)
@@ -165,6 +280,16 @@ public class UndoStack implements ISignal
   }
 
   /****************************************** setIndex *******************************************/
+  /**
+   * Moves to a requested history position by undoing or redoing commands as necessary.
+   * <p>
+   * Values below zero move to the beginning; values above the history size move to the end.
+   * Listeners are notified after movement completes. If a command throws, movement stops, the
+   * index continues to represent the commands successfully processed, and the exception is
+   * propagated.
+   *
+   * @param index requested number of executed commands
+   */
   public void setIndex( int index )
   {
     // execute redo's or undo's as necessary to get to target index
@@ -172,8 +297,8 @@ public class UndoStack implements ISignal
     {
       while ( index < m_index && m_index > 0 )
       {
+        m_stack.get( m_index - 1 ).undo();
         m_index--;
-        m_stack.get( m_index ).undo();
       }
       while ( index > m_index && m_index < m_stack.size() )
       {
@@ -187,6 +312,12 @@ public class UndoStack implements ISignal
   }
 
   /****************************************** toString *******************************************/
+  /**
+   * Returns a diagnostic representation containing the current index, clean index, size, and
+   * command descriptions.
+   *
+   * @return diagnostic stack representation
+   */
   @Override
   public String toString()
   {

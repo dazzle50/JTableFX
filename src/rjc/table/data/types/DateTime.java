@@ -19,10 +19,19 @@
 package rjc.table.data.types;
 
 import java.io.Serializable;
+import java.time.DateTimeException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.chrono.IsoChronology;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
+import java.time.temporal.TemporalAccessor;
+import java.time.temporal.TemporalField;
+import java.time.temporal.TemporalQueries;
+import java.time.temporal.TemporalQuery;
+import java.time.temporal.UnsupportedTemporalTypeException;
 import java.util.Objects;
 
 /*************************************************************************************************/
@@ -813,6 +822,40 @@ public final class DateTime implements Serializable, Comparable<DateTime>
 
   /******************************************* toString *******************************************/
   /**
+   * Formats this date-time using a local date-time pattern and the default formatting locale.
+   * <p>
+   * Standard local date and time pattern letters are supported. Patterns requiring a time zone
+   * or offset are unsupported because this class contains neither. Unlike formatting through a
+   * {@link LocalDateTime}, end-of-day {@code 24:00} retains its stored date and hour notation.
+   * <p>
+   * The extended half-year letter {@code U} is also supported:
+   * <ul>
+   *   <li>{@code U}   — half-year number: {@code 1} or {@code 2}</li>
+   *   <li>{@code UU}  — half-year label: {@code H1} or {@code H2}</li>
+   *   <li>{@code UUU} — half-year long form: {@code "1st half"} or {@code "2nd half"}</li>
+   * </ul>
+   * A run of {@code p} letters immediately before an unquoted {@code U} pads the complete
+   * expanded half-year value using normal {@link DateTimeFormatter} semantics.
+   *
+   * @param pattern the formatting pattern, must not be null
+   * @return the formatted date-time string
+   * @throws NullPointerException     if {@code pattern} is null
+   * @throws IllegalArgumentException if the pattern is malformed or contains more than three
+   *                                  consecutive unquoted {@code U} letters
+   * @throws DateTimeException        if this date-time cannot be printed with the pattern
+   */
+  public String toString( String pattern )
+  {
+    Objects.requireNonNull( pattern, "pattern must not be null" );
+
+    FormattingTemporal temporal = new FormattingTemporal( m_epochDay, m_milliseconds );
+    DateTimeFormatter formatter = pattern.indexOf( 'U' ) < 0 ? DateTimeFormatter.ofPattern( pattern )
+        : formatterWithHalfYear( pattern, temporal.date.getMonthValue() <= 6 ? 1 : 2 );
+    return formatter.format( temporal );
+  }
+
+  /******************************************* toString *******************************************/
+  /**
    * Returns this date-time formatted using separate date and time patterns, joined by a space.
    *
    * @param datePattern pattern for the date portion (see {@link Date#toString(String)})
@@ -844,7 +887,9 @@ public final class DateTime implements Serializable, Comparable<DateTime>
    * Returns this date-time formatted using the supplied {@link DateTimeFormatter}.
    * <p>
    * The time component {@code 24:00:00.000} is normalised to {@code 00:00:00.000} of the
-   * following day before formatting, since {@link DateTimeFormatter} cannot represent end-of-day.
+   * following day before formatting because the intermediate {@link LocalDateTime} cannot
+   * represent end-of-day. Use {@link #toString(String)} to retain the stored date and
+   * {@code 24:00} notation.
    *
    * @param formatter the formatter to use, must not be null
    * @return formatted date-time string
@@ -855,5 +900,129 @@ public final class DateTime implements Serializable, Comparable<DateTime>
     Objects.requireNonNull( formatter, "formatter must not be null" );
     // toLocalDateTime() handles 24:00 → 00:00 next-day normalisation
     return formatter.format( toLocalDateTime() );
+  }
+
+  // =================================== Private Helpers ===================================
+
+  /*********************************** formatterWithHalfYear *************************************/
+  // builds a formatter containing expanded half-year literals while preserving pattern grammar
+  private static DateTimeFormatter formatterWithHalfYear( String pattern, int halfYear )
+  {
+    DateTimeFormatterBuilder builder = new DateTimeFormatterBuilder();
+    boolean inQuote = false;
+    int sectionStart = 0;
+    int index = 0;
+
+    while ( index < pattern.length() )
+    {
+      char ch = pattern.charAt( index );
+
+      if ( ch == '\'' )
+      {
+        // doubled apostrophes toggle twice and therefore leave quote state unchanged
+        inQuote = !inQuote;
+        index++;
+      }
+      else if ( !inQuote && ch == 'U' )
+      {
+        // a directly preceding p run pads the complete expanded half-year literal
+        int padStart = index;
+        while ( padStart > sectionStart && pattern.charAt( padStart - 1 ) == 'p' )
+          padStart--;
+
+        if ( padStart > sectionStart )
+          builder.appendPattern( pattern.substring( sectionStart, padStart ) );
+
+        int padWidth = index - padStart;
+        if ( padWidth > 0 )
+          builder.padNext( padWidth );
+
+        int count = 0;
+        while ( index < pattern.length() && pattern.charAt( index ) == 'U' )
+        {
+          count++;
+          index++;
+        }
+        if ( count > 3 )
+          throw new IllegalArgumentException( "Too many 'U' pattern letters: " + count );
+
+        builder.appendLiteral( switch ( count )
+        {
+          case 1 -> String.valueOf( halfYear );
+          case 2 -> "H" + halfYear;
+          default -> halfYear == 1 ? "1st half" : "2nd half";
+        } );
+        sectionStart = index;
+      }
+      else
+        index++;
+    }
+
+    if ( sectionStart < pattern.length() )
+      builder.appendPattern( pattern.substring( sectionStart ) );
+
+    return builder.toFormatter();
+  }
+
+  /*************************************** FormattingTemporal ************************************/
+  // private formatter-only view that preserves the non-standard end-of-day field values
+  private static final class FormattingTemporal implements TemporalAccessor
+  {
+    private final LocalDate date;
+    private final int       milliseconds;
+
+    private FormattingTemporal( int epochDay, int milliseconds )
+    {
+      date = LocalDate.ofEpochDay( epochDay );
+      this.milliseconds = milliseconds;
+    }
+
+    @Override
+    public boolean isSupported( TemporalField field )
+    {
+      if ( field instanceof ChronoField chronoField && chronoField.isTimeBased() )
+        return true;
+      return date.isSupported( field );
+    }
+
+    @Override
+    public long getLong( TemporalField field )
+    {
+      if ( !( field instanceof ChronoField chronoField ) || !chronoField.isTimeBased() )
+        return date.getLong( field );
+
+      long seconds = milliseconds / Time.MILLIS_PER_SECOND;
+      long minutes = milliseconds / Time.MILLIS_PER_MINUTE;
+      long hours = milliseconds / Time.MILLIS_PER_HOUR;
+
+      return switch ( chronoField )
+      {
+        case NANO_OF_SECOND -> milliseconds % Time.MILLIS_PER_SECOND * 1_000_000L;
+        case NANO_OF_DAY -> milliseconds * 1_000_000L;
+        case MICRO_OF_SECOND -> milliseconds % Time.MILLIS_PER_SECOND * 1_000L;
+        case MICRO_OF_DAY -> milliseconds * 1_000L;
+        case MILLI_OF_SECOND -> milliseconds % Time.MILLIS_PER_SECOND;
+        case MILLI_OF_DAY -> milliseconds;
+        case SECOND_OF_MINUTE -> seconds % 60;
+        case SECOND_OF_DAY -> seconds;
+        case MINUTE_OF_HOUR -> minutes % 60;
+        case MINUTE_OF_DAY -> minutes;
+        case HOUR_OF_AMPM -> hours % 12;
+        case CLOCK_HOUR_OF_AMPM -> hours % 12 == 0 ? 12 : hours % 12;
+        case HOUR_OF_DAY -> hours;
+        case CLOCK_HOUR_OF_DAY -> hours == 0 ? 24 : hours;
+        case AMPM_OF_DAY -> hours % 24 / 12;
+        default -> throw new UnsupportedTemporalTypeException( "Unsupported time field: " + chronoField );
+      };
+    }
+
+    @SuppressWarnings( "unchecked" )
+    @Override
+    public <R> R query( TemporalQuery<R> query )
+    {
+      if ( query == TemporalQueries.chronology() )
+        return (R) IsoChronology.INSTANCE;
+      return TemporalAccessor.super.query( query );
+    }
   }
 }

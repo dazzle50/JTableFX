@@ -859,17 +859,17 @@ public final class Date implements Serializable, Comparable<Date>
    * Formats this date using the specified pattern string.
    * <p>
    * Supports all standard {@link DateTimeFormatter} patterns plus an extended half-year
-   * letter {@code B}:
+   * letter {@code U}:
    * <ul>
-   *   <li>{@code B}   — half-year number: {@code 1} or {@code 2}</li>
-   *   <li>{@code BB}  — half-year label: {@code H1} or {@code H2}</li>
-   *   <li>{@code BBB} — half-year long form: {@code "1st half"} or {@code "2nd half"}</li>
+   *   <li>{@code U}   — half-year number: {@code 1} or {@code 2}</li>
+   *   <li>{@code UU}  — half-year label: {@code H1} or {@code H2}</li>
+   *   <li>{@code UUU} — half-year long form: {@code "1st half"} or {@code "2nd half"}</li>
    * </ul>
    *
    * @param pattern the formatting pattern (must not be null)
    * @return the formatted date string
    * @throws IllegalArgumentException if the pattern is invalid or contains more than three
-   *                                  {@code B} letters
+   *                                  {@code U} letters
    * @throws NullPointerException     if {@code pattern} is null
    */
   public String toString( String pattern )
@@ -981,10 +981,10 @@ public final class Date implements Serializable, Comparable<Date>
   // =================================== Private Helpers ===================================
 
   /************************************** formatWithHalfYear **************************************/
-  // delegates to pattern pre-processing then post-substitution for half-year 'B' patterns
+  // delegates to pattern pre-processing then post-substitution for half-year 'U' patterns
   private String formatWithHalfYear( String pattern )
   {
-    // replace 'B' sequences with quoted placeholders safe for DateTimeFormatter
+    // replace 'U' sequences with quoted placeholders safe for DateTimeFormatter
     String processed = replaceHalfYearPatterns( pattern );
     String result = toLocalDate().format( DateTimeFormatter.ofPattern( processed ) );
     return substituteHalfYearValues( result );

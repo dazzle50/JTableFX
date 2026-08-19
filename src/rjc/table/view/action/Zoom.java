@@ -30,6 +30,10 @@ public class Zoom
   /***************************************** setZoom ******************************************/
   public static void setZoom( TableView view, double newZoom )
   {
+    // do nothing if zoom would not change
+    if ( view.getZoom().get() == newZoom )
+      return;
+
     // check if can merge with previous undo command
     var command = view.getUndoStack().getUndoCommand();
 
@@ -39,7 +43,7 @@ public class Zoom
         // merge with previous zoom command
         zc.setZoom( newZoom );
         zc.redo();
-        view.getUndoStack().signal();
+        view.getUndoStack().commandMerged();
         return;
       }
 
