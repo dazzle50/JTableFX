@@ -22,9 +22,10 @@ import java.lang.ref.WeakReference;
 
 import javafx.application.Platform;
 import rjc.table.data.types.Date;
+import rjc.table.data.types.DateInterval;
 import rjc.table.data.types.DateTime;
-import rjc.table.data.types.DateTime.IntervalUnit;
 import rjc.table.data.types.Time;
+import rjc.table.data.types.TimeInterval;
 import rjc.table.signal.ObservableStatus.Level;
 
 /*************************************************************************************************/
@@ -51,7 +52,7 @@ public class DateTimeField extends DateField
     Platform.runLater( () -> m_timeWidget.setStatus( getStatus() ) );
 
     // set default date-time to now truncated to hour
-    setDateTime( DateTime.now().roundDown( IntervalUnit.HOUR ) );
+    setDateTime( DateTime.now().startOf( TimeInterval.HOUR ) );
   }
 
   /************************************ updateDropDownWidgets ************************************/
@@ -120,14 +121,14 @@ public class DateTimeField extends DateField
   public String format( DateTime datetime )
   {
     // return date-time in display format
-    return datetime.toString( "yyyy-MM-dd", 4 );
+    return datetime.format( "yyyy-MM-dd", 4 );
   }
 
   /**************************************** formatStatus *****************************************/
   public String formatStatus( DateTime datetime )
   {
     // return date in status format
-    return datetime.toString( "eeee d MMMM yyyy", 4 );
+    return datetime.format( "eeee d MMMM yyyy", 4 );
   }
 
   /***************************************** parseText *******************************************/
@@ -180,9 +181,9 @@ public class DateTimeField extends DateField
       if ( !shift && !ctrl )
         setDateTime( getDateTime().plusDays( (int) delta ) );
       if ( shift && !ctrl )
-        setDateTime( getDateTime().plusInterval( (int) delta, IntervalUnit.MONTH ) );
+        setDateTime( getDateTime().plus( (long) delta, DateInterval.MONTH ) );
       if ( !shift && ctrl )
-        setDateTime( getDateTime().plusInterval( (int) delta, IntervalUnit.YEAR ) );
+        setDateTime( getDateTime().plus( (long) delta, DateInterval.YEAR ) );
     }
   }
 

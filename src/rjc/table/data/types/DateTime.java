@@ -18,656 +18,508 @@
 
 package rjc.table.data.types;
 
+import java.io.Serial;
 import java.io.Serializable;
-import java.time.DateTimeException;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.chrono.IsoChronology;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
-import java.time.format.DateTimeParseException;
-import java.time.temporal.ChronoField;
-import java.time.temporal.TemporalAccessor;
-import java.time.temporal.TemporalField;
-import java.time.temporal.TemporalQueries;
-import java.time.temporal.TemporalQuery;
-import java.time.temporal.UnsupportedTemporalTypeException;
 import java.util.Objects;
 
 /*************************************************************************************************/
-/*********************************** DateTime (with no time-zone) ********************************/
+/******************************** Zone-free stored DateTime **************************************/
 /*************************************************************************************************/
 
 /**
- * Immutable date-time without timezone information.
- * <p>
- * Stored as two {@code int} fields: {@code m_epochDay} (days since 1970-01-01) and
- * {@code m_milliseconds} (milliseconds since midnight), mirroring {@link Date} and
- * {@link Time} respectively.
- * <p>
- * Distinguishes {@code 24:00} (end of current date) from {@code 00:00} (start of next date);
- * {@code 24:00} of day N orders before {@code 00:00} of day N+1.
+ * Compact zone-free date-time retaining the explicit stored end-of-day notation {@code 24:00}.
+ * Stored equality and ordering are lexicographical by epoch day and milliseconds of day. Serial
+ * and Java-time conversion normalize {@code D 24:00} to {@code D+1 00:00}; this local timeline is
+ * not an instant and carries no time zone.
  *
- * @see Date
- * @see Time
+ * <p>Instances are immutable and thread-safe.</p>
  */
 public final class DateTime implements Serializable, Comparable<DateTime>
 {
-  private static final long    serialVersionUID = 1L;
+  @Serial
+  private static final long    serialVersionUID = 2L;
 
-  // date & time components: days since 1970-01-01 and milliseconds since midnight
-  private final int            m_epochDay;
-  private final int            m_milliseconds;
+  private static final long    MIN_SERIAL       = (long) Integer.MIN_VALUE * Time.MILLIS_PER_DAY;
+  private static final long    MAX_SERIAL       = ( (long) Integer.MAX_VALUE + 1L ) * Time.MILLIS_PER_DAY;
 
-  // ---- sentinel constants ----
+  /** Unix epoch coordinate, {@code 1970-01-01 00:00}. */
   public static final DateTime EPOCH            = new DateTime( 0, 0 );
+  /** Earliest representable stored date-time. */
   public static final DateTime MIN_VALUE        = new DateTime( Integer.MIN_VALUE, 0 );
+  /** Latest representable stored date-time, ending at explicit {@code 24:00}. */
   public static final DateTime MAX_VALUE        = new DateTime( Integer.MAX_VALUE, Time.MILLIS_PER_DAY );
 
-  /**
-   * Interval units for truncation, stepping, and rounding.
-   */
-  public enum IntervalUnit
-  {
-    YEAR, HALF_YEAR, QUARTER_YEAR, MONTH, WEEK, DAY, HALF_DAY, QUARTER_DAY, HOUR, HALF_HOUR, TEN_MINUTE, MINUTE, SECOND
-  }
+  /** Stored epoch-day date component. */
+  private final int            epochDay;
+  /** Stored millisecond time component from 0 through one full day. */
+  private final int            milliseconds;
 
-  // ================================= Constructor =================================
-
-  /***************************************** constructor *****************************************/
-  /**
-   * Private constructor — use factory methods to create instances.
-   *
-   * @param epochDay     days since 1970-01-01 (may be negative)
-   * @param milliseconds milliseconds since midnight (0 to {@link Time#MILLIS_PER_DAY} inclusive)
-   */
   private DateTime( int epochDay, int milliseconds )
   {
-    m_epochDay = epochDay;
-    m_milliseconds = milliseconds;
+    this.epochDay = epochDay;
+    this.milliseconds = milliseconds;
   }
 
-  // ================================= Factory Methods =================================
+  // ================================= Factory methods =================================
 
-  /********************************************** of **********************************************/
   /**
-   * Creates a {@code DateTime} from separate {@link Date} and {@link Time} components.
+   * Combines a compact date and stored time without normalizing {@code 24:00}.
    *
-   * @param date the date component, must not be null
-   * @param time the time component, must not be null
-   * @return a new {@code DateTime} instance
+   * @param date stored date
+   * @param time stored time
+   * @return combined date-time
    * @throws NullPointerException if either argument is null
    */
   public static DateTime of( Date date, Time time )
   {
-    // extract raw ints directly — no intermediate allocation
+    Objects.requireNonNull( date, "date" );
+    Objects.requireNonNull( time, "time" );
     return new DateTime( date.getEpochDay(), time.toMillisecondsOfDay() );
   }
 
-  /********************************************** of **********************************************/
   /**
-   * Creates a {@code DateTime} from individual date and time field values.
+   * Creates a second-precision date-time.
    *
-   * @param year   proleptic Gregorian year
-   * @param month  month (1 = January … 12 = December)
-   * @param day    day-of-month (1–31 depending on month and year)
-   * @param hour   hour (0–24, where 24:00 represents end of day)
-   * @param minute minute (0–59)
-   * @param second second (0–59)
-   * @return a new {@code DateTime} instance
-   * @throws java.time.DateTimeException if any field value is invalid
+   * @param year proleptic year
+   * @param month month from 1 to 12
+   * @param day day of month
+   * @param hour hour from 0 through 24
+   * @param minute minute from 0 to 59
+   * @param second second from 0 to 59
+   * @return represented date-time
+   * @throws java.time.DateTimeException if any component combination is invalid
+   * @throws ArithmeticException if the date is outside compact storage
    */
   public static DateTime of( int year, int month, int day, int hour, int minute, int second )
   {
-    // delegate validation to Date.of and Time.of
-    return new DateTime( Date.of( year, month, day ).getEpochDay(),
-        Time.of( hour, minute, second ).toMillisecondsOfDay() );
+    return of( year, month, day, hour, minute, second, 0 );
   }
 
-  /********************************************** of **********************************************/
   /**
-   * Creates a {@code DateTime} from a {@link LocalDateTime}.
+   * Creates a millisecond-precision date-time.
    *
-   * @param ldt the {@code LocalDateTime} to convert, must not be null
-   * @return a new {@code DateTime} instance
-   * @throws NullPointerException if {@code ldt} is null
+   * @param year proleptic year
+   * @param month month from 1 to 12
+   * @param day day of month
+   * @param hour hour from 0 through 24
+   * @param minute minute from 0 to 59
+   * @param second second from 0 to 59
+   * @param millisecond millisecond from 0 to 999
+   * @return represented date-time
+   * @throws java.time.DateTimeException if any component combination is invalid
+   * @throws ArithmeticException if the date is outside compact storage
    */
-  public static DateTime of( LocalDateTime ldt )
+  public static DateTime of( int year, int month, int day, int hour, int minute, int second, int millisecond )
   {
-    Objects.requireNonNull( ldt, "ldt must not be null" );
-    return new DateTime( (int) ldt.toLocalDate().toEpochDay(), ldt.toLocalTime().get( ChronoField.MILLI_OF_DAY ) );
+    return of( Date.of( year, month, day ), Time.of( hour, minute, second, millisecond ) );
   }
 
-  /********************************************* now **********************************************/
   /**
-   * Creates a {@code DateTime} representing the current local system date and time.
+   * Converts a Java local date-time, truncating sub-millisecond precision.
    *
-   * @return a {@code DateTime} for the current moment
+   * @param value source value
+   * @return represented date-time
+   * @throws NullPointerException if {@code value} is null
+   * @throws ArithmeticException if the date is outside compact storage
+   */
+  public static DateTime of( LocalDateTime value )
+  {
+    Objects.requireNonNull( value, "value" );
+    return of( Date.of( value.toLocalDate() ), Time.of( value.toLocalTime() ) );
+  }
+
+  /**
+   * Creates the canonical stored representation of a serial local millisecond coordinate.
+   * Interior exact-day boundaries become {@code 00:00}; the one-past-maximum boundary becomes
+   * {@link #MAX_VALUE}.
+   *
+   * @param serialMilliseconds coordinate from {@code 1970-01-01T00:00}
+   * @return the canonical representable value
+   * @throws ArithmeticException if the coordinate is outside the inclusive supported range
+   */
+  public static DateTime ofSerialMilliseconds( long serialMilliseconds )
+  {
+    if ( serialMilliseconds < MIN_SERIAL || serialMilliseconds > MAX_SERIAL )
+      throw new ArithmeticException( "Serial milliseconds outside compact storage: " + serialMilliseconds );
+    if ( serialMilliseconds == MAX_SERIAL )
+      return MAX_VALUE;
+    long day = Math.floorDiv( serialMilliseconds, Time.MILLIS_PER_DAY );
+    int millis = (int) Math.floorMod( serialMilliseconds, Time.MILLIS_PER_DAY );
+    return new DateTime( EpochDayMath.checkedEpochDay( day ), millis );
+  }
+
+  /**
+   * Obtains the current local date-time from the system-default clock.
+   *
+   * @return current local date-time
    */
   public static DateTime now()
   {
-    return of( LocalDateTime.now() );
+    return now( Clock.systemDefaultZone() );
   }
 
-  /******************************************** parse *********************************************/
   /**
-   * Parses a date-time string with automatic format detection.
-   * <p>
-   * First tries explicit date-time forms separated by {@code ' '} or {@code 'T'}, then accepts
-   * date-only values as midnight and time-only values as today at that time.
+   * Obtains the current local date-time from a clock, truncating sub-millisecond precision.
    *
-   * @param text the date-time string to parse, must not be null
-   * @return a new {@code DateTime} instance
-   * @throws NullPointerException   if {@code text} is null
-   * @throws DateTimeParseException if the text cannot be parsed in any supported format
+   * @param clock source of the current instant and time zone
+   * @return the clock's current local date-time
+   * @throws NullPointerException if {@code clock} is null
+   * @throws ArithmeticException if the clock's date is outside compact storage
+   */
+  public static DateTime now( Clock clock )
+  {
+    return of( LocalDateTime.now( Objects.requireNonNull( clock, "clock" ) ) );
+  }
+
+  /**
+   * Parses intelligent date-time text using current system defaults.
+   *
+   * @param text text to parse
+   * @return parsed date-time
+   * @throws NullPointerException if {@code text} is null
+   * @throws java.time.format.DateTimeParseException if parsing fails
+   * @throws ArithmeticException if relative arithmetic or compact storage overflows
    */
   public static DateTime parse( String text )
   {
-    Objects.requireNonNull( text, "text must not be null" );
-    String trimmed = text.trim();
-
-    if ( trimmed.equalsIgnoreCase( "now" ) )
-      return now();
-
-    // try explicit date-time forms, including times containing spaces such as "9 pm"
-    for ( String sep : new String[] { " ", "T" } )
-      for ( int from = trimmed.length();; )
-      {
-        int idx = trimmed.lastIndexOf( sep, from - 1 );
-        if ( idx < 0 )
-          break;
-        from = idx;
-
-        if ( idx == 0 || idx == trimmed.length() - 1 )
-          continue;
-
-        try
-        {
-          Date date = DateParser.parse( trimmed.substring( 0, idx ) );
-          Time time = TimeParser.parse( trimmed.substring( idx + 1 ) );
-          return new DateTime( date.getEpochDay(), time.toMillisecondsOfDay() );
-        }
-        catch ( IllegalArgumentException | DateTimeParseException ignored )
-        {
-          // try next separator position
-        }
-      }
-
-    // try date-only and time-only forms as fallbacks
-    try
-    {
-      Date date = DateParser.parse( trimmed );
-      return new DateTime( date.getEpochDay(), 0 );
-    }
-    catch ( IllegalArgumentException | DateTimeParseException ignored )
-    {
-    }
-
-    try
-    {
-      Time time = TimeParser.parse( trimmed );
-      return new DateTime( Date.now().getEpochDay(), time.toMillisecondsOfDay() );
-    }
-    catch ( IllegalArgumentException | DateTimeParseException ignored )
-    {
-    }
-
-    throw new DateTimeParseException( "Unable to parse DateTime: " + text, trimmed, 0 );
+    return DateTimeParser.systemDefault().parse( text );
   }
 
-  // ================================= Accessor Methods =================================
+  // ================================= Component access =================================
 
-  /******************************************* getDate ********************************************/
   /**
-   * Returns the date component.
+   * Returns the stored date component.
    *
-   * @return the date component, never null
+   * @return stored date component
    */
   public Date getDate()
   {
-    return Date.ofEpochDay( m_epochDay );
+    return Date.ofEpochDay( epochDay );
   }
 
-  /******************************************* getTime ********************************************/
   /**
-   * Returns the time component.
+   * Returns the stored time component.
    *
-   * @return the time component, never null
+   * @return stored time component, including an explicit {@code 24:00} endpoint
    */
   public Time getTime()
   {
-    return Time.ofMilliseconds( m_milliseconds );
+    return Time.ofMilliseconds( milliseconds );
   }
 
-  /****************************************** getEpochDay *****************************************/
   /**
-   * Returns the date component as an epoch-day, the number of days since {@code 1970-01-01}.
+   * Returns the stored epoch-day coordinate.
    *
-   * @return the epoch-day value (days since {@code 1970-01-01})
+   * @return stored epoch day
    */
   public int getEpochDay()
   {
-    return m_epochDay;
+    return epochDay;
   }
 
-  /************************************** getMillisecondsOfDay ************************************/
   /**
-   * Returns the time-of-day component as milliseconds since midnight start of day.
-   * <p>
-   * The value is in the range {@code [0, Time.MILLIS_PER_DAY]}.
-   * A value of {@code Time.MILLIS_PER_DAY} represents {@code 24:00:00.000} (end of day).
+   * Returns the stored millisecond time coordinate.
    *
-   * @return milliseconds since midnight in {@code [0, Time.MILLIS_PER_DAY]}
+   * @return stored milliseconds of day from 0 through one full day
    */
   public int getMillisecondsOfDay()
   {
-    return m_milliseconds;
+    return milliseconds;
   }
 
-  /******************************************* withDate *******************************************/
   /**
-   * Returns a copy with the date component replaced.
+   * Replaces the stored date while preserving the stored time notation.
    *
-   * @param newDate the replacement date, must not be null
-   * @return a new {@code DateTime} with the specified date and the same time
-   * @throws NullPointerException if {@code newDate} is null
+   * @param date replacement date
+   * @return adjusted value, or this instance if unchanged
+   * @throws NullPointerException if {@code date} is null
    */
-  public DateTime withDate( Date newDate )
+  public DateTime withDate( Date date )
   {
-    Objects.requireNonNull( newDate, "newDate must not be null" );
-    return new DateTime( newDate.getEpochDay(), m_milliseconds );
+    Objects.requireNonNull( date, "date" );
+    return date.getEpochDay() == epochDay ? this : new DateTime( date.getEpochDay(), milliseconds );
   }
 
-  /******************************************* withTime *******************************************/
   /**
-   * Returns a copy with the time component replaced.
+   * Replaces the stored time while preserving the stored date.
    *
-   * @param newTime the replacement time, must not be null
-   * @return a new {@code DateTime} with the same date and the specified time
-   * @throws NullPointerException if {@code newTime} is null
+   * @param time replacement time
+   * @return adjusted value, or this instance if unchanged
+   * @throws NullPointerException if {@code time} is null
    */
-  public DateTime withTime( Time newTime )
+  public DateTime withTime( Time time )
   {
-    Objects.requireNonNull( newTime, "newTime must not be null" );
-    return new DateTime( m_epochDay, newTime.toMillisecondsOfDay() );
+    Objects.requireNonNull( time, "time" );
+    int newMilliseconds = time.toMillisecondsOfDay();
+    return newMilliseconds == milliseconds ? this : new DateTime( epochDay, newMilliseconds );
   }
 
-  // ================================= Arithmetic Methods =================================
-
-  /******************************************* plusDays *******************************************/
   /**
-   * Returns a copy with the specified number of days added, preserving the time component.
+   * Returns the canonical next-day-midnight representation of an interior stored {@code 24:00}.
    *
-   * @param days days to add (may be negative)
-   * @return {@code this} if {@code days == 0}, otherwise a new {@code DateTime}
+   * @return {@code this} for ordinary times, otherwise following-day {@code 00:00}
+   * @throws ArithmeticException for {@link #MAX_VALUE}, whose effective day is not storable
    */
-  public DateTime plusDays( int days )
+  public DateTime normalized()
   {
-    if ( days == 0 )
+    if ( milliseconds != Time.MILLIS_PER_DAY )
       return this;
-    return new DateTime( m_epochDay + days, m_milliseconds );
+    return new DateTime( EpochDayMath.addDays( epochDay, 1L ), 0 );
   }
 
-  /*************************************** plusMilliseconds ***************************************/
   /**
-   * Returns a copy with the specified number of milliseconds added.
-   * <p>
-   * Handles day boundary crossings correctly, including the special case of {@code 24:00}.
+   * Returns the zone-free millisecond coordinate from {@code 1970-01-01T00:00}.
    *
-   * @param millis milliseconds to add (may be negative)
-   * @return {@code this} if {@code millis == 0}, otherwise a new {@code DateTime}
+   * @return normalized local serial milliseconds
    */
-  public DateTime plusMilliseconds( long millis )
+  public long toSerialMilliseconds()
   {
-    if ( millis == 0 )
-      return this;
-
-    // add millis to current time, then calculate day shift and new millis within the day
-    long total = m_milliseconds + millis;
-    int dayShift = (int) ( total / Time.MILLIS_PER_DAY );
-    int newMillis = (int) ( total - (long) dayShift * Time.MILLIS_PER_DAY );
-
-    // handle negative millis that shift back into the previous day
-    if ( newMillis < 0 )
-    {
-      newMillis += Time.MILLIS_PER_DAY;
-      dayShift--;
-    }
-
-    // if we crossed a day boundary and ended up at exactly 00:00, return 24:00 of the previous day
-    if ( millis > 0 && newMillis == 0 )
-      return new DateTime( m_epochDay + dayShift - 1, Time.MILLIS_PER_DAY );
-
-    return new DateTime( m_epochDay + dayShift, newMillis );
+    return (long) epochDay * Time.MILLIS_PER_DAY + milliseconds;
   }
 
-  /***************************************** plusSeconds ******************************************/
   /**
-   * Returns a copy with the specified number of seconds added.
+   * Converts to Java time; stored {@code 24:00} becomes following-day midnight.
    *
-   * @param seconds seconds to add (may be negative)
-   * @return a new {@code DateTime} with seconds added
-   */
-  public DateTime plusSeconds( int seconds )
-  {
-    return plusMilliseconds( (long) seconds * Time.MILLIS_PER_SECOND );
-  }
-
-  /***************************************** plusMinutes ******************************************/
-  /**
-   * Returns a copy with the specified number of minutes added.
-   *
-   * @param minutes minutes to add (may be negative)
-   * @return a new {@code DateTime} with minutes added
-   */
-  public DateTime plusMinutes( int minutes )
-  {
-    return plusMilliseconds( (long) minutes * Time.MILLIS_PER_MINUTE );
-  }
-
-  /****************************************** plusHours *******************************************/
-  /**
-   * Returns a copy with the specified number of hours added, adjusting the date if a day
-   * boundary is crossed.
-   *
-   * @param hours hours to add (may be negative)
-   * @return a new {@code DateTime} with hours added
-   */
-  public DateTime plusHours( int hours )
-  {
-    return plusMilliseconds( (long) hours * Time.MILLIS_PER_HOUR );
-  }
-
-  /****************************************** plusWeeks *******************************************/
-  /**
-   * Returns a copy with the specified number of weeks added, preserving the time component.
-   *
-   * @param weeks weeks to add (may be negative)
-   * @return a new {@code DateTime} with weeks added
-   */
-  public DateTime plusWeeks( int weeks )
-  {
-    return plusDays( weeks * 7 );
-  }
-
-  /****************************************** plusMonths ******************************************/
-  /**
-   * Returns a copy with the specified number of months added.
-   * <p>
-   * Month-end clamping applies: adding one month to 31 January yields 28/29 February.
-   *
-   * @param months months to add (may be negative)
-   * @return {@code this} if {@code months == 0}, otherwise a new {@code DateTime}
-   */
-  public DateTime plusMonths( int months )
-  {
-    if ( months == 0 )
-      return this;
-    // delegate to Date static helper — no intermediate Date object needed
-    return new DateTime( Date.addMonths( m_epochDay, months ), m_milliseconds );
-  }
-
-  /****************************************** plusYears *******************************************/
-  /**
-   * Returns a copy with the specified number of years added.
-   * <p>
-   * Leap-year clamping applies: adding one year to 29 February yields 28 February in a
-   * non-leap year.
-   *
-   * @param years years to add (may be negative)
-   * @return {@code this} if {@code years == 0}, otherwise a new {@code DateTime}
-   */
-  public DateTime plusYears( int years )
-  {
-    if ( years == 0 )
-      return this;
-    // delegate to Date static helper — no intermediate Date object needed
-    return new DateTime( Date.addYears( m_epochDay, years ), m_milliseconds );
-  }
-
-  /***************************************** plusInterval *****************************************/
-  /**
-   * Returns a copy with the specified interval added.
-   * <p>
-   * Calendar-based units ({@code YEAR}, {@code HALF_YEAR}, {@code QUARTER_YEAR}, {@code MONTH})
-   * account for varying month lengths. All other units use millisecond arithmetic.
-   *
-   * @param amount amount to add (may be negative)
-   * @param unit   interval unit, must not be null
-   * @return {@code this} if {@code amount == 0}, otherwise a new {@code DateTime}
-   * @throws NullPointerException if {@code unit} is null
-   */
-  public DateTime plusInterval( int amount, IntervalUnit unit )
-  {
-    Objects.requireNonNull( unit, "unit must not be null" );
-    if ( amount == 0 )
-      return this;
-
-    return switch ( unit )
-    {
-      case YEAR -> plusYears( amount );
-      case HALF_YEAR -> plusMonths( amount * 6 );
-      case QUARTER_YEAR -> plusMonths( amount * 3 );
-      case MONTH -> plusMonths( amount );
-      case WEEK -> plusDays( amount * 7 );
-      case DAY -> plusDays( amount );
-      case HALF_DAY -> plusMilliseconds( (long) amount * 12 * Time.MILLIS_PER_HOUR );
-      case QUARTER_DAY -> plusMilliseconds( (long) amount * 6 * Time.MILLIS_PER_HOUR );
-      case HOUR -> plusHours( amount );
-      case HALF_HOUR -> plusMinutes( 30 * amount );
-      case TEN_MINUTE -> plusMinutes( 10 * amount );
-      case MINUTE -> plusMinutes( amount );
-      case SECOND -> plusSeconds( amount );
-    };
-  }
-
-  // ================================= Rounding Methods =================================
-
-  /***************************************** toDateUnit *******************************************/
-  // maps calendar-level DateTime interval units to their Date.IntervalUnit equivalents
-  private static Date.IntervalUnit toDateUnit( IntervalUnit unit )
-  {
-    return switch ( unit )
-    {
-      case YEAR -> Date.IntervalUnit.YEAR;
-      case HALF_YEAR -> Date.IntervalUnit.HALF_YEAR;
-      case QUARTER_YEAR -> Date.IntervalUnit.QUARTER_YEAR;
-      case MONTH -> Date.IntervalUnit.MONTH;
-      case WEEK -> Date.IntervalUnit.WEEK;
-      default -> throw new IllegalArgumentException( "no date unit for: " + unit );
-    };
-  }
-
-  /****************************************** unitMillis ******************************************/
-  // returns the millisecond span of a sub-day interval unit; throws for day/calendar units
-  private static int unitMillis( IntervalUnit unit )
-  {
-    return switch ( unit )
-    {
-      case SECOND -> Time.MILLIS_PER_SECOND;
-      case MINUTE -> Time.MILLIS_PER_MINUTE;
-      case TEN_MINUTE -> 10 * Time.MILLIS_PER_MINUTE;
-      case HALF_HOUR -> 30 * Time.MILLIS_PER_MINUTE;
-      case HOUR -> Time.MILLIS_PER_HOUR;
-      case QUARTER_DAY -> 6 * Time.MILLIS_PER_HOUR;
-      case HALF_DAY -> 12 * Time.MILLIS_PER_HOUR;
-      default -> throw new IllegalArgumentException( "no millis for: " + unit );
-    };
-  }
-
-  /****************************************** roundDown *******************************************/
-  /**
-   * Returns a copy truncated (rounded down) to the specified unit boundary.
-   * <p>
-   * Returns {@code this} if already aligned. Calendar-based units ({@code WEEK} through
-   * {@code YEAR}) delegate to {@link Date#roundDown(Date.IntervalUnit)} to avoid duplicating
-   * calendar arithmetic.
-   *
-   * @param unit the unit to truncate to, must not be null
-   * @return {@code this} if already aligned, otherwise a new {@code DateTime}
-   * @throws NullPointerException if {@code unit} is null
-   */
-  public DateTime roundDown( IntervalUnit unit )
-  {
-    Objects.requireNonNull( unit, "unit must not be null" );
-
-    return switch ( unit )
-    {
-      // sub-day: floor to nearest unit-span multiple.
-      // MILLIS_PER_DAY % every sub-day span == 0, so 24:00 is always aligned and returned unchanged.
-      case SECOND, MINUTE, TEN_MINUTE, HALF_HOUR, HOUR, QUARTER_DAY, HALF_DAY -> {
-        int span = unitMillis( unit );
-        int t = ( m_milliseconds / span ) * span;
-        yield t == m_milliseconds ? this : new DateTime( m_epochDay, t );
-      }
-
-      case DAY -> m_milliseconds == 0 ? this : new DateTime( m_epochDay, 0 );
-
-      // calendar units delegate entirely to Date.roundDown to avoid duplicating calendar logic
-      case WEEK, MONTH, QUARTER_YEAR, HALF_YEAR, YEAR -> {
-        int newDay = Date.ofEpochDay( m_epochDay ).roundDown( toDateUnit( unit ) ).getEpochDay();
-        yield ( newDay == m_epochDay && m_milliseconds == 0 ) ? this : new DateTime( newDay, 0 );
-      }
-    };
-  }
-
-  /******************************************* roundUp ********************************************/
-  /**
-   * Returns a copy rounded up (ceiling) to the end of the current unit period.
-   * <p>
-   * "End of period" is defined as:
-   * <ul>
-   *   <li><b>Sub-day units</b> ({@code SECOND} through {@code HALF_DAY}): the next exact
-   *       multiple of the unit span within the same day, up to and including {@code 24:00}.
-   *       {@code MILLIS_PER_DAY} is exactly divisible by every sub-day unit span, so
-   *       {@code 24:00} is always aligned and is returned unchanged.</li>
-   *   <li><b>{@code DAY}</b>: {@code 24:00} of the same day. Both {@code 00:00} (start) and
-   *       {@code 24:00} (end) are considered aligned.</li>
-   *   <li><b>Calendar units</b> ({@code WEEK} through {@code YEAR}): {@code 24:00} of the
-   *       last day of the current period (e.g., {@code roundUp(MONTH)} on any date in January
-   *       yields {@code Jan 31 24:00}). Both the period start ({@code Jan 1 00:00}) and the
-   *       period end ({@code Jan 31 24:00}) are considered aligned and returned unchanged.</li>
-   * </ul>
-   * For alignment purposes, {@code 24:00} of day N is treated as chronologically equivalent to
-   * {@code 00:00} of day N+1, so {@code Jan 31 24:00} is recognised as the start of February.
-   *
-   * @param unit the unit to round up to, must not be null
-   * @return {@code this} if already at a period boundary, otherwise the end of the current period
-   * @throws NullPointerException if {@code unit} is null
-   */
-  public DateTime roundUp( IntervalUnit unit )
-  {
-    Objects.requireNonNull( unit, "unit must not be null" );
-
-    return switch ( unit )
-    {
-      // sub-day: ceiling to next unit-span multiple within the day.
-      // rem == 0 covers 24:00 automatically — MILLIS_PER_DAY % every sub-day span == 0.
-      case SECOND, MINUTE, TEN_MINUTE, HALF_HOUR, HOUR, QUARTER_DAY, HALF_DAY -> {
-        int span = unitMillis( unit );
-        int rem = m_milliseconds % span;
-        yield rem == 0 ? this : new DateTime( m_epochDay, m_milliseconds - rem + span );
-      }
-
-      // day: both 00:00 (start) and 24:00 (end) are aligned; anything between rounds to 24:00
-      case DAY -> ( m_milliseconds == 0 || m_milliseconds == Time.MILLIS_PER_DAY ) ? this
-          : new DateTime( m_epochDay, Time.MILLIS_PER_DAY );
-
-      // calendar: aligned at period start (day D, 00:00) or period end (day D-1, 24:00).
-      // resolve 24:00 of day N → 00:00 of day N+1 before checking period membership.
-      case WEEK, MONTH, QUARTER_YEAR, HALF_YEAR, YEAR -> {
-        // effective midnight: 24:00 of day N is chronologically 00:00 of day N+1
-        boolean isEndOfDay = m_milliseconds == Time.MILLIS_PER_DAY;
-        int effectiveDay = isEndOfDay ? m_epochDay + 1 : m_epochDay;
-        int effectiveMs = isEndOfDay ? 0 : m_milliseconds;
-
-        // find the start of the period that contains the effective midnight
-        Date.IntervalUnit dateUnit = toDateUnit( unit );
-        int periodStart = Date.ofEpochDay( effectiveDay ).roundDown( dateUnit ).getEpochDay();
-
-        // aligned if effective midnight lands exactly on a period start (covers both boundaries)
-        if ( effectiveMs == 0 && periodStart == effectiveDay )
-          yield this;
-
-        // end-of-period = 24:00 of the day before the next period starts
-        Date nextStart = switch ( unit )
-        {
-          case WEEK -> Date.ofEpochDay( periodStart ).plusDays( 7 );
-          case MONTH -> Date.ofEpochDay( periodStart ).plusMonths( 1 );
-          case QUARTER_YEAR -> Date.ofEpochDay( periodStart ).plusMonths( 3 );
-          case HALF_YEAR -> Date.ofEpochDay( periodStart ).plusMonths( 6 );
-          case YEAR -> Date.ofEpochDay( periodStart ).plusYears( 1 );
-          default -> throw new AssertionError( "unreachable: " + unit );
-        };
-        yield new DateTime( nextStart.getEpochDay() - 1, Time.MILLIS_PER_DAY );
-      }
-    };
-  }
-
-  // ================================= Conversion Methods =================================
-
-  /**************************************** toLocalDateTime ***************************************/
-  /**
-   * Converts this {@code DateTime} to a {@link LocalDateTime}.
-   * <p>
-   * The time component {@code 24:00:00.000} is normalised to {@code 00:00:00.000} of the
-   * following day, since {@link LocalDateTime} has no representation for end-of-day.
-   *
-   * @return equivalent {@link LocalDateTime}
+   * @return the normalized Java local date-time with millisecond precision
    */
   public LocalDateTime toLocalDateTime()
   {
-    // normalise 24:00 to 00:00 next day before converting
-    int epochDay = m_milliseconds == Time.MILLIS_PER_DAY ? m_epochDay + 1 : m_epochDay;
-    int millis = m_milliseconds == Time.MILLIS_PER_DAY ? 0 : m_milliseconds;
-    return LocalDateTime.of( Date.ofEpochDay( epochDay ).toLocalDate(), Time.ofMilliseconds( millis ).toLocalTime() );
+    long effectiveDay = milliseconds == Time.MILLIS_PER_DAY ? (long) epochDay + 1L : epochDay;
+    int effectiveMilliseconds = milliseconds == Time.MILLIS_PER_DAY ? 0 : milliseconds;
+    return LocalDateTime.of( LocalDate.ofEpochDay( effectiveDay ),
+        LocalTime.ofNanoOfDay( effectiveMilliseconds * 1_000_000L ) );
   }
 
-  /**************************************** toMilliseconds ****************************************/
+  // =================================== Date-time arithmetic ===================================
+
   /**
-   * Converts this {@code DateTime} to milliseconds since the Unix epoch (1970-01-01T00:00:00.000).
-   * Note {@code 24:00} of day N and {@code 00:00} of day N+1 give same milliseconds. 
+   * Adds calendar days while retaining the stored time notation.
    *
-   * @return milliseconds since the Unix epoch
+   * @param days days to add
+   * @return adjusted value
+   * @throws ArithmeticException if arithmetic or compact storage overflows
    */
-  public long toMilliseconds()
+  public DateTime plusDays( long days )
   {
-    // combine epoch-day and millis-of-day for total epoch milliseconds
-    return (long) m_epochDay * Time.MILLIS_PER_DAY + m_milliseconds;
+    return days == 0L ? this : new DateTime( EpochDayMath.addDays( epochDay, days ), milliseconds );
   }
 
-  /**************************************** ofMilliseconds ****************************************/
   /**
-   * Creates a {@code DateTime} from milliseconds since the Unix epoch (1970-01-01T00:00:00.000).
-   * <p>
-   * Inverse of {@link #toMilliseconds()}.
-   * <p>
-   * The resulting epoch day is cast to {@code int}. Values beyond approximately ±2.15 billion
-   * days (±5.8 million years) will overflow silently, consistent with the range documented for
-   * {@link Date}.
+   * Adds calendar weeks while retaining the stored time notation.
    *
-   * @param epochMillis milliseconds since the Unix epoch
-   * @return a new {@code DateTime}
-   * @throws ArithmeticException if the epoch-day component overflows {@code int}
+   * @param weeks weeks to add
+   * @return adjusted value
+   * @throws ArithmeticException if arithmetic or compact storage overflows
    */
-  public static DateTime ofMilliseconds( long epochMillis )
+  public DateTime plusWeeks( long weeks )
   {
-    // floor-divide to handle pre-epoch (negative) values correctly
-    long epochDay = Math.floorDiv( epochMillis, Time.MILLIS_PER_DAY );
-    if ( epochDay < Integer.MIN_VALUE || epochDay > Integer.MAX_VALUE )
-      throw new ArithmeticException( "epoch day overflow: " + epochDay );
-    int millis = Math.floorMod( epochMillis, Time.MILLIS_PER_DAY );
-    return new DateTime( (int) epochDay, millis );
+    return plusDays( Math.multiplyExact( weeks, 7L ) );
   }
 
-  // ================================= Comparison Methods =================================
-
-  /******************************************* isBefore *******************************************/
   /**
-   * Returns {@code true} if this is chronologically before {@code other}.
+   * Adds calendar months, clamping the date and retaining the stored time notation.
    *
-   * @param other the {@code DateTime} to compare against, must not be null
-   * @return {@code true} if this is strictly before {@code other}
+   * @param months months to add
+   * @return adjusted value
+   * @throws ArithmeticException if arithmetic or compact storage overflows
+   */
+  public DateTime plusMonths( long months )
+  {
+    return months == 0L ? this : new DateTime( EpochDayMath.addMonths( epochDay, months ), milliseconds );
+  }
+
+  /**
+   * Adds calendar years, clamping leap day and retaining the stored time notation.
+   *
+   * @param years years to add
+   * @return adjusted value
+   * @throws ArithmeticException if arithmetic or compact storage overflows
+   */
+  public DateTime plusYears( long years )
+  {
+    return years == 0L ? this : new DateTime( EpochDayMath.addYears( epochDay, years ), milliseconds );
+  }
+
+  /**
+   * Adds a fixed duration with checked storage. A positive non-zero result landing at midnight is
+   * stored as the preceding day at {@code 24:00}; a negative one is stored as the resulting day at
+   * {@code 00:00}. Fixed-duration inverses and regrouping therefore preserve normalized position,
+   * but need not preserve stored equality.
+   *
+   * @param amount milliseconds to add
+   * @return the adjusted value, or this instance for zero
+   * @throws ArithmeticException if arithmetic or compact storage overflows
+   */
+  public DateTime plusMilliseconds( long amount )
+  {
+    if ( amount == 0L )
+      return this;
+    long serial = Math.addExact( toSerialMilliseconds(), amount );
+    if ( serial < MIN_SERIAL || serial > MAX_SERIAL )
+      throw new ArithmeticException( "DateTime arithmetic outside compact storage" );
+    // Preserve endpoint notation according to travel direction when landing exactly at midnight.
+    if ( Math.floorMod( serial, Time.MILLIS_PER_DAY ) == 0L )
+    {
+      long effectiveDay = Math.floorDiv( serial, Time.MILLIS_PER_DAY );
+      if ( amount > 0L )
+        return new DateTime( EpochDayMath.checkedEpochDay( effectiveDay - 1L ), Time.MILLIS_PER_DAY );
+      return new DateTime( EpochDayMath.checkedEpochDay( effectiveDay ), 0 );
+    }
+    return ofSerialMilliseconds( serial );
+  }
+
+  /**
+   * Adds fixed-duration seconds on the normalized local timeline.
+   *
+   * @param seconds seconds to add
+   * @return adjusted value
+   * @throws ArithmeticException if multiplication, arithmetic, or storage overflows
+   */
+  public DateTime plusSeconds( long seconds )
+  {
+    return plusMilliseconds( Math.multiplyExact( seconds, Time.MILLIS_PER_SECOND ) );
+  }
+
+  /**
+   * Adds fixed-duration minutes on the normalized local timeline.
+   *
+   * @param minutes minutes to add
+   * @return adjusted value
+   * @throws ArithmeticException if multiplication, arithmetic, or storage overflows
+   */
+  public DateTime plusMinutes( long minutes )
+  {
+    return plusMilliseconds( Math.multiplyExact( minutes, Time.MILLIS_PER_MINUTE ) );
+  }
+
+  /**
+   * Adds fixed-duration hours on the normalized local timeline.
+   *
+   * @param hours hours to add
+   * @return adjusted value
+   * @throws ArithmeticException if multiplication, arithmetic, or storage overflows
+   */
+  public DateTime plusHours( long hours )
+  {
+    return plusMilliseconds( Math.multiplyExact( hours, Time.MILLIS_PER_HOUR ) );
+  }
+
+  /**
+   * Adds either a calendar or fixed-duration interval. Calendar intervals use the stored date and
+   * preserve the stored time notation; time intervals use {@link #plusMilliseconds(long)}.
+   *
+   * @param amount number of intervals to add
+   * @param interval calendar or fixed-duration interval
+   * @return the adjusted value
+   * @throws NullPointerException if {@code interval} is null, including for zero amount
+   * @throws ArithmeticException if arithmetic or compact storage overflows
+   */
+  public DateTime plus( long amount, DateTimeInterval interval )
+  {
+    Objects.requireNonNull( interval, "interval" );
+    if ( amount == 0L )
+      return this;
+    if ( interval instanceof DateInterval dateInterval )
+      return switch ( dateInterval )
+      {
+        case DAY -> plusDays( amount );
+        case WEEK -> plusWeeks( amount );
+        case MONTH -> plusMonths( amount );
+        case QUARTER_YEAR -> plusMonths( Math.multiplyExact( amount, 3L ) );
+        case HALF_YEAR -> plusMonths( Math.multiplyExact( amount, 6L ) );
+        case YEAR -> plusYears( amount );
+      };
+    TimeInterval timeInterval = (TimeInterval) interval;
+    return plusMilliseconds( Math.multiplyExact( amount, timeInterval.milliseconds() ) );
+  }
+
+  /**
+   * Returns the start boundary selected by a calendar period or fixed-duration time grid.
+   *
+   * <ul>
+   *   <li>For a {@link DateInterval}, returns {@code 00:00} on the first stored date of the
+   *       containing calendar period. The stored date is used without normalizing {@code 24:00};
+   *       therefore {@code 2026-08-20 24:00.startOf(DAY)} is
+   *       {@code 2026-08-20 00:00}, not {@code 2026-08-21 00:00}.</li>
+   *   <li>For a {@link TimeInterval}, preserves the stored date and returns the nearest aligned
+   *       time at or before the stored time. For example,
+   *       {@code 2026-08-20 10:37.startOf(HALF_HOUR)} is
+   *       {@code 2026-08-20 10:30}.</li>
+   * </ul>
+   *
+   * <p>This method returns {@code this} when it already represents the selected boundary. Every
+   * aligned time, including stored {@code 24:00}, is unchanged for a {@code TimeInterval}; for a
+   * {@code DateInterval}, both the first stored date and {@code 00:00} must match.</p>
+   *
+   * @param interval calendar period or fixed-duration alignment grid
+   * @return the selected start boundary, or {@code this} when already at that boundary
+   * @throws NullPointerException if {@code interval} is null
+   * @throws ArithmeticException if a calendar-period start is outside compact date storage
+   */
+  public DateTime startOf( DateTimeInterval interval )
+  {
+    Objects.requireNonNull( interval, "interval" );
+    if ( interval instanceof DateInterval dateInterval )
+    {
+      int day = EpochDayMath.checkedEpochDay( EpochDayMath.periodStart( epochDay, dateInterval ) );
+      return day == epochDay && milliseconds == 0 ? this : new DateTime( day, 0 );
+    }
+    Time aligned = getTime().startOf( (TimeInterval) interval );
+    return aligned.toMillisecondsOfDay() == milliseconds ? this
+        : new DateTime( epochDay, aligned.toMillisecondsOfDay() );
+  }
+
+  /**
+   * Returns the end boundary selected by a calendar period or fixed-duration time grid.
+   *
+   * <ul>
+   *   <li>For a {@link DateInterval}, returns explicit {@code 24:00} on the last stored date of the
+   *       containing calendar period. The stored date is used without normalization; for example,
+   *       {@code 2026-08-20 10:37.endOf(MONTH)} is
+   *       {@code 2026-08-31 24:00}, and {@code endOf(DAY)} is
+   *       {@code 2026-08-20 24:00}.</li>
+   *   <li>For a {@link TimeInterval}, preserves the stored date and returns the nearest aligned
+   *       time at or after the stored time. For example,
+   *       {@code 2026-08-20 10:37.endOf(HALF_HOUR)} is
+   *       {@code 2026-08-20 11:00}.</li>
+   * </ul>
+   *
+   * <p>This method returns {@code this} when it already represents the selected boundary. Every
+   * aligned time, including stored {@code 24:00}, is unchanged for a {@code TimeInterval}; for a
+   * {@code DateInterval}, both the last stored date and {@code 24:00} must match. A calendar result
+   * deliberately retains the ending {@code 24:00} notation rather than normalizing it to the next
+   * date at {@code 00:00}.</p>
+   *
+   * @param interval calendar period or fixed-duration alignment grid
+   * @return the selected end boundary, or {@code this} when already at that boundary
+   * @throws NullPointerException if {@code interval} is null
+   * @throws ArithmeticException if a calendar-period end is outside compact date storage
+   */
+  public DateTime endOf( DateTimeInterval interval )
+  {
+    Objects.requireNonNull( interval, "interval" );
+    if ( interval instanceof DateInterval dateInterval )
+    {
+      int day = EpochDayMath.checkedEpochDay( EpochDayMath.periodEnd( epochDay, dateInterval ) );
+      return day == epochDay && milliseconds == Time.MILLIS_PER_DAY ? this : new DateTime( day, Time.MILLIS_PER_DAY );
+    }
+    Time aligned = getTime().endOf( (TimeInterval) interval );
+    return aligned.toMillisecondsOfDay() == milliseconds ? this
+        : new DateTime( epochDay, aligned.toMillisecondsOfDay() );
+  }
+
+  // ================================= Comparison and distance ================================
+
+  /**
+   * Tests lexicographical stored ordering without normalizing {@code 24:00}.
+   *
+   * @param other value to compare
+   * @return whether this stored value is earlier
    * @throws NullPointerException if {@code other} is null
    */
   public boolean isBefore( DateTime other )
@@ -675,12 +527,11 @@ public final class DateTime implements Serializable, Comparable<DateTime>
     return compareTo( other ) < 0;
   }
 
-  /******************************************* isAfter ********************************************/
   /**
-   * Returns {@code true} if this is chronologically after {@code other}.
+   * Tests lexicographical stored ordering without normalizing {@code 24:00}.
    *
-   * @param other the {@code DateTime} to compare against, must not be null
-   * @return {@code true} if this is strictly after {@code other}
+   * @param other value to compare
+   * @return whether this stored value is later
    * @throws NullPointerException if {@code other} is null
    */
   public boolean isAfter( DateTime other )
@@ -688,341 +539,155 @@ public final class DateTime implements Serializable, Comparable<DateTime>
     return compareTo( other ) > 0;
   }
 
-  /******************************************* isEqual ********************************************/
   /**
-   * Returns {@code true} if both epoch-day and milliseconds match exactly.
-   * Note {@code 24:00} of day N is not considered equal to {@code 00:00} of day N+1,
-   * since they have different field values, even though they represent the same instant.
-   * <p>
-   * Null-safe: returns {@code false} rather than throwing when {@code other} is null.
+   * Tests membership in an inclusive, non-wrapping stored-value range.
    *
-   * @param other the {@code DateTime} to compare (may be null)
-   * @return {@code true} if both fields are identical
-   */
-  public boolean isEqual( DateTime other )
-  {
-    return other != null && m_epochDay == other.m_epochDay && m_milliseconds == other.m_milliseconds;
-  }
-
-  /****************************************** isBetween *******************************************/
-  /**
-   * Returns {@code true} if this falls within the inclusive range {@code [start, end]}.
-   * <p>
-   * Returns {@code false} if {@code start} is after {@code end} (empty range).
-   *
-   * @param start range start, inclusive (must not be null)
-   * @param end   range end, inclusive (must not be null)
-   * @return {@code true} if {@code start <= this <= end}
-   * @throws NullPointerException if either argument is null
+   * @param start inclusive lower bound
+   * @param end inclusive upper bound
+   * @return whether this value is within the bounds
+   * @throws NullPointerException if either bound is null
    */
   public boolean isBetween( DateTime start, DateTime end )
   {
-    Objects.requireNonNull( start, "start must not be null" );
-    Objects.requireNonNull( end, "end must not be null" );
+    Objects.requireNonNull( start, "start" );
+    Objects.requireNonNull( end, "end" );
     return compareTo( start ) >= 0 && compareTo( end ) <= 0;
   }
 
-  /****************************************** compareTo *******************************************/
   /**
-   * Compares this {@code DateTime} to another for chronological ordering.
-   * <p>
-   * Epoch-day is compared first; milliseconds-of-day is the tiebreaker. Note that
-   * {@code 24:00} of day N orders before {@code 00:00} of day N+1.
+   * Tests normalized position on the zone-free local timeline; this is not instant equality.
    *
-   * @param other the {@code DateTime} to compare to, must not be null
-   * @return negative if before, zero if equal, positive if after
+   * @param other value to compare
+   * @return whether both values have the same normalized serial coordinate
    * @throws NullPointerException if {@code other} is null
    */
-  @Override
-  public int compareTo( DateTime other )
+  public boolean hasSameTimelinePosition( DateTime other )
   {
-    // compare epoch days first — the common fast path
-    int cmp = Integer.compare( m_epochDay, other.m_epochDay );
-    if ( cmp != 0 )
-      return cmp;
-
-    // same day — tiebreak on milliseconds within the day
-    return Integer.compare( m_milliseconds, other.m_milliseconds );
+    Objects.requireNonNull( other, "other" );
+    return toSerialMilliseconds() == other.toSerialMilliseconds();
   }
 
-  // ================================= Difference Methods =================================
-
-  /************************************** millisecondsUntil ***************************************/
   /**
-   * Returns the signed number of milliseconds from this instant to {@code other}.
-   * <p>
-   * Positive if {@code other} is later, negative if earlier.
+   * Returns the signed elapsed distance on the normalized local timeline.
    *
-   * @param other the target instant, must not be null
-   * @return signed millisecond difference
+   * @param other target value
+   * @return {@code other - this} in milliseconds
    * @throws NullPointerException if {@code other} is null
    */
   public long millisecondsUntil( DateTime other )
   {
-    Objects.requireNonNull( other, "other must not be null" );
-    return other.toMilliseconds() - toMilliseconds();
+    Objects.requireNonNull( other, "other" );
+    return other.toSerialMilliseconds() - toSerialMilliseconds();
   }
 
-  /************************************** differenceInMillis **************************************/
   /**
-   * Returns the absolute number of milliseconds between this instant and {@code other}.
-   * <p>
-   * Always non-negative. For a signed difference use {@link #millisecondsUntil}.
+   * Returns the absolute elapsed distance on the normalized local timeline.
    *
-   * @param other the instant to compare with, must not be null
-   * @return absolute millisecond difference
+   * @param other value to compare
+   * @return non-negative difference in milliseconds
    * @throws NullPointerException if {@code other} is null
    */
   public long differenceInMillis( DateTime other )
   {
-    Objects.requireNonNull( other, "other must not be null" );
-    return Math.abs( toMilliseconds() - other.toMilliseconds() );
+    return Math.abs( millisecondsUntil( other ) );
   }
 
-  // ================================= Object Methods =================================
+  // ================================= Formatting =================================
 
-  /******************************************** equals ********************************************/
   /**
-   * Returns {@code true} if {@code obj} is a {@code DateTime} with identical fields
-   * (date epoch day and milliseconds of day).
+   * Formats the combined value using the current default locale and one date-time pattern.
+   * Compatible local date/time fields preserve the stored date and explicit {@code 24:00}
+   * notation. The date portion supports the {@code U}, {@code UU}, and {@code UUU} half-year
+   * extension described by {@link Date#format(String)}. Offset, zone, and instant fields are
+   * unsupported when required by the pattern.
    *
-   * @param obj the object to compare with (may be null)
-   * @return {@code true} if both epoch-day and milliseconds are equal
+   * @param pattern formatting pattern
+   * @return formatted text
+   * @throws NullPointerException if {@code pattern} is null
+   * @throws IllegalArgumentException if the pattern is invalid
+   * @throws java.time.DateTimeException if formatting fails, including for an unsupported field
    */
-  @Override
-  public boolean equals( Object obj )
+  public String format( String pattern )
   {
-    return obj instanceof DateTime other && m_epochDay == other.m_epochDay && m_milliseconds == other.m_milliseconds;
+    return TemporalPatternSupport.formatDateTime( epochDay, milliseconds, pattern );
   }
 
-  /******************************************* hashCode *******************************************/
   /**
-   * Returns a hash code for this {@code DateTime}.
+   * Formats the combined value with a precompiled formatter. Compatible local date/time fields
+   * preserve the stored date and explicit {@code 24:00} notation; formatters that require offset,
+   * zone, or instant fields are unsupported.
    *
-   * @return hash code derived from both internal fields
+   * @param formatter formatter to use
+   * @return formatted text
+   * @throws NullPointerException if {@code formatter} is null
+   * @throws java.time.DateTimeException if formatting fails, including for an unsupported field
    */
+  public String format( DateTimeFormatter formatter )
+  {
+    return TemporalPatternSupport.formatDateTime( epochDay, milliseconds, formatter );
+  }
+
+  /**
+   * Formats date and time independently using the current default locale and joins them with one
+   * space. The date pattern supports the half-year extension, and the time pattern preserves
+   * explicit {@code 24:00}.
+   *
+   * @param datePattern date formatting pattern
+   * @param timePattern time formatting pattern
+   * @return combined formatted text
+   * @throws NullPointerException if either pattern is null
+   * @throws IllegalArgumentException if either pattern is invalid
+   * @throws java.time.DateTimeException if formatting fails, including for an unsupported field
+   */
+  public String format( String datePattern, String timePattern )
+  {
+    return getDate().format( datePattern ) + " " + getTime().format( timePattern );
+  }
+
+  /**
+   * Formats a patterned date and a component-count time, joined with one space. The date pattern
+   * uses the current default locale and supports the half-year extension described by
+   * {@link Date#format(String)}.
+   *
+   * @param datePattern date formatting pattern
+   * @param timeComponents requested time component count
+   * @return combined formatted text
+   * @throws NullPointerException if {@code datePattern} is null
+   * @throws IllegalArgumentException if {@code datePattern} is invalid
+   * @throws java.time.DateTimeException if formatting fails, including for an unsupported field
+   */
+  public String format( String datePattern, int timeComponents )
+  {
+    return getDate().format( datePattern ) + " " + getTime().formatComponents( timeComponents );
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public int compareTo( DateTime other )
+  {
+    Objects.requireNonNull( other, "other" );
+    int dateComparison = Integer.compare( epochDay, other.epochDay );
+    return dateComparison != 0 ? dateComparison : Integer.compare( milliseconds, other.milliseconds );
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean equals( Object object )
+  {
+    return object instanceof DateTime other && epochDay == other.epochDay && milliseconds == other.milliseconds;
+  }
+
+  /** {@inheritDoc} */
   @Override
   public int hashCode()
   {
-    // multiply one field and XOR with the other for a fast, well-distributed hash
-    return m_epochDay * 1_000_003 ^ m_milliseconds;
+    return 31 * Integer.hashCode( epochDay ) + Integer.hashCode( milliseconds );
   }
 
-  /******************************************* toString *******************************************/
-  /**
-   * Returns this date-time like {@code "yyyy-MM-dd HH:mm:ss.SSS"}.
-   *
-   * @return ISO-style like date-time string
-   */
+  /** @return date and millisecond-precision time joined with one space */
   @Override
   public String toString()
   {
-    return Date.ofEpochDay( m_epochDay ).toString() + " " + Time.ofMilliseconds( m_milliseconds ).toString();
-  }
-
-  /******************************************* toString *******************************************/
-  /**
-   * Formats this date-time using a local date-time pattern and the default formatting locale.
-   * <p>
-   * Standard local date and time pattern letters are supported. Patterns requiring a time zone
-   * or offset are unsupported because this class contains neither. Unlike formatting through a
-   * {@link LocalDateTime}, end-of-day {@code 24:00} retains its stored date and hour notation.
-   * <p>
-   * The extended half-year letter {@code U} is also supported:
-   * <ul>
-   *   <li>{@code U}   — half-year number: {@code 1} or {@code 2}</li>
-   *   <li>{@code UU}  — half-year label: {@code H1} or {@code H2}</li>
-   *   <li>{@code UUU} — half-year long form: {@code "1st half"} or {@code "2nd half"}</li>
-   * </ul>
-   * A run of {@code p} letters immediately before an unquoted {@code U} pads the complete
-   * expanded half-year value using normal {@link DateTimeFormatter} semantics.
-   *
-   * @param pattern the formatting pattern, must not be null
-   * @return the formatted date-time string
-   * @throws NullPointerException     if {@code pattern} is null
-   * @throws IllegalArgumentException if the pattern is malformed or contains more than three
-   *                                  consecutive unquoted {@code U} letters
-   * @throws DateTimeException        if this date-time cannot be printed with the pattern
-   */
-  public String toString( String pattern )
-  {
-    Objects.requireNonNull( pattern, "pattern must not be null" );
-
-    FormattingTemporal temporal = new FormattingTemporal( m_epochDay, m_milliseconds );
-    DateTimeFormatter formatter = pattern.indexOf( 'U' ) < 0 ? DateTimeFormatter.ofPattern( pattern )
-        : formatterWithHalfYear( pattern, temporal.date.getMonthValue() <= 6 ? 1 : 2 );
-    return formatter.format( temporal );
-  }
-
-  /******************************************* toString *******************************************/
-  /**
-   * Returns this date-time formatted using separate date and time patterns, joined by a space.
-   *
-   * @param datePattern pattern for the date portion (see {@link Date#toString(String)})
-   * @param timePattern pattern for the time portion (see {@link Time#toString(String)})
-   * @return formatted date-time string
-   */
-  public String toString( String datePattern, String timePattern )
-  {
-    return Date.ofEpochDay( m_epochDay ).toString( datePattern ) + " "
-        + Time.ofMilliseconds( m_milliseconds ).toString( timePattern );
-  }
-
-  /******************************************* toString *******************************************/
-  /**
-   * Returns a formatted string using a date pattern and a time component count.
-   *
-   * @param datePattern    pattern for the date portion (see {@link Date#toString(String)})
-   * @param timeComponents number of time components (1–4+; see {@link Time#format(int)})
-   * @return formatted date-time string
-   */
-  public String toString( String datePattern, int timeComponents )
-  {
-    return Date.ofEpochDay( m_epochDay ).toString( datePattern ) + " "
-        + Time.ofMilliseconds( m_milliseconds ).format( timeComponents );
-  }
-
-  /******************************************* toString *******************************************/
-  /**
-   * Returns this date-time formatted using the supplied {@link DateTimeFormatter}.
-   * <p>
-   * The time component {@code 24:00:00.000} is normalised to {@code 00:00:00.000} of the
-   * following day before formatting because the intermediate {@link LocalDateTime} cannot
-   * represent end-of-day. Use {@link #toString(String)} to retain the stored date and
-   * {@code 24:00} notation.
-   *
-   * @param formatter the formatter to use, must not be null
-   * @return formatted date-time string
-   * @throws NullPointerException if {@code formatter} is null
-   */
-  public String toString( DateTimeFormatter formatter )
-  {
-    Objects.requireNonNull( formatter, "formatter must not be null" );
-    // toLocalDateTime() handles 24:00 → 00:00 next-day normalisation
-    return formatter.format( toLocalDateTime() );
-  }
-
-  // =================================== Private Helpers ===================================
-
-  /*********************************** formatterWithHalfYear *************************************/
-  // builds a formatter containing expanded half-year literals while preserving pattern grammar
-  private static DateTimeFormatter formatterWithHalfYear( String pattern, int halfYear )
-  {
-    DateTimeFormatterBuilder builder = new DateTimeFormatterBuilder();
-    boolean inQuote = false;
-    int sectionStart = 0;
-    int index = 0;
-
-    while ( index < pattern.length() )
-    {
-      char ch = pattern.charAt( index );
-
-      if ( ch == '\'' )
-      {
-        // doubled apostrophes toggle twice and therefore leave quote state unchanged
-        inQuote = !inQuote;
-        index++;
-      }
-      else if ( !inQuote && ch == 'U' )
-      {
-        // a directly preceding p run pads the complete expanded half-year literal
-        int padStart = index;
-        while ( padStart > sectionStart && pattern.charAt( padStart - 1 ) == 'p' )
-          padStart--;
-
-        if ( padStart > sectionStart )
-          builder.appendPattern( pattern.substring( sectionStart, padStart ) );
-
-        int padWidth = index - padStart;
-        if ( padWidth > 0 )
-          builder.padNext( padWidth );
-
-        int count = 0;
-        while ( index < pattern.length() && pattern.charAt( index ) == 'U' )
-        {
-          count++;
-          index++;
-        }
-        if ( count > 3 )
-          throw new IllegalArgumentException( "Too many 'U' pattern letters: " + count );
-
-        builder.appendLiteral( switch ( count )
-        {
-          case 1 -> String.valueOf( halfYear );
-          case 2 -> "H" + halfYear;
-          default -> halfYear == 1 ? "1st half" : "2nd half";
-        } );
-        sectionStart = index;
-      }
-      else
-        index++;
-    }
-
-    if ( sectionStart < pattern.length() )
-      builder.appendPattern( pattern.substring( sectionStart ) );
-
-    return builder.toFormatter();
-  }
-
-  /*************************************** FormattingTemporal ************************************/
-  // private formatter-only view that preserves the non-standard end-of-day field values
-  private static final class FormattingTemporal implements TemporalAccessor
-  {
-    private final LocalDate date;
-    private final int       milliseconds;
-
-    private FormattingTemporal( int epochDay, int milliseconds )
-    {
-      date = LocalDate.ofEpochDay( epochDay );
-      this.milliseconds = milliseconds;
-    }
-
-    @Override
-    public boolean isSupported( TemporalField field )
-    {
-      if ( field instanceof ChronoField chronoField && chronoField.isTimeBased() )
-        return true;
-      return date.isSupported( field );
-    }
-
-    @Override
-    public long getLong( TemporalField field )
-    {
-      if ( !( field instanceof ChronoField chronoField ) || !chronoField.isTimeBased() )
-        return date.getLong( field );
-
-      long seconds = milliseconds / Time.MILLIS_PER_SECOND;
-      long minutes = milliseconds / Time.MILLIS_PER_MINUTE;
-      long hours = milliseconds / Time.MILLIS_PER_HOUR;
-
-      return switch ( chronoField )
-      {
-        case NANO_OF_SECOND -> milliseconds % Time.MILLIS_PER_SECOND * 1_000_000L;
-        case NANO_OF_DAY -> milliseconds * 1_000_000L;
-        case MICRO_OF_SECOND -> milliseconds % Time.MILLIS_PER_SECOND * 1_000L;
-        case MICRO_OF_DAY -> milliseconds * 1_000L;
-        case MILLI_OF_SECOND -> milliseconds % Time.MILLIS_PER_SECOND;
-        case MILLI_OF_DAY -> milliseconds;
-        case SECOND_OF_MINUTE -> seconds % 60;
-        case SECOND_OF_DAY -> seconds;
-        case MINUTE_OF_HOUR -> minutes % 60;
-        case MINUTE_OF_DAY -> minutes;
-        case HOUR_OF_AMPM -> hours % 12;
-        case CLOCK_HOUR_OF_AMPM -> hours % 12 == 0 ? 12 : hours % 12;
-        case HOUR_OF_DAY -> hours;
-        case CLOCK_HOUR_OF_DAY -> hours == 0 ? 24 : hours;
-        case AMPM_OF_DAY -> hours % 24 / 12;
-        default -> throw new UnsupportedTemporalTypeException( "Unsupported time field: " + chronoField );
-      };
-    }
-
-    @SuppressWarnings( "unchecked" )
-    @Override
-    public <R> R query( TemporalQuery<R> query )
-    {
-      if ( query == TemporalQueries.chronology() )
-        return (R) IsoChronology.INSTANCE;
-      return TemporalAccessor.super.query( query );
-    }
+    return getDate() + " " + getTime();
   }
 }

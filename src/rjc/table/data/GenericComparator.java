@@ -35,9 +35,11 @@ import rjc.table.data.types.Time;
  * Within each type category, objects are compared using their natural ordering.
  * Objects of unrecognised types are ordered by class name, then identity hash code.
  * <p>
- * <strong>Note on Date/DateTime comparison:</strong> When comparing Date objects with DateTime objects,
- * Date values are treated as representing midnight (00:00:00.000) on that date. This means a Date
- * for "2026-01-26" will be considered less than a DateTime for "2026-01-26 00:00:00.001".
+ * <strong>Note on Date/DateTime comparison:</strong> A {@link Date} is represented as stored midnight
+ * and a {@link DateTime} retains its stored lexicographical ordering, including distinct
+ * {@code 24:00}. Consequently a Date and same-day midnight DateTime compare as zero despite not
+ * being equal by {@link Object#equals(Object)}. Equality-by-comparator collections such as
+ * {@link java.util.TreeSet} and {@link java.util.TreeMap} can therefore retain only one of them.
  * <p>
  * <strong>Note on Enum comparison:</strong> Enums are compared using their {@code toString()} representation.
  * If enums have custom {@code toString()} implementations, the ordering may differ from declaration order.
@@ -94,7 +96,7 @@ public class GenericComparator
    *   <li>Numbers (compared by double value)</li>
    *   <li>Characters (compared by char value)</li>
    *   <li>Times (compared by milliseconds)</li>
-   *   <li>Dates and DateTimes (compared by epoch milliseconds, Date treated as midnight)</li>
+   *   <li>Dates and DateTimes (stored date then stored time, Date treated as midnight)</li>
    *   <li>Strings (compared lexicographically)</li>
    *   <li>Enums (compared by toString() representation)</li>
    *   <li>Other objects (compared by class name, then identity hash)</li>
@@ -131,12 +133,14 @@ public class GenericComparator
       case TIME -> ( (Time) obj1 ).compareTo( (Time) obj2 );
 
       case DATE_TIME -> {
-        // convert both to epoch milliseconds for comparison, date are treated as midnight on that day
-        long ms1 = ( obj1 instanceof Date date ) ? date.getEpochDay() * (long) Time.MILLIS_PER_DAY
-            : ( (DateTime) obj1 ).toMilliseconds();
-        long ms2 = ( obj2 instanceof Date date ) ? date.getEpochDay() * (long) Time.MILLIS_PER_DAY
-            : ( (DateTime) obj2 ).toMilliseconds();
-        yield Long.compare( ms1, ms2 );
+        int day1 = obj1 instanceof Date date ? date.getEpochDay() : ( (DateTime) obj1 ).getEpochDay();
+        int day2 = obj2 instanceof Date date ? date.getEpochDay() : ( (DateTime) obj2 ).getEpochDay();
+        int dayComparison = Integer.compare( day1, day2 );
+        if ( dayComparison != 0 )
+          yield dayComparison;
+        int time1 = obj1 instanceof Date ? 0 : ( (DateTime) obj1 ).getMillisecondsOfDay();
+        int time2 = obj2 instanceof Date ? 0 : ( (DateTime) obj2 ).getMillisecondsOfDay();
+        yield Integer.compare( time1, time2 );
       }
 
       case STRING -> ( (String) obj1 ).compareTo( (String) obj2 );

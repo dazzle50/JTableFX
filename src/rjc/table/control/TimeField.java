@@ -111,7 +111,7 @@ public class TimeField extends AbstractDropDownField
   public String format( Time time )
   {
     // return time in display field text format
-    return time.format( m_timeWidget.getFieldCount() );
+    return time.formatComponents( m_timeWidget.getFieldCount() );
   }
 
   /**************************************** formatStatus *****************************************/

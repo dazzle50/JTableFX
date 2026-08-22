@@ -18,13 +18,15 @@
 
 package rjc.table.data.types;
 
+import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.MonthDay;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
+import java.time.format.TextStyle;
 import java.time.temporal.ChronoField;
-import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -33,324 +35,301 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /*************************************************************************************************/
-/****************************** DateParser (Intelligent Parsing) *********************************/
+/********************************* Intelligent Date parser ***************************************/
 /*************************************************************************************************/
 
 /**
- * Utility class providing intelligent date parsing capabilities.
- * <p>
- * This class handles the complex logic required to convert various string representations
- * into {@link Date} objects. It supports:
- * <ul>
- * <li>Standard ISO format (e.g., "2024-12-25")</li>
- * <li>Flexible numeric formats with variable digits (e.g., "1/1/2024", "25/12/2024")</li>
- * <li>Two-digit year formats (e.g., "25/12/24")</li>
- * <li>Compact format without separators (e.g., "25122024")</li>
- * <li>Relative natural language (e.g., "today", "tomorrow", "yesterday")</li>
- * <li>Day of week references (e.g., "next friday", "last monday", "this tuesday")</li>
- * <li>Arithmetic offsets (e.g., "+7 days", "-1 month")</li>
- * <li>Business terms (e.g., "start of month", "end of year")</li>
- * <li>Month names with day and optional year (e.g., "25 Dec", "December 25 2024", "Dec 25 2024")</li>
- * <li>Tolerant of extra spaces and mixed separators (e.g., "25 - 12 - 2024")</li>
- * </ul>
- * <p>
- * All parsing uses the system's default locale for month names and day names.
- * <p>
- * The parser normalises input by collapsing whitespace and converting various separators
- * (hyphens, dots, colons, etc.) to forward slashes for consistent processing.
+ * Immutable, thread-safe parser for natural-language, numeric, standard, and configured date
+ * forms. Recognized English keywords include {@code today}, {@code tomorrow}, {@code yesterday},
+ * and the start or end of the current month or year. Signed day, week, month, and year offsets are
+ * supported, as are {@code next}, {@code last}, and {@code this} followed by a localized weekday
+ * name. Partial dates use the reference year.
  *
- * @see Date
+ * <p>Each intelligent {@link #parse(String)} call reads the configured clock exactly once, so all
+ * relative and partial strategies use the same reference date. Configured patterns are tried in
+ * insertion order before built-in forms.</p>
  */
 public final class DateParser
 {
-  private static final Pattern                 OFFSET_PATTERN   = Pattern.compile( "^([+-])\\s*(\\d+)\\s*([a-z]+)$" );
-  private static final List<DateTimeFormatter> m_customPatterns = new ArrayList<>();
-  private static final DateTimeFormatter       STD_FORMATTER;
-  private static final DateTimeFormatter       PARTIAL_FORMATTER;
+  private static final Pattern          OFFSET = Pattern.compile( "^([+-])\\s*(\\d+)\\s*([a-z]+)$" );
 
-  static
+  private final Clock                   clock;
+  private final Locale                  locale;
+  private final List<DateTimeFormatter> customPatterns;
+  private final List<DateTimeFormatter> standardPatterns;
+  private final List<DateTimeFormatter> partialPatterns;
+
+  private DateParser( Clock clock, Locale locale, List<String> patterns )
   {
-    Locale loc = Locale.getDefault();
-
-    // composite formatter supporting iso, compact (ddMMyyyy), european (d/M/y), us month names (MMMM/d/y and MMM/d/y), and 2-digit years
-    STD_FORMATTER = new DateTimeFormatterBuilder().parseCaseInsensitive()
-        .appendOptional( DateTimeFormatter.ofPattern( "uuuu/M/d", loc ) ) // ISO format with slashes
-        .appendOptional( DateTimeFormatter.ofPattern( "ddMM[uuuuu][uuuu][uuu][uu][u]", loc ) )
-        .appendOptional( DateTimeFormatter.ofPattern( "d/M/[uuuuu][uuuu][uuu][uu][u]", loc ) )
-        .appendOptional( DateTimeFormatter.ofPattern( "d/MMMM/[uuuuu][uuuu][uuu][uu][u]", loc ) )
-        .appendOptional( DateTimeFormatter.ofPattern( "MMMM/d/[uuuuu][uuuu][uuu][uu][u]", loc ) )
-        .appendOptional( DateTimeFormatter.ofPattern( "d/MMM/[uuuuu][uuuu][uuu][uu][u]", loc ) )
-        .appendOptional( DateTimeFormatter.ofPattern( "MMM/d/[uuuuu][uuuu][uuu][uu][u]", loc ) ).toFormatter( loc );
-
-    // partial formatter for day/month only inputs (ddMM, d/M, d/MMMM, d/MMM, etc.), defaults year to 0 for later replacement with current year
-    PARTIAL_FORMATTER = new DateTimeFormatterBuilder().parseCaseInsensitive()
-        .appendOptional( DateTimeFormatter.ofPattern( "ddMM", loc ) )
-        .appendOptional( DateTimeFormatter.ofPattern( "d/MMMM", loc ) )
-        .appendOptional( DateTimeFormatter.ofPattern( "MMMM/d", loc ) )
-        .appendOptional( DateTimeFormatter.ofPattern( "d/MMM", loc ) )
-        .appendOptional( DateTimeFormatter.ofPattern( "MMM/d", loc ) )
-        .appendOptional( DateTimeFormatter.ofPattern( "d/M", loc ) ).parseDefaulting( ChronoField.YEAR, 0 )
-        .toFormatter( loc );
+    this.clock = Objects.requireNonNull( clock, "clock" );
+    this.locale = Objects.requireNonNull( locale, "locale" );
+    customPatterns = patterns.stream().map( pattern -> TemporalPatternSupport.compileDatePattern( pattern, locale ) )
+        .toList();
+    standardPatterns = compileStandardPatterns( locale );
+    partialPatterns = compilePartialPatterns( locale );
   }
 
-  /************************************** constructor **************************************/
-  /**
-   * Private constructor to prevent instantiation of utility class.
-   */
-  private DateParser()
-  {
-    throw new UnsupportedOperationException( "Utility class" );
-  }
+  // ================================= Parser construction =================================
 
-  /***************************************** parse *****************************************/
   /**
-   * Parses a text string using a specific pattern.
-   * <p>
-   * This method uses the standard Java date-time pattern syntax. For example:
-   * <ul>
-   * <li>"yyyy-MM-dd" for ISO format</li>
-   * <li>"dd/MM/yyyy" for European format</li>
-   * <li>"MM/dd/yyyy" for US format</li>
-   * <li>"d MMM yyyy" for abbreviated month names</li>
-   * </ul>
+   * Creates a parser using the system-default time zone and locale observed when this method is
+   * called. Each later intelligent parse obtains a fresh instant from that clock.
    *
-   * @param text    the text to parse, must not be null
-   * @param pattern the pattern to use, must not be null
-   * @return the parsed Date
-   * @throws NullPointerException   if text or pattern is null
-   * @throws DateTimeParseException if parsing fails
+   * @return system-default parser
    */
-  public static Date parse( String text, String pattern )
+  public static DateParser systemDefault()
   {
-    Objects.requireNonNull( text, "Text cannot be null" );
-    Objects.requireNonNull( pattern, "Pattern cannot be null" );
-
-    try
-    {
-      // parse text using the specified pattern and convert to date
-      return Date.of( LocalDate.parse( text, DateTimeFormatter.ofPattern( pattern ) ) );
-    }
-    catch ( IllegalArgumentException | DateTimeParseException e )
-    {
-      throw new DateTimeParseException( "Failed to parse '" + text + "' with '" + pattern + "'", text, 0, e );
-    }
+    return builder().build();
   }
 
-  /***************************************** parse *****************************************/
   /**
-   * Intelligently parses text attempting to interpret it through multiple strategies.
-   * <p>
-   * The parser tries the following approaches in order:
-   * <ol>
-   * <li>Natural language expressions (today, tomorrow, next friday, +7 days, etc.)</li>
-   * <li>Custom user-registered patterns</li>
-   * <li>Standard date formats (ISO, compact, European, US with month names, two-digit years)</li>
-   * <li>Partial dates with current year (25/12, Dec 25)</li>
-   * </ol>
-   * <p>
-   * The parser is tolerant of formatting variations:
-   * <ul>
-   * <li>Extra whitespace is collapsed</li>
-   * <li>Spaces around separators are removed</li>
-   * <li>Various separators (-, ., :, /) are treated equivalently</li>
-   * <li>Single or double digit days and months are accepted</li>
-   * </ul>
-   * <p>
-   * Examples of valid input:
-   * <pre>
-   * "2024-12-25"           → 25 December 2024
-   * "25/12/2024"           → 25 December 2024
-   * "25 - 12 - 2024"       → 25 December 2024
-   * "1/1/24"               → 1 January 2024
-   * "25122024"             → 25 December 2024
-   * "25 Dec 2024"          → 25 December 2024
-   * "December 25 2024"     → 25 December 2024
-   * "25/12"                → 25 December (current year)
-   * "Dec 25"               → 25 December (current year)
-   * "today"                → current date
-   * "tomorrow"             → current date + 1 day
-   * "next friday"          → next occurrence of Friday
-   * "+7 days"              → current date + 7 days
-   * "start of month"       → first day of current month
-   * </pre>
+   * Creates a parser builder.
    *
-   * @param text the text to parse, must not be null
-   * @return the parsed Date
-   * @throws NullPointerException   if text is null
-   * @throws DateTimeParseException if all parsing strategies fail
+   * @return a mutable builder whose result is immutable
    */
-  public static Date parse( String text )
+  public static Builder builder()
   {
-    Objects.requireNonNull( text, "Text cannot be null" );
-
-    String input = text.trim().replaceAll( "\\s+", " " );
-
-    if ( input.isEmpty() )
-      throw new DateTimeParseException( "Cannot parse empty string", text, 0 );
-
-    try
-    {
-      // try natural language parsing (relative dates, offsets, business terms)
-      try
-      {
-        if ( isNaturalLanguage( input ) )
-          return parseNaturalLanguage( input.toLowerCase( Locale.ROOT ) );
-      }
-      catch ( DateTimeParseException ignored )
-      {
-      }
-
-      String normalised = input.replaceAll( "[\\s\\-.:/\\\\_,|=]+", "/" ).replaceAll( "/$", "" );
-
-      // try custom user-registered patterns using both normalised and original text for maximum flexibility
-      for ( DateTimeFormatter formatter : m_customPatterns )
-      {
-        try
-        {
-          return Date.of( LocalDate.parse( normalised, formatter ) );
-        }
-        catch ( DateTimeParseException ignored )
-        {
-        }
-
-        try
-        {
-          return Date.of( LocalDate.parse( text, formatter ) );
-        }
-        catch ( DateTimeParseException ignored )
-        {
-        }
-      }
-
-      // try standard format patterns using normalised input
-      try
-      {
-        return Date.of( LocalDate.parse( normalised, STD_FORMATTER ) );
-      }
-      catch ( DateTimeParseException ignored )
-      {
-      }
-
-      // try partial patterns (day/month only) and apply current year
-      LocalDate partial = LocalDate.parse( normalised, PARTIAL_FORMATTER );
-      return Date.of( partial.withYear( LocalDate.now().getYear() ) );
-    }
-    catch ( DateTimeParseException e )
-    {
-      // legitimate parsing failure - preserve original exception
-      throw e;
-    }
-    catch ( Exception e )
-    {
-      // unexpected exception indicates parser bug - wrap with context
-      throw new DateTimeParseException( "Parser internal error for: " + text, text, 0, e );
-    }
+    return new Builder();
   }
 
-  /******************************** registerCustomPattern **********************************/
+  // ===================================== Parsing =====================================
+
   /**
-   * Registers a custom pattern to be tried during intelligent parsing.
-   * <p>
-   * Custom patterns are attempted after natural language parsing but before
-   * standard format parsing. This allows applications to support domain-specific
-   * date formats whilst maintaining the intelligent parsing behaviour.
-   * <p>
-   * Multiple custom patterns can be registered and will be tried in registration order.
+   * Parses intelligent date text. Configured patterns are tried in insertion order before the
+   * built-in complete and partial forms.
    *
-   * @param pattern the pattern string to register using Java date-time pattern syntax
+   * @param text text to parse
+   * @return parsed date
+   * @throws NullPointerException if {@code text} is null
+   * @throws DateTimeParseException if no supported interpretation succeeds
+   * @throws ArithmeticException if relative arithmetic or compact storage overflows
+   */
+  public Date parse( String text )
+  {
+    return parse( text, ParseContext.capture( clock, locale ) );
+  }
+
+  /**
+   * Parses text exclusively with the supplied pattern and this parser's locale. This operation
+   * does not read the clock.
+   *
+   * @param text text to parse
+   * @param pattern parsing pattern, including the optional {@code U} half-year extension
+   * @return parsed date
+   * @throws NullPointerException if either argument is null
    * @throws IllegalArgumentException if the pattern is invalid
+   * @throws DateTimeParseException if the text does not resolve to a date
+   * @throws ArithmeticException if the resolved date is outside compact storage
    */
-  public static void registerCustomPattern( String pattern )
+  public Date parse( String text, String pattern )
   {
-    // add the custom pattern formatter to the list for use during parsing
-    m_customPatterns.add( DateTimeFormatter.ofPattern( pattern ) );
+    return Date.ofEpochDay( TemporalPatternSupport.parseDate( text, pattern, locale ) );
   }
 
-  /********************************** isNaturalLanguage ************************************/
-  // checks if input appears to be natural language rather than a numeric date format
-  private static boolean isNaturalLanguage( String input )
+  Date parse( String text, ParseContext context )
   {
-    // natural language inputs start with a letter, plus sign, or minus sign
-    char first = input.charAt( 0 );
-    return Character.isLetter( first ) || first == '+' || first == '-';
-  }
+    Objects.requireNonNull( text, "text" );
+    Objects.requireNonNull( context, "context" );
+    String input = text.trim().replaceAll( "\\s+", " " );
+    if ( input.isEmpty() )
+      throw new DateTimeParseException( "Cannot parse empty date", text, 0 );
 
-  /******************************** parseNaturalLanguage ***********************************/
-  // parses natural language date expressions including relative dates, offsets, and business terms
-  private static Date parseNaturalLanguage( String input )
-  {
-    LocalDate today = LocalDate.now();
+    Date natural = tryNatural( input, context );
+    if ( natural != null )
+      return natural;
 
-    // handle simple keyword expressions
-    switch ( input )
-    {
-      case "now", "today" -> {
-        return Date.of( today );
-      }
-      case "tomorrow" -> {
-        return Date.of( today.plusDays( 1 ) );
-      }
-      case "yesterday" -> {
-        return Date.of( today.minusDays( 1 ) );
-      }
-      case "start of month", "first of month" -> {
-        return Date.of( today.withDayOfMonth( 1 ) );
-      }
-      case "end of month", "last of month" -> {
-        return Date.of( today.with( TemporalAdjusters.lastDayOfMonth() ) );
-      }
-      case "start of year", "first of year" -> {
-        return Date.of( today.withDayOfYear( 1 ) );
-      }
-      case "end of year", "last of year" -> {
-        return Date.of( today.with( TemporalAdjusters.lastDayOfYear() ) );
-      }
-    }
+    String normalized = input.replaceAll( "[\\s\\-.:/\\\\_,|=]+", "/" ).replaceAll( "/$", "" );
+    Date parsed = tryFormatters( normalized, customPatterns );
+    if ( parsed == null && !normalized.equals( input ) )
+      parsed = tryFormatters( input, customPatterns );
+    if ( parsed == null )
+      parsed = tryFormatters( normalized, standardPatterns );
+    if ( parsed != null )
+      return parsed;
 
-    // handle day of week expressions (next/last/this followed by day name)
-    if ( input.startsWith( "next " ) || input.startsWith( "last " ) || input.startsWith( "this " ) )
-    {
-      String[] parts = input.split( "\\s+" );
-      if ( parts.length < 2 )
-        throw new DateTimeParseException( "Invalid day expression", input, 0 );
-
-      DayOfWeek dow = parseDayOfWeek( parts[1] );
-      if ( parts[0].equals( "next" ) )
-        return Date.of( today.with( TemporalAdjusters.next( dow ) ) );
-      if ( parts[0].equals( "last" ) )
-        return Date.of( today.with( TemporalAdjusters.previous( dow ) ) );
-      return Date.of( today.with( TemporalAdjusters.nextOrSame( dow ) ) );
-    }
-
-    // handle offset expressions (+7 days, -1 month, etc.)
-    Matcher m = OFFSET_PATTERN.matcher( input );
-    if ( m.matches() )
-    {
-      int amount = Integer.parseInt( m.group( 2 ) ) * ( m.group( 1 ).equals( "-" ) ? -1 : 1 );
-      return switch ( m.group( 3 ) )
+    // Missing years are resolved against the single reference captured at parse entry.
+    for ( DateTimeFormatter formatter : partialPatterns )
+      try
       {
-        case "d", "day", "days" -> Date.of( today.plusDays( amount ) );
-        case "w", "week", "weeks" -> Date.of( today.plusWeeks( amount ) );
-        case "m", "month", "months" -> Date.of( today.plusMonths( amount ) );
-        case "y", "year", "years" -> Date.of( today.plusYears( amount ) );
-        default -> throw new DateTimeParseException( "Unknown unit", input, 0 );
-      };
-    }
+        MonthDay partial = MonthDay.from( formatter.parse( normalized ) );
+        return Date.of( context.reference().getYear(), partial.getMonthValue(), partial.getDayOfMonth() );
+      }
+      catch ( DateTimeParseException ignored )
+      {
+      }
 
-    throw new DateTimeParseException( "Unknown expression: " + input, input, 0 );
+    throw new DateTimeParseException( "Unable to parse date: " + text, text, 0 );
   }
 
-  /************************************ parseDayOfWeek *************************************/
-  // parses day of week name using both full and abbreviated forms in the default locale
-  private static DayOfWeek parseDayOfWeek( String text )
+  private Date tryNatural( String input, ParseContext context )
   {
-    Locale loc = Locale.getDefault();
-    for ( DayOfWeek d : DayOfWeek.values() )
+    if ( !( Character.isLetter( input.charAt( 0 ) ) || input.charAt( 0 ) == '+' || input.charAt( 0 ) == '-' ) )
+      return null;
+    String lower = input.toLowerCase( Locale.ROOT );
+    Date today = Date.of( context.reference().toLocalDate() );
+    switch ( lower )
     {
-      if ( d.getDisplayName( java.time.format.TextStyle.FULL, loc ).equalsIgnoreCase( text )
-          || d.getDisplayName( java.time.format.TextStyle.SHORT, loc ).equalsIgnoreCase( text ) )
-        return d;
+      case "now", "today":
+        return today;
+      case "tomorrow":
+        return today.plusDays( 1 );
+      case "yesterday":
+        return today.plusDays( -1 );
+      case "start of month", "first of month":
+        return today.startOf( DateInterval.MONTH );
+      case "end of month", "last of month":
+        return today.endOf( DateInterval.MONTH );
+      case "start of year", "first of year":
+        return today.startOf( DateInterval.YEAR );
+      case "end of year", "last of year":
+        return today.endOf( DateInterval.YEAR );
+      default:
     }
-    throw new DateTimeParseException( "Invalid day: " + text, text, 0 );
+
+    if ( lower.startsWith( "next " ) || lower.startsWith( "last " ) || lower.startsWith( "this " ) )
+    {
+      String[] parts = lower.split( "\\s+" );
+      if ( parts.length != 2 )
+        return null;
+      DayOfWeek target = parseDayOfWeek( parts[1] );
+      int current = today.getDayOfWeek().getValue();
+      int targetValue = target.getValue();
+      long days = switch ( parts[0] )
+      {
+        case "next" -> Math.floorMod( targetValue - current - 1, 7 ) + 1L;
+        case "last" -> -( Math.floorMod( current - targetValue - 1, 7 ) + 1L );
+        default -> Math.floorMod( targetValue - current, 7 );
+      };
+      return today.plusDays( days );
+    }
+
+    Matcher matcher = OFFSET.matcher( lower );
+    if ( !matcher.matches() )
+      return null;
+    long amount;
+    try
+    {
+      amount = Long.parseLong( matcher.group( 2 ) );
+      if ( matcher.group( 1 ).equals( "-" ) )
+        amount = Math.negateExact( amount );
+    }
+    catch ( ArithmeticException | NumberFormatException exception )
+    {
+      throw new DateTimeParseException( "Date offset is outside supported range", input, 0, exception );
+    }
+    return switch ( matcher.group( 3 ) )
+    {
+      case "d", "day", "days" -> today.plusDays( amount );
+      case "w", "week", "weeks" -> today.plusWeeks( amount );
+      case "m", "month", "months" -> today.plusMonths( amount );
+      case "y", "year", "years" -> today.plusYears( amount );
+      default -> null;
+    };
+  }
+
+  private DayOfWeek parseDayOfWeek( String text )
+  {
+    for ( DayOfWeek day : DayOfWeek.values() )
+      if ( day.getDisplayName( TextStyle.FULL, locale ).equalsIgnoreCase( text )
+          || day.getDisplayName( TextStyle.SHORT, locale ).equalsIgnoreCase( text ) )
+        return day;
+    throw new DateTimeParseException( "Invalid weekday: " + text, text, 0 );
+  }
+
+  private static Date tryFormatters( String text, List<DateTimeFormatter> formatters )
+  {
+    for ( DateTimeFormatter formatter : formatters )
+      try
+      {
+        return Date.of( LocalDate.parse( text, formatter ) );
+      }
+      catch ( DateTimeParseException ignored )
+      {
+      }
+    return null;
+  }
+
+  private static List<DateTimeFormatter> compileStandardPatterns( Locale locale )
+  {
+    return List
+        .of( "uuuu/M/d", "ddMMuuuu", "ddMMuu", "d/M/uuuu", "d/M/uu", "d/MMMM/uuuu", "MMMM/d/uuuu", "d/MMM/uuuu",
+            "MMM/d/uuuu", "d/MMMM/uu", "MMMM/d/uu", "d/MMM/uu", "MMM/d/uu" )
+        .stream().map( pattern -> new DateTimeFormatterBuilder().parseCaseInsensitive().appendPattern( pattern )
+            .toFormatter( locale ) )
+        .toList();
+  }
+
+  private static List<DateTimeFormatter> compilePartialPatterns( Locale locale )
+  {
+    return List.of( "ddMM", "d/M", "d/MMMM", "MMMM/d", "d/MMM", "MMM/d" ).stream()
+        .map( pattern -> new DateTimeFormatterBuilder().parseCaseInsensitive().appendPattern( pattern )
+            .parseDefaulting( ChronoField.YEAR, 2000 ).toFormatter( locale ) )
+        .toList();
+  }
+
+  /** Mutable construction helper; built parsers are immutable. */
+  public static final class Builder
+  {
+    private Clock              clock    = Clock.systemDefaultZone();
+    private Locale             locale   = Locale.getDefault();
+    private final List<String> patterns = new ArrayList<>();
+
+    private Builder()
+    {
+    }
+
+    /**
+     * Sets the clock whose current local date supplies relative values and missing years. A parse
+     * operation reads the clock once using the clock's own time zone.
+     *
+     * @param clock reference clock
+     * @return this builder
+     * @throws NullPointerException if {@code clock} is null
+     */
+    public Builder clock( Clock clock )
+    {
+      this.clock = Objects.requireNonNull( clock, "clock" );
+      return this;
+    }
+
+    /**
+     * Sets the locale used for weekday and month names and for configured patterns. Natural
+     * language operators such as {@code next} and {@code tomorrow} remain English.
+     *
+     * @param locale parsing locale
+     * @return this builder
+     * @throws NullPointerException if {@code locale} is null
+     */
+    public Builder locale( Locale locale )
+    {
+      this.locale = Objects.requireNonNull( locale, "locale" );
+      return this;
+    }
+
+    /**
+     * Adds a complete date pattern at the end of the configured-pattern search order. Compilation
+     * is deferred until {@link #build()}, using the builder's final locale; the pattern may use the
+     * {@code U}, {@code UU}, and {@code UUU} half-year extension.
+     *
+     * @param pattern date pattern
+     * @return this builder
+     * @throws NullPointerException if {@code pattern} is null
+     */
+    public Builder addPattern( String pattern )
+    {
+      patterns.add( Objects.requireNonNull( pattern, "pattern" ) );
+      return this;
+    }
+
+    /**
+     * Compiles configured patterns and creates an immutable parser snapshot.
+     *
+     * @return configured parser
+     * @throws IllegalArgumentException if any configured pattern is invalid
+     */
+    public DateParser build()
+    {
+      return new DateParser( clock, locale, List.copyOf( patterns ) );
+    }
   }
 }

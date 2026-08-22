@@ -18,6 +18,7 @@
 
 package rjc.table.data.types;
 
+import java.time.Clock;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -30,257 +31,290 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /*************************************************************************************************/
-/****************************** TimeParser (Intelligent Parsing) *********************************/
+/******************************* Intelligent stored-Time parser **********************************/
 /*************************************************************************************************/
 
 /**
- * Utility class providing intelligent time parsing capabilities.
- * <p>
- * This class handles the logic required to convert various string representations
- * into {@link Time} objects. It supports:
- * <ul>
- * <li>Standard ISO format (e.g., "14:30:00")</li>
- * <li>12-hour AM/PM format (e.g., "9:20pm", "10.30 am")</li>
- * <li>Letter-based formats (e.g., "14h25", "14h25m30s")</li>
- * <li>Flexible separators (e.g., "14.30", "14 30")</li>
- * <li>Compact numeric formats (e.g., "1430", "083045")</li>
- * <li>Natural language (e.g., "now", "noon", "midnight")</li>
- * <li>Arithmetic offsets (e.g., "+1 hour", "-30 mins")</li>
- * <li>End of day representation ("24:00", "24:00:00")</li>
- * </ul>
- * <p>
- * The parser is tolerant of whitespace and formatting variations, normalising input
- * before processing.
+ * Immutable, thread-safe parser for named, relative, compact numeric, patterned, and conventional
+ * time forms. Recognized English names include {@code now}, {@code noon}, {@code midday},
+ * {@code midnight}, {@code start of day}, and {@code end of day}. Signed hour, minute, second, and
+ * millisecond offsets are applied cyclically to the reference time. Compact numeric input accepts
+ * one or two digits as an hour, three or four as {@code HHmm}, and five or six as {@code HHmmss}.
  *
- * @see Time
+ * <p>Each intelligent {@link #parse(String)} call reads the configured clock exactly once.
+ * Configured patterns are tried in insertion order before compact numeric and built-in forms. The
+ * explicit {@code 24:00} stored endpoint is retained.</p>
  */
 public final class TimeParser
 {
-  private static final Pattern                 OFFSET_PATTERN     = Pattern.compile( "^([+-])\\s*(\\d+)\\s*([a-z]+)$" );
-  private static final Pattern                 NUMERIC_PATTERN    = Pattern.compile( "^\\d+$" );
-  private static final Pattern                 END_OF_DAY_PATTERN = Pattern
-      .compile( "^24[:\\s.h]?0*[:\\s.m]?0*[:\\s.s]?0*$" );
-  private static final List<DateTimeFormatter> m_customPatterns   = new ArrayList<>();
-  private static final DateTimeFormatter       STD_FORMATTER;
+  private static final Pattern    OFFSET     = Pattern.compile( "^([+-])\\s*(\\d+)\\s*([a-z]+)$" );
+  private static final Pattern    NUMERIC    = Pattern.compile( "^\\d+$" );
+  private static final Pattern    END_OF_DAY = Pattern.compile( "^24[:\\s.h]?0*[:\\s.m]?0*[:\\s.s]?0*$" );
 
-  static
+  private final Clock             clock;
+  private final Locale            locale;
+  private final List<String>      customPatterns;
+  private final DateTimeFormatter standardFormatter;
+
+  private TimeParser( Clock clock, Locale locale, List<String> patterns )
   {
-    // composite formatter supporting various time structures
-    // checks for 12-hour format with AM/PM first, then 24-hour flexible format
-    STD_FORMATTER = new DateTimeFormatterBuilder().parseCaseInsensitive()
-        // 12-hour format: h:m:s with optional AM/PM marker (e.g. 9:20pm, 9.20 am)
-        .appendOptional( DateTimeFormatter.ofPattern( "h[[:][.][ ]m[[:][.][ ]s]][ ]a" ) )
-        // 24-hour format: H:m:s with flexible separators including letters (e.g. 14:30, 14h30m)
-        .appendOptional(
-            DateTimeFormatter.ofPattern( "H[:][.][ ]['h']m['m'][[:][.][ ]['m']s['s'][[:][.][ ]['s'][SSS][SS][S]]]" ) )
-        .toFormatter( Locale.getDefault() );
+    this.clock = Objects.requireNonNull( clock, "clock" );
+    this.locale = Objects.requireNonNull( locale, "locale" );
+    for ( String pattern : patterns )
+      DateTimeFormatter.ofPattern( pattern, locale );
+    customPatterns = List.copyOf( patterns );
+    standardFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
+        .appendOptional( DateTimeFormatter.ofPattern( "h[[:][.][ ]m[[:][.][ ]s]][ ]a", locale ) )
+        .appendOptional( DateTimeFormatter
+            .ofPattern( "H[:][.][ ]['h']m['m'][[:][.][ ]['m']s['s'][[:][.][ ]['s'][SSS][SS][S]]]", locale ) )
+        .toFormatter( locale );
   }
 
-  /************************************** constructor **************************************/
-  /**
-   * Private constructor to prevent instantiation of utility class.
-   */
-  private TimeParser()
-  {
-    throw new UnsupportedOperationException( "Utility class" );
-  }
+  // ================================= Parser construction =================================
 
-  /***************************************** parse *****************************************/
   /**
-   * Parses a text string using a specific pattern.
-   * <p>
-   * This method uses standard Java date-time pattern syntax.
+   * Creates a parser using the system-default time zone and locale observed when this method is
+   * called. Each later intelligent parse obtains a fresh instant from that clock.
    *
-   * @param text    the text to parse, must not be null
-   * @param pattern the pattern to use, must not be null
-   * @return the parsed Time
-   * @throws NullPointerException   if text or pattern is null
-   * @throws DateTimeParseException if parsing fails
+   * @return system-default parser
    */
-  public static Time parse( String text, String pattern )
+  public static TimeParser systemDefault()
   {
-    Objects.requireNonNull( text, "Text cannot be null" );
-    Objects.requireNonNull( pattern, "Pattern cannot be null" );
-
-    try
-    {
-      // check for end of day special case first as LocalTime cannot parse "24:00"
-      if ( END_OF_DAY_PATTERN.matcher( text.trim() ).matches() )
-        return Time.MAX_VALUE;
-
-      return Time.of( LocalTime.parse( text, DateTimeFormatter.ofPattern( pattern ) ) );
-    }
-    catch ( IllegalArgumentException | DateTimeParseException e )
-    {
-      throw new DateTimeParseException( "Failed to parse '" + text + "' with '" + pattern + "'", text, 0, e );
-    }
+    return builder().build();
   }
 
-  /***************************************** parse *****************************************/
   /**
-   * Intelligently parses text attempting to interpret it through multiple strategies.
-   * <p>
-   * The parser tries the following approaches in order:
-   * <ol>
-   * <li>Natural language expressions (now, noon, +1 hour)</li>
-   * <li>Special "End of Day" formats (24:00)</li>
-   * <li>Custom user-registered patterns</li>
-   * <li>Numeric compact formats (830, 143000)</li>
-   * <li>Standard flexible formats (14:30, 14h25, 9:20pm)</li>
-   * </ol>
+   * Creates a parser builder.
    *
-   * @param text the text to parse, must not be null
-   * @return the parsed Time
-   * @throws NullPointerException   if text is null
-   * @throws DateTimeParseException if all parsing strategies fail
+   * @return a mutable builder whose result is immutable
    */
-  public static Time parse( String text )
+  public static Builder builder()
   {
-    Objects.requireNonNull( text, "Text cannot be null" );
-
-    String input = text.trim().replaceAll( "\\s+", " " );
-
-    if ( input.isEmpty() )
-      throw new DateTimeParseException( "Cannot parse empty string", text, 0 );
-
-    try
-    {
-      // try natural language parsing (relative times, offsets, named times)
-      if ( isNaturalLanguage( input ) )
-      {
-        try
-        {
-          return parseNaturalLanguage( input.toLowerCase( Locale.ROOT ) );
-        }
-        catch ( DateTimeParseException ignored )
-        {
-        }
-      }
-
-      // handle special end-of-day case (24:00:00) which LocalTime does not support
-      if ( END_OF_DAY_PATTERN.matcher( input ).matches() )
-        return Time.MAX_VALUE;
-
-      // try custom user-registered patterns
-      for ( DateTimeFormatter formatter : m_customPatterns )
-      {
-        try
-        {
-          return Time.of( LocalTime.parse( input, formatter ) );
-        }
-        catch ( DateTimeParseException ignored )
-        {
-        }
-      }
-
-      // try numeric compact parsing (e.g. "830" -> 08:30)
-      if ( NUMERIC_PATTERN.matcher( input ).matches() )
-      {
-        try
-        {
-          return parseNumericString( input );
-        }
-        catch ( IllegalArgumentException ignored )
-        {
-        }
-      }
-
-      // try standard flexible formatter (covers 12h AM/PM and 24h ISO/Letters)
-      return Time.of( LocalTime.parse( input, STD_FORMATTER ) );
-    }
-    catch ( DateTimeParseException e )
-    {
-      // legitimate parsing failure - preserve original exception
-      throw e;
-    }
-    catch ( Exception e )
-    {
-      // unexpected exception indicates parser bug - wrap with context
-      throw new DateTimeParseException( "Parser internal error for: " + text, text, 0, e );
-    }
+    return new Builder();
   }
 
-  /******************************** registerCustomPattern **********************************/
+  // ===================================== Parsing =====================================
+
   /**
-   * Registers a custom pattern to be tried during intelligent parsing.
-   * <p>
-   * Custom patterns are attempted after natural language but before standard formats.
+   * Parses intelligent stored-time text, using one clock snapshot for relative forms.
    *
-   * @param pattern the pattern string to register using Java date-time pattern syntax
+   * @param text text to parse
+   * @return parsed stored time
+   * @throws NullPointerException if {@code text} is null
+   * @throws DateTimeParseException if no supported interpretation succeeds
+   */
+  public Time parse( String text )
+  {
+    return parse( text, ParseContext.capture( clock, locale ) );
+  }
+
+  /**
+   * Parses text exclusively with the supplied time pattern and this parser's locale. This
+   * operation does not read the clock and accepts exact {@code 24:00} where the fields permit it.
+   * Parsed precision below one millisecond is truncated.
+   *
+   * @param text text to parse
+   * @param pattern parsing pattern
+   * @return parsed stored time
+   * @throws NullPointerException if either argument is null
    * @throws IllegalArgumentException if the pattern is invalid
+   * @throws DateTimeParseException if the text cannot resolve to a valid stored time
    */
-  public static void registerCustomPattern( String pattern )
+  public Time parse( String text, String pattern )
   {
-    // add the custom pattern formatter to the list
-    m_customPatterns.add( DateTimeFormatter.ofPattern( pattern ) );
+    return Time.ofMilliseconds( TemporalPatternSupport.parseTime( text, pattern, locale ) );
   }
 
-  /********************************** isNaturalLanguage ************************************/
-  // checks if input appears to be natural language rather than a standard time format
-  private static boolean isNaturalLanguage( String input )
+  Time parse( String text, ParseContext context )
   {
-    // natural language inputs start with a letter, plus sign, or minus sign
-    char first = input.charAt( 0 );
-    return Character.isLetter( first ) || first == '+' || first == '-';
-  }
+    Objects.requireNonNull( text, "text" );
+    Objects.requireNonNull( context, "context" );
+    String input = text.trim().replaceAll( "\\s+", " " );
+    if ( input.isEmpty() )
+      throw new DateTimeParseException( "Cannot parse empty time", text, 0 );
 
-  /******************************** parseNaturalLanguage ***********************************/
-  // parses natural language time expressions including relative times and offsets
-  private static Time parseNaturalLanguage( String input )
-  {
-    Time now = Time.now();
-
-    // handle simple keyword expressions
-    switch ( input )
+    String lower = input.toLowerCase( Locale.ROOT );
+    Time reference = Time.of( context.reference().toLocalTime() );
+    switch ( lower )
     {
-      case "now" -> {
-        return now;
-      }
-      case "noon", "midday" -> {
+      case "now":
+        return reference;
+      case "noon", "midday":
         return Time.NOON;
-      }
-      case "midnight", "start of day" -> {
+      case "midnight", "start of day":
         return Time.MIN_VALUE;
-      }
-      case "end of day" -> {
+      case "end of day":
         return Time.MAX_VALUE;
-      }
+      default:
     }
 
-    // handle offset expressions (+1 hour, -30 mins, etc.)
-    Matcher m = OFFSET_PATTERN.matcher( input );
-    if ( m.matches() )
-    {
-      int amount = Integer.parseInt( m.group( 2 ) ) * ( m.group( 1 ).equals( "-" ) ? -1 : 1 );
-      String unit = m.group( 3 );
+    TimeOffset offset = parseOffset( lower );
+    if ( offset != null )
+      return offset.apply( reference );
+    if ( END_OF_DAY.matcher( lower ).matches() )
+      return Time.MAX_VALUE;
 
+    // Preserve insertion order so applications can resolve deliberately overlapping patterns.
+    for ( String pattern : customPatterns )
+      try
+      {
+        return Time.ofMilliseconds( TemporalPatternSupport.parseTime( input, pattern, locale ) );
+      }
+      catch ( DateTimeParseException ignored )
+      {
+      }
+
+    if ( NUMERIC.matcher( input ).matches() )
+      try
+      {
+        return parseNumeric( input );
+      }
+      catch ( RuntimeException ignored )
+      {
+      }
+
+    try
+    {
+      return Time.of( LocalTime.parse( input, standardFormatter ) );
+    }
+    catch ( DateTimeParseException exception )
+    {
+      throw new DateTimeParseException( "Unable to parse time: " + text, text, 0, exception );
+    }
+  }
+
+  static TimeOffset parseOffset( String input )
+  {
+    Matcher matcher = OFFSET.matcher( input.toLowerCase( Locale.ROOT ) );
+    if ( !matcher.matches() )
+      return null;
+    long amount;
+    try
+    {
+      amount = Long.parseLong( matcher.group( 2 ) );
+      if ( matcher.group( 1 ).equals( "-" ) )
+        amount = Math.negateExact( amount );
+    }
+    catch ( ArithmeticException | NumberFormatException exception )
+    {
+      throw new DateTimeParseException( "Time offset is outside supported range", input, 0, exception );
+    }
+    OffsetUnit unit = switch ( matcher.group( 3 ) )
+    {
+      case "h", "hour", "hours" -> OffsetUnit.HOUR;
+      case "m", "min", "mins", "minute", "minutes" -> OffsetUnit.MINUTE;
+      case "s", "sec", "secs", "second", "seconds" -> OffsetUnit.SECOND;
+      case "ms", "millis", "millisecond", "milliseconds" -> OffsetUnit.MILLISECOND;
+      default -> null;
+    };
+    return unit == null ? null : new TimeOffset( amount, unit );
+  }
+
+  private static Time parseNumeric( String input )
+  {
+    int value = Integer.parseInt( input );
+    return switch ( input.length() )
+    {
+      case 1, 2 -> Time.of( value );
+      case 3, 4 -> Time.of( value / 100, value % 100 );
+      case 5, 6 -> Time.of( value / 10_000, value / 100 % 100, value % 100 );
+      default -> throw new IllegalArgumentException( "Numeric time is too long" );
+    };
+  }
+
+  record TimeOffset( long amount, OffsetUnit unit )
+  {
+    Time apply( Time base )
+    {
       return switch ( unit )
       {
-        case "h", "hour", "hours" -> now.plusHours( amount );
-        case "m", "min", "mins", "minute", "minutes" -> now.plusMinutes( amount );
-        case "s", "sec", "secs", "second", "seconds" -> now.plusSeconds( amount );
-        case "ms", "millis", "millisecond", "milliseconds" -> now.plusMilliseconds( amount );
-        default -> throw new DateTimeParseException( "Unknown time unit: " + unit, input, 0 );
+        case MILLISECOND -> base.plusMilliseconds( amount );
+        case SECOND -> base.plusSeconds( amount );
+        case MINUTE -> base.plusMinutes( amount );
+        case HOUR -> base.plusHours( amount );
       };
     }
 
-    throw new DateTimeParseException( "Unknown expression: " + input, input, 0 );
+    DateTime apply( DateTime base )
+    {
+      return switch ( unit )
+      {
+        case MILLISECOND -> base.plusMilliseconds( amount );
+        case SECOND -> base.plusSeconds( amount );
+        case MINUTE -> base.plusMinutes( amount );
+        case HOUR -> base.plusHours( amount );
+      };
+    }
   }
 
-  /********************************* parseNumericString ************************************/
-  // parses a pure numeric string into time components based on string length
-  private static Time parseNumericString( String numStr )
+  enum OffsetUnit
   {
-    int num = Integer.parseInt( numStr );
-    int len = numStr.length();
+    MILLISECOND, SECOND, MINUTE, HOUR
+  }
 
-    // logic mirrors Time.parseNumericString but allows for standalone utility usage
-    return switch ( len )
+  /** Mutable construction helper; built parsers are immutable. */
+  public static final class Builder
+  {
+    private Clock              clock    = Clock.systemDefaultZone();
+    private Locale             locale   = Locale.getDefault();
+    private final List<String> patterns = new ArrayList<>();
+
+    private Builder()
     {
-      case 1, 2 -> Time.of( num, 0, 0, 0 ); // "8" -> 08:00:00
-      case 3, 4 -> Time.of( num / 100, num % 100, 0, 0 ); // "830" -> 08:30:00
-      case 5, 6 -> Time.of( num / 10000, ( num / 100 ) % 100, num % 100, 0 ); // "83045" -> 08:30:45
-      default -> throw new IllegalArgumentException( "Numeric string too long" );
-    };
+    }
+
+    /**
+     * Sets the clock whose current local time supplies {@code now} and relative values. A parse
+     * operation reads the clock once using the clock's own time zone.
+     *
+     * @param clock reference clock
+     * @return this builder
+     * @throws NullPointerException if {@code clock} is null
+     */
+    public Builder clock( Clock clock )
+    {
+      this.clock = Objects.requireNonNull( clock, "clock" );
+      return this;
+    }
+
+    /**
+     * Sets the locale used by configured and built-in formatter patterns, including localized
+     * text such as AM/PM markers. Named and relative keywords remain English.
+     *
+     * @param locale parsing locale
+     * @return this builder
+     * @throws NullPointerException if {@code locale} is null
+     */
+    public Builder locale( Locale locale )
+    {
+      this.locale = Objects.requireNonNull( locale, "locale" );
+      return this;
+    }
+
+    /**
+     * Adds a time pattern at the end of the configured-pattern search order. Validation is
+     * deferred until {@link #build()}, using the builder's final locale. Exact {@code 24:00} input
+     * is accepted only when the configured fields describe that endpoint without conflict.
+     *
+     * @param pattern time pattern
+     * @return this builder
+     * @throws NullPointerException if {@code pattern} is null
+     */
+    public Builder addPattern( String pattern )
+    {
+      patterns.add( Objects.requireNonNull( pattern, "pattern" ) );
+      return this;
+    }
+
+    /**
+     * Validates configured patterns and creates an immutable parser snapshot.
+     *
+     * @return configured parser
+     * @throws IllegalArgumentException if any configured pattern is invalid
+     */
+    public TimeParser build()
+    {
+      return new TimeParser( clock, locale, List.copyOf( patterns ) );
+    }
   }
 }
