@@ -18,17 +18,31 @@
 
 package rjc.table.view.editor;
 
+import java.security.InvalidParameterException;
+
 import rjc.table.control.ChooseField;
 
 /*************************************************************************************************/
 /************************** Table cell spin editor for choosing object ***************************/
 /*************************************************************************************************/
 
+/**
+ * Table cell editor that allows selection of an object from a predefined set of values.
+ * <p>
+ * The editor uses a {@link ChooseField} as its control. String values that are not present in the
+ * predefined list are tolerated by {@link #setValue(Object)}, while other invalid values result in
+ * an {@link IllegalArgumentException}.
+ */
 public class EditorChoose extends AbstractCellEditor
 {
   private ChooseField m_choose;
 
   /**************************************** constructor ******************************************/
+  /**
+   * Creates an editor containing the supplied selectable values.
+   *
+   * @param values selectable values
+   */
   public EditorChoose( Object[] values )
   {
     // create spin table cell editor for integer
@@ -37,6 +51,11 @@ public class EditorChoose extends AbstractCellEditor
   }
 
   /******************************************* getValue ******************************************/
+  /**
+   * Returns the currently selected value.
+   *
+   * @return current selected value
+   */
   @Override
   public Object getValue()
   {
@@ -45,10 +64,28 @@ public class EditorChoose extends AbstractCellEditor
   }
 
   /******************************************* setValue ******************************************/
+  /**
+   * Sets the editor's selected value.
+   * <p>
+   * String values rejected by the underlying {@link ChooseField} are ignored. Other rejected
+   * values cause an {@link IllegalArgumentException}.
+   *
+   * @param value value to select
+   * @throws IllegalArgumentException if {@code value} is rejected and is not a string
+   */
   @Override
   public void setValue( Object value )
   {
     // set editor current value
-    m_choose.setSelected( value );
+    try
+    {
+      m_choose.setSelected( value );
+    }
+    catch ( InvalidParameterException exception )
+    {
+      // value is not in the list of values or string, so throw exception
+      if ( !( value instanceof String ) )
+        throw new IllegalArgumentException( "Invalid value: " + value );
+    }
   }
 }

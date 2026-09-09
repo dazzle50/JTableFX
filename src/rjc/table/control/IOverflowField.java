@@ -27,25 +27,32 @@ package rjc.table.control;
  * <p>
  * Implementations may use this for simple stepping, or may pass overflow to another field when
  * their own value wraps beyond its range. Modifier flags allow callers to request larger or
- * alternate step behaviour.
+ * alternate step behaviour. Implementations must override at least one {@code changeValue}
+ * overload; the default methods delegate to each other so that either overload can be the primary
+ * implementation.
  */
 public interface IOverflowField
 {
   /***************************************** changeValue *****************************************/
   /**
    * Changes the field value by the supplied delta with no modifier-key behaviour.
+   * <p>
+   * The default implementation delegates to the modifier-aware overload.
    *
    * @param delta amount to add to the current value
    */
   default void changeValue( double delta )
   {
-    // change value assuming no shift/ctrl/alt behaviour
+    // delegate so implementations can make the modifier-aware overload primary
     changeValue( delta, false, false, false );
   }
 
   /***************************************** changeValue *****************************************/
   /**
    * Changes the field value by the supplied delta, optionally using modifier-key behaviour.
+   * <p>
+   * The default implementation ignores the modifiers and delegates to the single-argument
+   * overload.
    *
    * @param delta amount to add to the current value
    * @param shift whether Shift was held for this change
@@ -54,7 +61,7 @@ public interface IOverflowField
    */
   default void changeValue( double delta, boolean shift, boolean ctrl, boolean alt )
   {
-    // default behaviour is to ignore shift/ctrl/alt
+    // delegate so implementations can make the single-argument overload primary
     changeValue( delta );
   }
 

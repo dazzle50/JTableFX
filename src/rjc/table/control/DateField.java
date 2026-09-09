@@ -32,6 +32,14 @@ import rjc.table.signal.ObservableStatus.Level;
 /******************************* Date field control with drop-down *******************************/
 /*************************************************************************************************/
 
+/**
+ * Editable date field with a drop-down month, year, and calendar picker.
+ * <p>
+ * Parseable text updates the most recent valid {@link Date} and emits it through {@link #signal}.
+ * Invalid text is styled as an error while editing and is replaced by the most recent valid date
+ * on focus loss or Escape. A non-null status object must be assigned before that normalization
+ * because it clears the shared status. Arrow or wheel modifiers step days, months, or years.
+ */
 public class DateField extends AbstractDropDownField
 {
   protected Date          m_date;       // field current date (or most recent valid)
@@ -42,6 +50,9 @@ public class DateField extends AbstractDropDownField
   private Button          m_todayButton;
 
   /**************************************** constructor ******************************************/
+  /**
+   * Creates a date field initially set to today.
+   */
   public DateField()
   {
     // create the date widgets for the drop-down
@@ -77,33 +88,55 @@ public class DateField extends AbstractDropDownField
   }
 
   /************************************ updateDropDownWidgets ************************************/
+  /**
+   * Synchronises the calendar, month, and year controls with the current valid date.
+   */
   @Override
   protected void updateDropDownWidgets()
   {
-    // update the widgets in drop-down to reflect current date
+    // programmatic widget signals settle back on the same date and do not recurse
     m_calendar.setDate( m_date );
     m_monthField.setValue( m_date.getMonth() );
     m_yearField.setValue( m_date.getYear() );
   }
 
   /**************************************** getCalendar ******************************************/
+  /**
+   * Returns the calendar used by the drop-down.
+   *
+   * @return calendar picker
+   */
   protected CalendarWidget getCalendar()
   {
-    // return calendar widget in drop-down
+    // expose the calendar to DateTimeField so it can share date overflow
     return m_calendar;
   }
 
   /****************************************** getDate ********************************************/
+  /**
+   * Returns the current valid date, or the most recently parsed valid date while the text is invalid.
+   *
+   * @return current valid date
+   */
   public Date getDate()
   {
-    // return current field date (or most recent valid)
+    // invalid edit text deliberately leaves the last successfully parsed value intact
     return m_date;
   }
 
   /****************************************** setDate ********************************************/
+  /**
+   * Sets the field from a date or literal text.
+   * <p>
+   * A {@link Date} is formatted canonically. Other non-null values are converted with
+   * {@link Object#toString()}, while null displays blank text. Text is parsed by the normal field
+   * validation listener, so invalid text does not replace the most recent valid date.
+   *
+   * @param value date or text-like value to display
+   */
   public void setDate( Object value )
   {
-    // set field value depending on object type
+    // typed dates use canonical formatting; other values enter the normal text-validation path
     if ( value instanceof Date date )
       setDate( date );
     else
@@ -114,9 +147,15 @@ public class DateField extends AbstractDropDownField
   }
 
   /****************************************** setDate ********************************************/
+  /**
+   * Sets the current valid date, updates the drop-down, and signals when the value changes.
+   *
+   * @param date date to set
+   * @throws NullPointerException if {@code date} is null
+   */
   public void setDate( Date date )
   {
-    // set current field date, display in text, signal change
+    // suppress redundant widget updates and external signals
     if ( !date.equals( m_date ) )
     {
       m_date = date;
@@ -169,10 +208,17 @@ public class DateField extends AbstractDropDownField
   }
 
   /***************************************** parseText *******************************************/
+  /**
+   * Parses cleaned field text and signals when it represents a new valid date.
+   *
+   * @param text cleaned text to parse
+   * @throws java.time.format.DateTimeParseException if the text cannot be parsed
+   * @throws ArithmeticException if relative arithmetic or compact storage overflows
+   */
   @Override
   protected void parseText( String text )
   {
-    // convert text to date, and if different signal (any exception handled in abstract)
+    // let AbstractDropDownField translate parse failures into error status
     Date date = Date.parse( text );
     if ( !date.equals( m_date ) )
     {
@@ -182,14 +228,25 @@ public class DateField extends AbstractDropDownField
   }
 
   /***************************************** statusText ******************************************/
+  /**
+   * Returns the informational or validation-error message for the field.
+   *
+   * @param level requested status severity
+   * @return status message
+   */
   @Override
   protected String statusText( Level level )
   {
-    // return status text appropriate to the level
+    // only informational status includes the last valid value
     return level == Level.INFO ? "Date: " + formatStatus( m_date ) : "Date format is not recognised";
   }
 
   /***************************************** validText *******************************************/
+  /**
+   * Restores canonical text for the most recent valid date and clears the shared status.
+   *
+   * @throws NullPointerException if no status object has been assigned
+   */
   @Override
   protected void validText()
   {
@@ -199,10 +256,21 @@ public class DateField extends AbstractDropDownField
   }
 
   /***************************************** changeValue *****************************************/
+  /**
+   * Steps the date by days, months, or years according to the supplied modifiers.
+   * <p>
+   * No modifier changes days, Shift changes months, and Control changes years. Alt is ignored.
+   * A simultaneous Shift-Control combination makes no change.
+   *
+   * @param delta amount to move, truncated to an integer
+   * @param shift whether to move by months
+   * @param ctrl  whether to move by years
+   * @param alt   unused modifier flag
+   */
   @Override
   public void changeValue( double delta, boolean shift, boolean ctrl, boolean alt )
   {
-    // modify field value
+    // Shift and Control promote the movement unit from days to months or years
     if ( !shift && !ctrl )
       setDate( getDate().plusDays( (int) delta ) );
     if ( shift && !ctrl )

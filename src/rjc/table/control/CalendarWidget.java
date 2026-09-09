@@ -18,8 +18,10 @@
 
 package rjc.table.control;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
+import java.util.Locale;
 
 import javafx.event.EventHandler;
 import javafx.geometry.Bounds;
@@ -41,12 +43,22 @@ import rjc.table.view.Colours;
 /************************* Interactive widget showing one month calendar *************************/
 /*************************************************************************************************/
 
+/**
+ * Canvas-based calendar for selecting a date from a six-week, Monday-first grid.
+ * <p>
+ * The header uses compact names from the format locale in effect when the widget is constructed.
+ * Mouse, keyboard, and wheel input update the selected date and emit an {@link ISignal} containing
+ * the corresponding {@link Date}. Shift-wheel changes months and Control-wheel changes years.
+ * <p>
+ * Subclasses can customise cell and text colours through {@link #getCellPaint(int, int, LocalDate)}
+ * and {@link #getTextPaint(int, int, LocalDate)}.
+ */
 public class CalendarWidget extends Canvas implements ISignal, IOverflowField
 {
   private LocalDate        m_localdate;       // currently selected date
   private GraphicsContext  m_gc;              // graphics context
 
-  private static String    days[];            // day names for first row
+  private final String[]   m_days;            // day names for first row
 
   private static final int COLUMN_WIDTH  = 28;
   private static final int ROW_HEIGHT    = 18;
@@ -54,25 +66,21 @@ public class CalendarWidget extends Canvas implements ISignal, IOverflowField
   private static final int CALENDAR_ROWS = 7;
 
   /**************************************** constructor ******************************************/
+  /**
+   * Creates a calendar initially selecting today.
+   */
   public CalendarWidget()
   {
-    // initialise
+    // use a fixed grid so popup layout is stable before the calendar is shown
     setWidth( COLUMN_WIDTH * DAYS_IN_WEEK );
     setHeight( ROW_HEIGHT * CALENDAR_ROWS );
     setFocusTraversable( true );
 
-    // prepare static day names (first two characters of day of week name)
-    if ( days == null )
-    {
-      days = new String[DAYS_IN_WEEK];
-      DateTimeFormatter formatter = DateTimeFormatter.ofPattern( "E" );
-      for ( int dayOfWeek = 0; dayOfWeek < DAYS_IN_WEEK; dayOfWeek++ )
-      {
-        // local-date day four is a Monday (first day of week)
-        LocalDate date = LocalDate.ofEpochDay( dayOfWeek + 4 );
-        days[dayOfWeek] = date.format( formatter ).substring( 0, 2 );
-      }
-    }
+    // prepare compact localised day names in the calendar's Monday-to-Sunday order
+    m_days = new String[DAYS_IN_WEEK];
+    Locale locale = Locale.getDefault( Locale.Category.FORMAT );
+    for ( int dayOfWeek = 0; dayOfWeek < DAYS_IN_WEEK; dayOfWeek++ )
+      m_days[dayOfWeek] = DayOfWeek.of( dayOfWeek + 1 ).getDisplayName( TextStyle.NARROW_STANDALONE, locale );
 
     // handler for mouse scroll events to change selected date
     final EventHandler<ScrollEvent> scrollHandler = event ->
@@ -89,11 +97,11 @@ public class CalendarWidget extends Canvas implements ISignal, IOverflowField
       getScene().getRoot().setOnScroll( newFocus ? scrollHandler : null );
     } );
 
-    // react to mouse + keyboard
+    // route mouse and keyboard changes through setDate for consistent repainting and signals
     setOnMouseReleased( event -> mouseReleased( event ) );
     setOnKeyPressed( event -> keyPressed( event ) );
 
-    // set default date to today
+    // initialise the graphics context before selecting today triggers the first paint
     m_gc = getGraphicsContext2D();
     m_gc.setFontSmoothingType( FontSmoothingType.LCD );
     setDate( LocalDate.now() );
@@ -102,7 +110,7 @@ public class CalendarWidget extends Canvas implements ISignal, IOverflowField
   /***************************************** keyPressed ******************************************/
   private void keyPressed( KeyEvent event )
   {
-    // update date depending on key pressed
+    // map navigation keys to conventional calendar movements
     switch ( event.getCode() )
     {
       case RIGHT: // right -> arrow key
@@ -158,10 +166,22 @@ public class CalendarWidget extends Canvas implements ISignal, IOverflowField
   }
 
   /***************************************** changeValue *****************************************/
+  /**
+   * Moves the selected date using the supplied wheel-style modifiers.
+   * <p>
+   * With no Shift or Control modifier, {@code delta} represents days. Shift selects months and
+   * Control selects years. Holding Shift and Control together makes no change. Alt is ignored when
+   * selecting the movement unit.
+   *
+   * @param delta amount to move, truncated to an integer
+   * @param shift whether to move by months
+   * @param ctrl  whether to move by years
+   * @param alt   unused modifier flag
+   */
   @Override
   public void changeValue( double delta, boolean shift, boolean ctrl, boolean alt )
   {
-    // modify field value
+    // modifiers promote the movement unit from days to months or years
     if ( !shift && !ctrl )
       setDate( getDate().plusDays( (int) delta ) );
     if ( shift && !ctrl )
@@ -173,7 +193,7 @@ public class CalendarWidget extends Canvas implements ISignal, IOverflowField
   /**************************************** mouseReleased ****************************************/
   private void mouseReleased( MouseEvent event )
   {
-    // request focus and set date to selected cell
+    // request focus and translate the pointer position into an offset from the first grid date
     event.consume();
     requestFocus();
     int col = (int) ( event.getX() / COLUMN_WIDTH );
@@ -195,23 +215,42 @@ public class CalendarWidget extends Canvas implements ISignal, IOverflowField
   }
 
   /******************************************* setDate *******************************************/
+  /**
+   * Selects the supplied date, repainting and signalling only when it differs from the current date.
+   *
+   * @param date date to select
+   * @throws NullPointerException if {@code date} is null
+   */
   public void setDate( Date date )
   {
-    // set widget date (and emit signal if different)
+    // convert at the public API boundary; the private overload owns repainting and signalling
     setDate( date.toLocalDate() );
   }
 
   /******************************************* getDate *******************************************/
+  /**
+   * Returns the currently selected date.
+   *
+   * @return selected date
+   */
   public Date getDate()
   {
-    // get widget date
+    // expose the project Date type rather than the LocalDate used for painting
     return Date.of( m_localdate );
   }
 
   /**************************************** getFirstDate *****************************************/
+  /**
+   * Returns the date shown in the top-left grid cell.
+   * <p>
+   * The grid begins on the Monday before the first day of the selected month. If the month itself
+   * starts on Monday, the preceding Monday is used so the previous month remains visible.
+   *
+   * @return first displayed date
+   */
   public LocalDate getFirstDate()
   {
-    // get widget first date in top-left corner
+    // always include a preceding Monday, even when the month begins on Monday
     LocalDate first = m_localdate.withDayOfMonth( 1 );
     int offset = 1 - first.getDayOfWeek().getValue();
     return first.plusDays( offset == 0 ? -7 : offset );
@@ -230,10 +269,10 @@ public class CalendarWidget extends Canvas implements ISignal, IOverflowField
       int y = 0;
 
       // draw label
-      Bounds bounds = ( new Text( days[col] ) ).getLayoutBounds();
+      Bounds bounds = ( new Text( m_days[col] ) ).getLayoutBounds();
       x += ( COLUMN_WIDTH - bounds.getWidth() ) / 2.0;
       y += ( ROW_HEIGHT - bounds.getHeight() ) / 2.0 - bounds.getMinY();
-      m_gc.fillText( days[col], x, y );
+      m_gc.fillText( m_days[col], x, y );
     }
 
     // following rows show day-of-month number
@@ -261,6 +300,16 @@ public class CalendarWidget extends Canvas implements ISignal, IOverflowField
   }
 
   /**************************************** getCellPaint *****************************************/
+  /**
+   * Returns the background paint for a date cell.
+   * <p>
+   * The default highlights the selected date and shades weekend columns.
+   *
+   * @param col       zero-based calendar column
+   * @param row       one-based calendar row below the header
+   * @param localdate date represented by the cell
+   * @return cell background paint
+   */
   protected Paint getCellPaint( int col, int row, LocalDate localdate )
   {
     // highlight currently selected date
@@ -274,6 +323,16 @@ public class CalendarWidget extends Canvas implements ISignal, IOverflowField
   }
 
   /***************************************** getTextPaint ****************************************/
+  /**
+   * Returns the text paint for a date cell.
+   * <p>
+   * The default highlights today and dims dates outside the selected month.
+   *
+   * @param col       zero-based calendar column
+   * @param row       one-based calendar row below the header
+   * @param localdate date represented by the cell
+   * @return cell text paint
+   */
   protected Paint getTextPaint( int col, int row, LocalDate localdate )
   {
     // highlight today
@@ -287,10 +346,13 @@ public class CalendarWidget extends Canvas implements ISignal, IOverflowField
   }
 
   /****************************************** toString *******************************************/
+  /**
+   * Returns a compact debug representation containing the selected date.
+   */
   @Override
   public String toString()
   {
-    // return as string
+    // include the current selection in diagnostic output
     return Utils.name( this ) + "[" + getDate() + "]";
   }
 }
