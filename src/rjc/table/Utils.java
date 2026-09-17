@@ -213,6 +213,8 @@ public class Utils
   public static String clean( String txt )
   {
     // returns a clean string
+    if ( txt == null )
+      return "";
     return WHITESPACE.matcher( txt.trim() ).replaceAll( " " );
   }
 
@@ -227,6 +229,8 @@ public class Utils
   public static String name( Object obj )
   {
     // returns the objects simple class name with hash identity in hex
+    if ( obj == null )
+      return "null";
     return obj.getClass().getSimpleName() + "@" + Integer.toHexString( System.identityHashCode( obj ) );
   }
 

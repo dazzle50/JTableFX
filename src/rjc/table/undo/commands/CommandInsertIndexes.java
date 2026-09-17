@@ -42,12 +42,13 @@ import rjc.table.view.axis.TableAxis;
  * <p>
  * View-based indexes are converted to data-based indexes and grouped into contiguous runs.
  * Insertion is applied high-to-low so that lower run indexes remain valid throughout; each run
- * inserts model-default content via a null-element list. Axis sizes and mapping are updated
- * <em>after</em> each data insertion so the count signal fires with the axis already consistent.
+ * initially inserts model-default content via a null-element list. Axis sizes and mapping are
+ * updated <em>after</em> each data insertion, once the data model has updated its count.
  * Undo deletes the inserted runs low-to-high — the stored data indexes remain correct because
- * each low deletion shifts the next inserted row back to its original stored position — capturing
- * and removing axis mapping and sizes before each data deletion, mirroring
- * {@link CommandDeleteIndexes#redo()}.
+ * each low deletion shifts the next inserted row back to its original stored position —
+ * removing axis mapping and sizes before each data deletion, mirroring
+ * {@link CommandDeleteIndexes#redo()}. Deleted data is retained for the next redo, preserving
+ * object identity when the data model returns and reinserts the original objects.
  *
  * @see IUndoCommand
  * @see IDataInsertDeleteColumns
@@ -55,12 +56,13 @@ import rjc.table.view.axis.TableAxis;
  */
 public class CommandInsertIndexes implements IUndoCommand
 {
-  private final TableData   m_data;        // data model on which insertions are performed
-  private final TableAxis   m_axis;        // axis whose sizes must stay aligned with data
-  private final Orientation m_orientation; // HORIZONTAL for columns, VERTICAL for rows
-  private final int[][]     m_runs;        // [startIndex, count] per run, high-to-low
-  private final int         m_totalCount;  // total number of columns or rows inserted
-  private String            m_text;        // lazily constructed description for undo/redo UI
+  private final TableData      m_data;         // data model on which insertions are performed
+  private final TableAxis      m_axis;         // axis whose sizes must stay aligned with data
+  private final Orientation    m_orientation;  // HORIZONTAL for columns, VERTICAL for rows
+  private final int[][]        m_runs;         // [startIndex, count] per run, high-to-low
+  private final List<Object>[] m_insertedData; // defaults initially, then data captured during undo
+  private final int            m_totalCount;   // total number of columns or rows inserted
+  private String               m_text;         // lazily constructed description for undo/redo UI
 
   /***************************************** constructor *****************************************/
   /**
@@ -74,6 +76,7 @@ public class CommandInsertIndexes implements IUndoCommand
    * @param orientation {@code HORIZONTAL} to insert columns, {@code VERTICAL} to insert rows
    * @param viewIndexes non-null, non-empty set of view-based indexes before which to insert
    */
+  @SuppressWarnings( "unchecked" )
   public CommandInsertIndexes( TableView view, Orientation orientation, HashSetInt viewIndexes )
   {
     m_data = view.getData();
@@ -99,12 +102,18 @@ public class CommandInsertIndexes implements IUndoCommand
     m_runs = buildRuns( raw );
     m_totalCount = raw.length;
 
+    // request defaults only for the first insertion; undo replaces these lists with actual data
+    m_insertedData = new List[m_runs.length];
+    for ( int i = 0; i < m_runs.length; i++ )
+      m_insertedData[i] = new ArrayList<>( Collections.nCopies( m_runs[i][1], null ) );
+
     redo();
   }
 
   /******************************************** redo *********************************************/
   /**
-   * Executes the insertion, adding default-content runs from highest to lowest data index.
+   * Executes the insertion from highest to lowest data index, using default content initially
+   * and restoring the data retained by undo on subsequent executions.
    * Axis sizes and mapping are updated after each data insertion.
    */
   @Override
@@ -116,11 +125,13 @@ public class CommandInsertIndexes implements IUndoCommand
         : ( (IDataInsertDeleteRows) m_data )::insertRows;
 
     // insert runs high-to-low so lower index positions remain valid throughout;
-    // update axis after data insertion so the count-change signal fires with axis consistent
+    // update axis after data insertion so the data model has already updated its count
     for ( int i = 0; i < m_runs.length; i++ )
     {
-      // null elements instruct the data model to initialise with default content
-      insert.apply( m_runs[i][0], new ArrayList<>( Collections.nCopies( m_runs[i][1], null ) ) );
+      // reuse saved objects on redo so references held by other commands remain valid
+      if ( !insert.apply( m_runs[i][0], m_insertedData[i] ) )
+        throw new IllegalStateException( "Could not insert table data" );
+
       m_axis.insertSizes( m_runs[i][0], m_runs[i][1] );
       m_axis.insertMapping( m_runs[i][0], m_runs[i][1] );
     }
@@ -131,7 +142,7 @@ public class CommandInsertIndexes implements IUndoCommand
   /**
    * Reverses the insertion by deleting all runs from lowest to highest data index.
    * Axis mapping and sizes are removed before each data deletion, mirroring
-   * {@link CommandDeleteIndexes#redo()}.
+   * {@link CommandDeleteIndexes#redo()}. The deleted data is retained for the next redo.
    */
   @Override
   public void undo()
@@ -148,7 +159,12 @@ public class CommandInsertIndexes implements IUndoCommand
     {
       m_axis.deleteMapping( m_runs[i][0], m_runs[i][1] );
       m_axis.deleteSizes( m_runs[i][0], m_runs[i][1] );
-      delete.apply( m_runs[i][0], m_runs[i][1] );
+
+      // retain a separate list of the removed objects for the next redo
+      List<Object> deleted = delete.apply( m_runs[i][0], m_runs[i][1] );
+      if ( deleted == null || deleted.size() != m_runs[i][1] )
+        throw new IllegalStateException( "Could not retain inserted table data for redo" );
+      m_insertedData[i] = new ArrayList<>( deleted );
     }
     m_data.signalTableChanged();
   }
