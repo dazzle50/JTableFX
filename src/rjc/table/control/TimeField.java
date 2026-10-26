@@ -37,6 +37,10 @@ import rjc.table.signal.ObservableStatus.Level;
  * on focus loss or Escape. A non-null status object must be assigned before that normalization
  * because it clears the shared status. Arrow and wheel modifiers step hours, minutes, seconds, or
  * milliseconds.
+ * <p>
+ * Display precision includes all components through the most precise visible drop-down field.
+ * Setting a {@link Time} can lose finer precision when its formatted text is parsed again; see
+ * {@link #setTime(Time)} for the resulting signal behaviour.
  */
 public class TimeField extends AbstractDropDownField
 {
@@ -71,7 +75,9 @@ public class TimeField extends AbstractDropDownField
 
   /**************************************** constructor ******************************************/
   /**
-   * Creates a time field with selected components visible in its drop-down.
+   * Creates a time field with selected components visible in its drop-down, initially set to the
+   * current hour. Text formatting includes all components through the most precise visible field,
+   * including components whose individual drop-down fields are hidden.
    *
    * @param showHours whether to show hours
    * @param showMins  whether to show minutes
@@ -114,9 +120,9 @@ public class TimeField extends AbstractDropDownField
   /**
    * Sets the field from a time or literal text.
    * <p>
-   * A {@link Time} is formatted according to the configured component precision. Other non-null
-   * values are converted with {@link Object#toString()}, while null displays blank text. Invalid
-   * text does not replace the most recent valid time.
+   * A {@link Time} delegates to {@link #setTime(Time)}, including its precision and signal behaviour.
+   * Other non-null values are converted with {@link Object#toString()}, while null displays blank
+   * text. Invalid text does not replace the most recent valid time.
    *
    * @param value time or text-like value to display
    */
@@ -134,7 +140,14 @@ public class TimeField extends AbstractDropDownField
 
   /****************************************** setTime ********************************************/
   /**
-   * Sets the current time, updates the drop-down, and signals when the value changes.
+   * Sets the time through the configured display format and synchronises the drop-down.
+   * <p>
+   * A value equal to the stored time causes no update. Otherwise the supplied time is stored and
+   * formatted, then the resulting text is parsed by the validation listener. Parsing can replace
+   * the stored time with a value truncated to display precision and emit that truncated value.
+   * The method then emits the original supplied time. For example, with minute precision,
+   * setting {@code 12:34:56.789} can emit {@code 12:34:00.000} followed by {@code 12:34:56.789},
+   * while {@link #getTime()} returns the truncated value.
    *
    * @param time time to set
    * @throws NullPointerException if {@code time} is null
@@ -153,7 +166,8 @@ public class TimeField extends AbstractDropDownField
 
   /******************************************* format ********************************************/
   /**
-   * Formats a time using the component precision implied by the drop-down configuration.
+   * Formats a time using all components through the most precise visible drop-down field.
+   * Components finer than that precision are omitted without rounding.
    *
    * @param time time to format
    * @return display text

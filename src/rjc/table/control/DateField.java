@@ -37,7 +37,7 @@ import rjc.table.signal.ObservableStatus.Level;
  * <p>
  * Parseable text updates the most recent valid {@link Date} and emits it through {@link #signal}.
  * Invalid text is styled as an error while editing and is replaced by the most recent valid date
- * on focus loss or Escape. A non-null status object must be assigned before that normalization
+ * on focus loss or Escape. A non-null status object must be assigned before that normalisation
  * because it clears the shared status. Arrow or wheel modifiers step days, months, or years.
  */
 public class DateField extends AbstractDropDownField
@@ -115,8 +115,12 @@ public class DateField extends AbstractDropDownField
   /****************************************** getDate ********************************************/
   /**
    * Returns the current valid date, or the most recently parsed valid date while the text is invalid.
+   * <p>
+   * In {@link DateTimeField}, this inherited stored date can lag behind text parsing until the
+   * drop-down widgets are synchronised. Use {@link DateTimeField#getDateTime()} and its
+   * {@code getDate()} method for the current date component in that subclass.
    *
-   * @return current valid date
+   * @return stored valid date used by the calendar controls
    */
   public Date getDate()
   {

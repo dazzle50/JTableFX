@@ -47,7 +47,7 @@ public class HashSetInt
 
   /**************************************** constructor ******************************************/
   /**
-   * Constructs an empty HashSetInt with default initial capacity (16) and load factor (0.75).
+   * Constructs an empty HashSetInt with default initial capacity (8) and load factor (0.75).
    */
   public HashSetInt()
   {

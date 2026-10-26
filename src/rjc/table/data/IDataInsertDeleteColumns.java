@@ -32,6 +32,8 @@ import java.util.List;
  * <p>
  * The two methods are designed to be symmetric: data returned by {@link #deleteColumns} may be
  * passed directly to {@link #insertColumns} at the same index to undo the deletion.
+ * <p>
+ * Input validation and any resulting exceptions are determined by the data-model implementation.
  *
  * @see IDataInsertDeleteRows
  */
@@ -57,7 +59,6 @@ public interface IDataInsertDeleteColumns
    *                     elements may be {@code null} to request model-determined default content
    *                     for that column
    * @return {@code true} if at least one column was successfully inserted, {@code false} otherwise
-   * @throws Exceptions if invalid input parameters are provided
    * @implNote The default implementation returns {@code false} (no operation performed).
    */
   default boolean insertColumns( int insertIndex, List<Object> columnData )
@@ -77,7 +78,6 @@ public interface IDataInsertDeleteColumns
    * @param count        number of consecutive columns to delete; must be &gt; 0
    * @return a list of the deleted columns' data if deletion was successful, or {@code null}
    *         if the operation failed or no columns were deleted
-   * @throws Exceptions if invalid input parameters are provided
    * @implNote The default implementation returns {@code null} (no operation performed).
    */
   default List<Object> deleteColumns( int deleteIndex, int count )
@@ -97,7 +97,6 @@ public interface IDataInsertDeleteColumns
    * @param dataColumns   array of data-column indices to check for deletability
    * @return {@code null} if the columns are deletable, or a non-null string containing human-readable text
    *         to be shown to the user explaining why deletion is not allowed
-   * @throws Exceptions if invalid input parameters are provided
    * @implNote The default implementation returns {@code null} (all columns are deletable).
    */
   default String checkColumnsDeletable( int[] dataColumns )

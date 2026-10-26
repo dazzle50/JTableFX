@@ -300,9 +300,10 @@ public class TableAxis implements IListener
   /*************************************** getNextVisible ****************************************/
   /**
    * Finds the next visible body cell index after the specified position.
+   * If none is found, searches backward starting at the specified position.
    * 
-   * @param viewIndex  starting view index (exclusive search)
-   * @return next visible index, or INVALID if none found
+   * @param viewIndex  starting view index (excluded from the initial search, included in the fallback)
+   * @return first visible index found in search order, or INVALID if none found
    */
   public int getNextVisible( int viewIndex )
   {
@@ -334,9 +335,10 @@ public class TableAxis implements IListener
   /************************************* getPreviousVisible **************************************/
   /**
    * Finds the previous visible body cell index before the specified position.
+   * If none is found, searches forward starting at the specified position.
    * 
-   * @param viewIndex  starting view index (exclusive search)
-   * @return previous visible index, or INVALID if none found
+   * @param viewIndex  starting view index (excluded from the initial search, included in the fallback)
+   * @return first visible index found in search order, or INVALID if none found
    */
   public int getPreviousVisible( int viewIndex )
   {

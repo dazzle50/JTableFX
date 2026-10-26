@@ -36,11 +36,16 @@ import rjc.table.signal.ObservableStatus.Level;
  * Editable date-time field combining the {@link DateField} calendar picker with a
  * {@link TimeWidget}.
  * <p>
- * Parseable text updates the most recent valid {@link DateTime}. The drop-down keeps its calendar
- * and time controls synchronised with that value. Arrow or wheel modifiers step date components;
- * holding Alt instead steps time components. Invalid text is replaced by the most recent valid
+ * Parseable text updates the most recent valid {@link DateTime}. Setting a different typed
+ * date-time or opening the drop-down synchronises its calendar and time controls with that value.
+ * Arrow or wheel modifiers step date components; holding Alt instead steps time components.
+ * Invalid text is replaced by the most recent valid
  * value on focus loss or Escape; a non-null status object must be assigned before that
  * normalization because it clears the shared status.
+ * <p>
+ * Text parsing updates the date-time without immediately updating the inherited calendar date.
+ * Consequently, {@link #getDate()} can return an earlier date until the widgets are synchronised.
+ * Use {@code getDateTime().getDate()} to obtain the date component of the current parsed value.
  */
 public class DateTimeField extends DateField
 {

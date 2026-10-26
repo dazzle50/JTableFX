@@ -20,11 +20,20 @@ module JTableFX
 {
   requires transitive javafx.base;
   requires transitive javafx.graphics;
+  requires transitive javafx.controls;
 
-  requires javafx.controls;
-
-  exports rjc.table.demo;
+  exports rjc.table;
+  exports rjc.table.control;
+  exports rjc.table.control.dropdown;
+  exports rjc.table.data;
   exports rjc.table.data.types;
-  exports rjc.table.undo;
+  exports rjc.table.demo;
   exports rjc.table.signal;
+  exports rjc.table.undo;
+  exports rjc.table.undo.commands;
+  exports rjc.table.view;
+  exports rjc.table.view.action;
+  exports rjc.table.view.axis;
+  exports rjc.table.view.cell;
+  exports rjc.table.view.editor;
 }

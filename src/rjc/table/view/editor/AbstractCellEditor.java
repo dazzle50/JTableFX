@@ -50,10 +50,11 @@ import rjc.table.view.cell.CellDrawer;
  * {@link #setValue(Object)}. Escape abandons editing, Enter commits if the editor is not in an
  * error state, and focus loss ends editing using {@link #endEditing()}.
  * <p>
- * Controls implementing {@link IObservableStatus} receive the table view's status object; ensure it
- * is non-null before editing. Editor instances are normally short-lived; reused instances need care
- * because {@link #open(Object, CellDrawer)} installs validation handling for {@link ExpandingField}
- * controls.
+ * Controls implementing {@link IObservableStatus} receive the table view's status object.
+ * {@link ExpandingField} controls require that status to be non-null before editing. Use editors
+ * on the JavaFX application thread. Each {@link #open(Object, CellDrawer)} call adds a validation
+ * listener to an expanding field, and closing does not remove it, so reopening the same instance
+ * accumulates listeners. Prefer a fresh editor instance for each edit.
  */
 abstract public class AbstractCellEditor
 {
@@ -70,10 +71,21 @@ abstract public class AbstractCellEditor
    * <p>
    * If another editor is already active this method returns without opening. The supplied value may
    * be the current cell value or a typed starter value used to begin replacement editing.
+   * <p>
+   * Once the control has been placed, configured, and given focus, {@link #setValue(Object)} is
+   * called first with the cell's existing value and then with the supplied opening value. Subclasses
+   * must support both values. For text controls, an opening value that is a different object from
+   * the cell value also installs handling to remove the default text selection; this comparison
+   * uses object identity rather than equality.
+   * <p>
+   * The table's scroll handler is temporarily removed and restored by {@link #close(boolean)}.
+   * Value-conversion failures are propagated without automatically closing the editor.
    *
    * @param value the value to place in the editor
-   * @param cell  cell location, style, and data indexes for the edit
-   * @throws IllegalStateException if no editor control has been set
+   * @param cell  non-null cell location, style, and data indexes for the edit
+   * @throws IllegalStateException if opening is attempted before an editor control has been set
+   * @throws NullPointerException if opening is attempted with a null cell, or an expanding field
+   *                              is given a null table status
    */
   public void open( Object value, CellDrawer cell )
   {
@@ -164,10 +176,17 @@ abstract public class AbstractCellEditor
 
   /***************************************** isValueValid ****************************************/
   /**
-   * Returns whether the supplied value is valid as an initial editor value.
+   * Checks whether the supplied opening value passes the control's full-text input filter.
+   * <p>
+   * For an {@link ExpandingField}, null is accepted and other values are checked using their string
+   * representation. For other controls, or before a control is assigned, this returns true.
+   * This check does not establish that {@link #setValue(Object)} supports the value's type, that
+   * its text parses successfully, or that the table data model accepts it. Subclasses can override
+   * this method for stricter opening-value checks; {@link #testValue(Object)} checks model acceptance
+   * once the target cell is known.
    *
    * @param value candidate opening value
-   * @return true if the editor can start with the value
+   * @return true if no input-filter check rejects the value
    */
   public boolean isValueValid( Object value )
   {
@@ -193,6 +212,8 @@ abstract public class AbstractCellEditor
   /******************************************* setValue ******************************************/
   /**
    * Sets the current value shown by the editor control.
+   * Subclasses define supported types, conversions, and null handling. Opening calls this method
+   * with both the existing cell value and the requested opening value.
    *
    * @param value value to show in the editor; the default implementation does nothing
    */
@@ -220,9 +241,14 @@ abstract public class AbstractCellEditor
 
   /******************************************** close ********************************************/
   /**
-   * Closes this editor and optionally commits the current value.
+   * Closes this active editor and optionally attempts to commit the current value.
+   * <p>
+   * The editor must already be open. Shared status is cleared, focus is returned to the table, the
+   * control is removed, and the table's scroll handler is restored before {@link #commit()} runs.
+   * A direct call with {@code true} does not check the error status. A failed commit leaves the
+   * editor closed; its boolean result is ignored by this method.
    *
-   * @param commit true to commit the current value, false to abandon it
+   * @param commit true to attempt a commit after closing, false to abandon the value
    */
   public void close( boolean commit )
   {
@@ -240,11 +266,16 @@ abstract public class AbstractCellEditor
 
   /******************************************** commit ********************************************/
   /**
-   * Commits the current editor value through the table view's undo stack.
+   * Attempts to store the editor value and record the change on the table view's undo stack.
+   * <p>
+   * A target cell must already have been established by {@link #open(Object, CellDrawer)}.
+   * The default implementation constructs a {@link CommandSetValue}, which attempts the model
+   * update immediately, then pushes the command only if that update produced a changed value.
+   * Model rejection or an unchanged resulting value produces no undo entry.
    * <p>
    * Override this method when the edit should be represented by a different undo command.
    *
-   * @return true if an undo command was pushed
+   * @return true if an undo command was pushed, false if the model rejected the value or it was unchanged
    */
   protected boolean commit()
   {
@@ -262,9 +293,12 @@ abstract public class AbstractCellEditor
   /**
    * Sets the JavaFX control used by this editor and installs shared editor event handling.
    * <p>
-   * Must be called before {@link #open(Object, CellDrawer)}.
+   * Must be called before {@link #open(Object, CellDrawer)}. Each call adds focus and keyboard
+   * listeners; handlers on a previous control are not removed when replacing it. Configure the
+   * control once before opening, and use its editor event handling only while an editor is active.
    *
-   * @param control primary editor control
+   * @param control non-null primary editor control
+   * @throws NullPointerException if {@code control} is null
    */
   public void setControl( Control control )
   {
@@ -294,7 +328,7 @@ abstract public class AbstractCellEditor
   /**
    * Returns the JavaFX control used by this editor.
    *
-   * @return primary editor control
+   * @return primary editor control, or null before one has been assigned
    */
   public Control getControl()
   {
@@ -305,6 +339,7 @@ abstract public class AbstractCellEditor
   /****************************************** endEditing *****************************************/
   /**
    * Closes the active editor, committing it unless it is currently in an error state.
+   * Does nothing when no editor is active. An attempted commit can still be rejected by the model.
    */
   public static void endEditing()
   {
@@ -316,8 +351,9 @@ abstract public class AbstractCellEditor
   /******************************************* isError *******************************************/
   /**
    * Returns whether this editor's table status is currently an error.
+   * A target cell must already have been established by {@link #open(Object, CellDrawer)}.
    *
-   * @return true if the table status is in an error state
+   * @return true if the table status is in an error state, false if no status object is assigned
    */
   public Boolean isError()
   {

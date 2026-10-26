@@ -25,11 +25,21 @@ import rjc.table.data.types.Date;
 /******************************* Table cell editor for Date fields *******************************/
 /*************************************************************************************************/
 
+/**
+ * Table cell editor backed by a {@link DateField}, returning a {@link Date} value.
+ * <p>
+ * Values may be dates, strings, or null. Null selects today; strings are parsed after seeding the
+ * field with today so incomplete or invalid text retains a valid date. A non-null table status is
+ * required when opening the editor.
+ */
 public class EditorDate extends AbstractCellEditor
 {
   DateField m_editor = new DateField(); // date editor
 
   /**************************************** constructor ******************************************/
+  /**
+   * Creates a date editor initially set to today.
+   */
   public EditorDate()
   {
     // create date table cell editor
@@ -37,6 +47,11 @@ public class EditorDate extends AbstractCellEditor
   }
 
   /******************************************* getValue ******************************************/
+  /**
+   * Returns the most recent valid date, including while the field text is invalid.
+   *
+   * @return current {@link Date}
+   */
   @Override
   public Object getValue()
   {
@@ -45,6 +60,13 @@ public class EditorDate extends AbstractCellEditor
   }
 
   /******************************************* setValue ******************************************/
+  /**
+   * Displays a date, today's date for null, or supplied text after seeding the field with today.
+   * Invalid string text leaves the seeded date available through {@link #getValue()}.
+   *
+   * @param value {@link Date}, string to parse, or null for today
+   * @throws IllegalArgumentException if {@code value} is neither a date, a string, nor null
+   */
   @Override
   public void setValue( Object value )
   {

@@ -50,7 +50,10 @@ public class ChooseField extends ButtonField
 
   /**************************************** constructor ******************************************/
   /**
-   * Creates a field containing the supplied choices and initially selects the first choice.
+   * Creates a field containing the supplied choices.
+   * <p>
+   * Initially selects the first choice with empty display text, or the first choice if none has
+   * empty display text.
    *
    * @param choices choices available for selection
    * @throws NullPointerException     if {@code choices} is null
@@ -71,7 +74,10 @@ public class ChooseField extends ButtonField
 
   /**************************************** constructor ******************************************/
   /**
-   * Creates a field containing the supplied choices and initially selects the first choice.
+   * Creates a field containing the supplied choices.
+   * <p>
+   * Initially selects the first choice with empty display text, or the first choice if none has
+   * empty display text.
    *
    * @param choices choices available for selection
    * @throws NullPointerException     if {@code choices} is null

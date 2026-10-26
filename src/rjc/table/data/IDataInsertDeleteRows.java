@@ -32,6 +32,8 @@ import java.util.List;
  * <p>
  * The two methods are designed to be symmetric: data returned by {@link #deleteRows} may be
  * passed directly to {@link #insertRows} at the same index to undo the deletion.
+ * <p>
+ * Input validation and any resulting exceptions are determined by the data-model implementation.
  *
  * @see IDataInsertDeleteColumns
  */
@@ -57,7 +59,6 @@ public interface IDataInsertDeleteRows
    *                     elements may be {@code null} to request model-determined default content
    *                     for that row
    * @return {@code true} if at least one row was successfully inserted, {@code false} otherwise
-   * @throws Exceptions if invalid input parameters are provided
    * @implNote The default implementation returns {@code false} (no operation performed).
    */
   default boolean insertRows( int insertIndex, List<Object> rowData )
@@ -77,7 +78,6 @@ public interface IDataInsertDeleteRows
    * @param count        number of consecutive rows to delete; must be &gt; 0
    * @return a list of the deleted rows' data if deletion was successful, or {@code null}
    *         if the operation failed or no rows were deleted
-   * @throws Exceptions if invalid input parameters are provided
    * @implNote The default implementation returns {@code null} (no operation performed).
    */
   default List<Object> deleteRows( int deleteIndex, int count )
@@ -92,12 +92,11 @@ public interface IDataInsertDeleteRows
    * <p>
    * This method is called by the table's delete-row action to check if the specified rows
    * can be deleted. If it returns a non-null string, deletion is prevented and the string is
-   * displayed as an error mesage to the user.
+   * displayed as an error message to the user.
    *
    * @param dataRows    array of data-row indices to check for deletability
    * @return {@code null} if the rows are deletable, or a non-null string containing human-readable
    *         text to be shown to the user explaining why deletion is not allowed
-   * @throws Exceptions if invalid input parameters are provided
    * @implNote The default implementation returns {@code null} (all rows are deletable).
    */
   default String checkRowsDeletable( int[] dataRows )

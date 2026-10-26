@@ -104,6 +104,7 @@ public class ExpandingField extends TextField implements IObservableStatus
    * Sets the regular expression used to accept or reject the complete field text.
    *
    * @param regex regular expression for allowed full text, or null to allow all text
+   * @throws PatternSyntaxException if {@code regex} is not a valid regular expression
    */
   public void setAllowed( String regex )
   {
@@ -128,7 +129,8 @@ public class ExpandingField extends TextField implements IObservableStatus
   /**
    * Sets the minimum and maximum widths used when expanding to fit the current text.
    * <p>
-   * The field width is recalculated immediately.
+   * The field width is recalculated immediately only when {@code min > 0} and {@code max > min}.
+   * Other values disable automatic expansion without changing the current width constraints.
    *
    * @param min minimum width in pixels
    * @param max maximum width in pixels

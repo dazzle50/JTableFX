@@ -40,8 +40,12 @@ public class EditorChoose extends AbstractCellEditor
   /**************************************** constructor ******************************************/
   /**
    * Creates an editor containing the supplied selectable values.
+   * Initially selects the first value with empty display text, or the first value if none has
+   * empty display text. The array is copied, but its choice objects are shared.
    *
    * @param values selectable values
+   * @throws NullPointerException if {@code values} is null
+   * @throws IllegalArgumentException if {@code values} is empty
    */
   public EditorChoose( Object[] values )
   {
@@ -54,7 +58,7 @@ public class EditorChoose extends AbstractCellEditor
   /**
    * Returns the currently selected value.
    *
-   * @return current selected value
+   * @return current selected choice object, which may be null
    */
   @Override
   public Object getValue()
@@ -67,8 +71,11 @@ public class EditorChoose extends AbstractCellEditor
   /**
    * Sets the editor's selected value.
    * <p>
-   * String values rejected by the underlying {@link ChooseField} are ignored. Other rejected
-   * values cause an {@link IllegalArgumentException}.
+   * Equal choices are selected first; otherwise strings are matched case-insensitively against
+   * the start of other choices' display text, searching after the current selection and wrapping.
+   * Strings with no match leave the selection unchanged. Null selects a null choice when one
+   * exists, or the first choice otherwise. Other rejected values cause an
+   * {@link IllegalArgumentException}.
    *
    * @param value value to select
    * @throws IllegalArgumentException if {@code value} is rejected and is not a string

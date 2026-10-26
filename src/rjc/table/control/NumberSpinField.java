@@ -37,9 +37,10 @@ import rjc.table.signal.ObservableStatus.Level;
  * Formatting uses {@link Locale#ROOT} symbols with grouping disabled, so the decimal separator is
  * always {@code .}. This matches the allowed-text pattern and parsing used by {@link #getDouble()}.
  * <p>
- * The field emits an {@link ISignal} message containing the current double value whenever the
- * parsed value changes. Blank or invalid text parses as a sentinel value below the configured
- * minimum.
+ * On text changes, the field emits an {@link ISignal} message containing the parsed double value
+ * when it differs from the last signalled value. The initial comparison value is zero, while the
+ * constructor displays one without signalling; a first change from one to zero emits no signal.
+ * Blank or invalid text parses as a sentinel value below the configured minimum.
  */
 public class NumberSpinField extends ButtonField implements ISignal
 {
@@ -48,7 +49,9 @@ public class NumberSpinField extends ButtonField implements ISignal
 
   /**************************************** constructor ******************************************/
   /**
-   * Creates an integer spin field with range 1 to 999, format {@code "0"}, and an up/down button.
+   * Creates an integer spin field initially displaying 1, with stepped range 1 to 999, format
+   * {@code "0"}, a 20-digit input limit, and an up/down button. Step and page increments are 1
+   * and 10. The range clamps stepping but does not validate directly assigned text or numbers.
    */
   public NumberSpinField()
   {
@@ -86,6 +89,7 @@ public class NumberSpinField extends ButtonField implements ISignal
    * with the current {@link DecimalFormat}.
    *
    * @param value value to display
+   * @throws IllegalArgumentException if a non-null, non-string value cannot be formatted as a number
    */
   @Override
   public void setValue( Object value )
@@ -119,9 +123,11 @@ public class NumberSpinField extends ButtonField implements ISignal
    * rebuilt from the digit limits, current range, and current prefix/suffix.
    *
    * @param format            decimal format pattern
-   * @param maxIntegerDigits  maximum digits before the decimal point
-   * @param maxFractionDigits maximum digits after the decimal point
-   * @throws IllegalArgumentException if either digit limit is outside the supported range
+   * @param maxIntegerDigits  maximum digits before the decimal point, from 0 to 99 inclusive
+   * @param maxFractionDigits maximum digits after the decimal point, from 0 to 8 inclusive
+   * @throws IllegalArgumentException if either digit limit is outside its range or the format
+   *                                  pattern is malformed
+   * @throws NullPointerException if {@code format} is null
    */
   public void setFormat( String format, int maxIntegerDigits, int maxFractionDigits )
   {

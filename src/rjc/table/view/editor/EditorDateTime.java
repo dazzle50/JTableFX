@@ -25,11 +25,21 @@ import rjc.table.data.types.DateTime;
 /******************************* Table cell editor for date-times ********************************/
 /*************************************************************************************************/
 
+/**
+ * Table cell editor backed by a {@link DateTimeField}, returning a {@link DateTime} value.
+ * <p>
+ * Values may be date-times, strings, or null. Null selects the current date-time; strings are
+ * parsed after seeding the field with the current date-time so incomplete or invalid text retains
+ * a valid value. A non-null table status is required when opening the editor.
+ */
 public class EditorDateTime extends AbstractCellEditor
 {
   private DateTimeField m_editor = new DateTimeField();
 
   /**************************************** constructor ******************************************/
+  /**
+   * Creates a date-time editor initially set to the start of the current hour.
+   */
   public EditorDateTime()
   {
     // create table cell editor for date-time
@@ -37,6 +47,11 @@ public class EditorDateTime extends AbstractCellEditor
   }
 
   /******************************************* getValue ******************************************/
+  /**
+   * Returns the most recent valid date-time, including while the field text is invalid.
+   *
+   * @return current {@link DateTime}
+   */
   @Override
   public Object getValue()
   {
@@ -45,6 +60,14 @@ public class EditorDateTime extends AbstractCellEditor
   }
 
   /******************************************* setValue ******************************************/
+  /**
+   * Displays a date-time, the current date-time for null, or supplied text after seeding the field
+   * with the current date-time. Invalid string text leaves the seeded value available through
+   * {@link #getValue()}.
+   *
+   * @param value {@link DateTime}, string to parse, or null for the current date-time
+   * @throws IllegalArgumentException if {@code value} is neither a date-time, a string, nor null
+   */
   @Override
   public void setValue( Object value )
   {

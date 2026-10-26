@@ -39,8 +39,11 @@ import rjc.table.signal.ObservableStatus.Level;
  * <p>
  * The widget supports configurable precision by showing or hiding individual
  * fields, validates entered values, propagates overflow into an associated
- * {@link CalendarWidget}, and emits signals when the represented
- * {@link Time} changes.
+ * {@link CalendarWidget}, and represents a {@link Time} value.
+ * Field edits validate the time and emit it when it differs from the last
+ * signalled value. Spin changes are coalesced on the JavaFX event queue.
+ * Programmatic calls to {@link #setTime(Time)}, {@link #showFields}, and
+ * {@link #getTime()} do not emit signals.
  * </p>
  * <p>
  * The maximum representable value is {@code 24:00:00.000}.
@@ -162,8 +165,10 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
   /**
    * Controls which time fields are visible.
    * <p>
-   * Hidden fields are reset to zero and are excluded from validation
-   * and formatting. At least one field must remain visible.
+   * Hidden fields are reset to zero and are excluded from validation.
+   * At least one field must remain visible. Formatting precision is determined by
+   * the most precise visible field, as returned by {@link #getFieldCount()}.
+   * The stored time is revalidated without emitting a signal.
    * </p>
    *
    * @param showHours {@code true} to display the hours field
@@ -241,9 +246,13 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
 
   /**************************************** getFieldCount ****************************************/
   /**
-   * Returns the number of currently visible time fields.
+   * Returns the formatting component count implied by the most precise visible field.
+   * <p>
+   * Hours imply one component, minutes two, seconds three, and milliseconds four.
+   * Hidden intermediate fields still count towards this formatting precision; for example,
+   * showing only milliseconds returns four although only one field is visible.
    *
-   * @return the visible field count, from {@code 1} to {@code 4}
+   * @return formatting component count, from {@code 1} to {@code 4}
    */
   public int getFieldCount()
   {
@@ -261,7 +270,9 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
   /**
    * Handles key press events for the widget.
    * <p>
-   * Pressing {@link KeyCode#ESCAPE} restores the last committed time.
+   * Pressing {@link KeyCode#ESCAPE} restores the most recently validated time without signalling.
+   * Valid edits already update that saved time, so Escape discards invalid text but does not undo
+   * earlier valid edits.
    * </p>
    *
    * @param event the key event
@@ -279,7 +290,8 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
    * <p>
    * The field contents are validated before the value is returned.
    * If validation fails, the previously valid time is returned and
-   * the widget status is updated with an error message.
+   * the widget status is updated with an error message if one has been assigned.
+   * Successful validation updates the stored time without emitting a signal.
    * </p>
    *
    * @return the current valid time value
@@ -403,8 +415,9 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
   /**
    * Updates the widget to display the specified time.
    * <p>
-   * Values are truncated to the currently visible precision. Hidden
-   * fields are set to zero.
+   * Visible components retain their supplied values and hidden components are set to zero.
+   * The stored time and field styles are updated without emitting a
+   * signal or clearing the shared status message.
    * </p>
    *
    * @param time the time to display, or {@code null} to display
@@ -512,7 +525,7 @@ public class TimeWidget extends HBox implements ISignal, IObservableStatus
    * Associates a status object with this widget.
    *
    * @param status the status object used to display validation and
-   *               informational messages
+   *               informational messages, or null to disable status reporting
    */
   @Override
   public void setStatus( ObservableStatus status )

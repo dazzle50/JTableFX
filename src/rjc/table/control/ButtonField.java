@@ -71,7 +71,7 @@ public class ButtonField extends ExpandingField implements IOverflowField
 
   public static final int BUTTONS_WIDTH_MAX = 16;
   public static final int BUTTONS_PADDING   = 2;
-  public static double    LAST_CHANGE_DELTA = 0; // zero if change due to user typing
+  public static double    LAST_CHANGE_DELTA = 0; // latest numeric step or explicit reset
 
   public enum ButtonType
   {
@@ -79,6 +79,11 @@ public class ButtonField extends ExpandingField implements IOverflowField
   }
 
   // handler for mouse scroll events to step increase/decrease numeric value
+  /**
+   * Consumes scroll events and steps the value using the configured step size and event modifiers.
+   * A positive vertical delta steps up; a negative or zero vertical delta steps down. Installed on
+   * the scene root, and a popup owner's scene root when applicable, while the field has focus.
+   */
   public final EventHandler<ScrollEvent> SCROLL_HANDLER = event ->
   {
     event.consume();
