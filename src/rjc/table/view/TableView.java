@@ -134,6 +134,26 @@ public class TableView extends TableViewComponents
     addEventHandlers();
   }
 
+  /******************************************* resize ********************************************/
+  /**
+   * Called by the layout system when this node should be resized to the specified dimensions.
+   * <p>
+   * Updates the standard Region size properties before refreshing the integer drawing extents.
+   *
+   * @param width   the target layout width
+   * @param height  the target layout height
+   */
+  @Override
+  public void resize( double width, double height )
+  {
+    // update both allocated dimensions before laying out integer drawing extents
+    int oldWidth = getPixelWidth();
+    int oldHeight = getPixelHeight();
+    super.resize( width, height );
+    if ( oldWidth != getPixelWidth() || oldHeight != getPixelHeight() )
+      updateLayout();
+  }
+
   /************************************** addDataListeners ***************************************/
   /**
    * Adds listeners to the data model to respond to changes in table content.
@@ -273,9 +293,9 @@ public class TableView extends TableViewComponents
       redraw();
     } );
 
-    // react to view size changes (don't use layoutChildren as that gets called even when scrolling)
-    widthProperty().addListener( ( sender, msg ) -> updateLayout() );
-    heightProperty().addListener( ( sender, msg ) -> updateLayout() );
+    // CSS and child layout determine scrollbar thickness, including after the first table resize
+    getVerticalScrollBar().widthProperty().addListener( ( property, oldWidth, newWidth ) -> updateLayout() );
+    getHorizontalScrollBar().heightProperty().addListener( ( property, oldHeight, newHeight ) -> updateLayout() );
 
     // react to axis size changes including hiding & unhiding indexes
     getColumnsAxis().getTotalPixelsProperty().addListener( ( sender, msg ) -> updateLayout() );

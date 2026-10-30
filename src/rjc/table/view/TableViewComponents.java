@@ -129,22 +129,25 @@ public class TableViewComponents extends TableViewParent implements IObservableS
    */
   public void updateLayout()
   {
-    // skip layout if view not visible or dimensions not set
-    if ( !isVisible() || getWidth() == prefWidth( 0 ) || getHeight() == prefHeight( 0 ) )
+    // hidden views are refreshed when they become visible again
+    if ( !isVisible() )
       return;
 
-    // get table dimensions and scrollbar size
+    // keep drawing extents integral while the region retains its fractional allocation
+    int width = getPixelWidth();
+    int height = getPixelHeight();
     int tableHeight = getTableHeight();
     int tableWidth = getTableWidth();
-    int scrollbarSize = (int) getVerticalScrollBar().getWidth();
+    int scrollbarWidth = (int) getVerticalScrollBar().getWidth();
+    int scrollbarHeight = (int) getHorizontalScrollBar().getHeight();
 
     // determine which scrollbars are needed (may require two passes)
-    boolean isVSBvisible = getHeight() < tableHeight;
-    int canvasWidth = isVSBvisible ? getWidth() - scrollbarSize : getWidth();
+    boolean isVSBvisible = height < tableHeight;
+    int canvasWidth = Math.max( 0, width - ( isVSBvisible ? scrollbarWidth : 0 ) );
     boolean isHSBvisible = canvasWidth < tableWidth;
-    int canvasHeight = isHSBvisible ? getHeight() - scrollbarSize : getHeight();
+    int canvasHeight = Math.max( 0, height - ( isHSBvisible ? scrollbarHeight : 0 ) );
     isVSBvisible = canvasHeight < tableHeight;
-    canvasWidth = isVSBvisible ? getWidth() - scrollbarSize : getWidth();
+    canvasWidth = Math.max( 0, width - ( isVSBvisible ? scrollbarWidth : 0 ) );
 
     // configure vertical scrollbar
     var sb = getVerticalScrollBar();
@@ -152,12 +155,12 @@ public class TableViewComponents extends TableViewParent implements IObservableS
     if ( isVSBvisible )
     {
       sb.setPrefHeight( canvasHeight );
-      sb.relocate( getWidth() - scrollbarSize, 0.0 );
+      sb.relocate( Math.max( 0, width - scrollbarWidth ), 0.0 );
 
       double max = tableHeight - canvasHeight;
       sb.setMax( max );
       sb.setVisibleAmount( max * canvasHeight / tableHeight );
-      sb.setBlockIncrement( canvasHeight - getHeaderHeight() );
+      sb.setBlockIncrement( Math.max( 0, canvasHeight - getHeaderHeight() ) );
 
       if ( sb.getValue() > max )
         sb.setValue( max );
@@ -174,12 +177,12 @@ public class TableViewComponents extends TableViewParent implements IObservableS
     if ( isHSBvisible )
     {
       sb.setPrefWidth( canvasWidth );
-      sb.relocate( 0.0, getHeight() - scrollbarSize );
+      sb.relocate( 0.0, Math.max( 0, height - scrollbarHeight ) );
 
       double max = tableWidth - canvasWidth;
       sb.setMax( max );
       sb.setVisibleAmount( max * canvasWidth / tableWidth );
-      sb.setBlockIncrement( canvasWidth - getHeaderWidth() );
+      sb.setBlockIncrement( Math.max( 0, canvasWidth - getHeaderWidth() ) );
 
       if ( sb.getValue() > max )
         sb.setValue( max );

@@ -19,63 +19,31 @@
 package rjc.table.view;
 
 import javafx.scene.Node;
-import javafx.scene.Parent;
-import rjc.table.signal.ObservableInteger;
-import rjc.table.signal.ObservableInteger.ReadOnlyInteger;
+import javafx.scene.layout.Region;
 
 /*************************************************************************************************/
 /****************************** JavaFX parent node for table views *******************************/
 /*************************************************************************************************/
 
 /**
- * A custom JavaFX {@link Parent} node that serves as the container for table view components.
+ * A custom JavaFX {@link Region} that serves as the container for table view components.
  * <p>
  * This class acts as the root parent node for a table view implementation. It manages the
- * overall size (width and height) of the table area and provides observable properties for 
- * these dimensions. It is designed to fill the available space in its parent layout, allowing
+ * allocated size through the standard double-valued Region properties. Its layout bounds remain
+ * (0, 0, width, height) even when a child extends outside the table. It fills available space, allowing
  * scrollbars to appear at the edges of the allocated area when content exceeds the visible region.
  * <p>
- * The node is always resizable and reports extremely large preferred dimensions
- * to encourage its parent container to allocate as much space as possible.
+ * The node is resizable and computes extremely large preferred dimensions by default.
+ * Applications can set finite preferred dimensions using the standard Region API.
+ * Integer drawing extents are available through {@link #getPixelWidth()} and {@link #getPixelHeight()};
+ * these truncate layout coordinates and are not physical monitor-pixel measurements.
  * <p>
  * This class also provides convenience methods for adding, removing, and checking
  * membership of child nodes that are part of the table's visual representation.
  */
-public class TableViewParent extends Parent
+public class TableViewParent extends Region
 {
-  private final ObservableInteger m_height = new ObservableInteger(); // current height of the table area in pixels
-  private final ObservableInteger m_width  = new ObservableInteger(); // current width of the table area in pixels
-
-  /******************************************* resize ********************************************/
-  /**
-   * Called by the layout system when this node should be resized to the specified dimensions.
-   * <p>
-   * Updates the internal observable width and height properties with the new integer values.
-   *
-   * @param width   the target layout width
-   * @param height  the target layout height
-   */
-  @Override
-  public void resize( double width, double height )
-  {
-    // update observable size properties (cast to int as table operates on pixel integers)
-    m_width.set( (int) width );
-    m_height.set( (int) height );
-  }
-
-  /**************************************** isResizable ******************************************/
-  /**
-   * Indicates whether this node can be resized by its parent during layout.
-   *
-   * @return {@code true} — this parent node is always resizable
-   */
-  @Override
-  public boolean isResizable()
-  {
-    return true;
-  }
-
-  /***************************************** minHeight *******************************************/
+  /************************************** computeMinHeight ***************************************/
   /**
    * Returns the minimum height this node is willing to be resized to.
    *
@@ -83,12 +51,12 @@ public class TableViewParent extends Parent
    * @return 0.0 — no minimum height constraint
    */
   @Override
-  public double minHeight( double width )
+  protected double computeMinHeight( double width )
   {
     return 0.0;
   }
 
-  /****************************************** minWidth *******************************************/
+  /*************************************** computeMinWidth ***************************************/
   /**
    * Returns the minimum width this node is willing to be resized to.
    *
@@ -96,12 +64,12 @@ public class TableViewParent extends Parent
    * @return 0.0 — no minimum width constraint
    */
   @Override
-  public double minWidth( double height )
+  protected double computeMinWidth( double height )
   {
     return 0.0;
   }
 
-  /***************************************** prefHeight ******************************************/
+  /************************************** computePrefHeight **************************************/
   /**
    * Returns the preferred height of this node for layout purposes.
    * <p>
@@ -112,12 +80,12 @@ public class TableViewParent extends Parent
    * @return {@code Integer.MAX_VALUE} to request maximum available height
    */
   @Override
-  public double prefHeight( double width )
+  protected double computePrefHeight( double width )
   {
     return Integer.MAX_VALUE;
   }
 
-  /****************************************** prefWidth ******************************************/
+  /*************************************** computePrefWidth **************************************/
   /**
    * Returns the preferred width of this node for layout purposes.
    * <p>
@@ -128,53 +96,31 @@ public class TableViewParent extends Parent
    * @return {@code Integer.MAX_VALUE} to request maximum available width
    */
   @Override
-  public double prefWidth( double height )
+  protected double computePrefWidth( double height )
   {
     return Integer.MAX_VALUE;
   }
 
-  /****************************************** getWidth *******************************************/
+  /**************************************** getPixelWidth ****************************************/
   /**
-   * Returns the current width of the table area in pixels.
+   * Returns the current integer drawing width by truncating the allocated layout width.
    *
    * @return current integer width
    */
-  public int getWidth()
+  public int getPixelWidth()
   {
-    return m_width.get();
+    return (int) getWidth();
   }
 
-  /****************************************** getHeight ******************************************/
+  /**************************************** getPixelHeight ***************************************/
   /**
-   * Returns the current height of the table area in pixels.
+   * Returns the current integer drawing height by truncating the allocated layout height.
    *
    * @return current integer height
    */
-  public int getHeight()
+  public int getPixelHeight()
   {
-    return m_height.get();
-  }
-
-  /**************************************** widthProperty ****************************************/
-  /**
-   * Provides read-only access to the width property.
-   *
-   * @return read-only observable integer property representing the table width
-   */
-  public ReadOnlyInteger widthProperty()
-  {
-    return m_width.getReadOnly();
-  }
-
-  /**************************************** heightProperty ***************************************/
-  /**
-   * Provides read-only access to the height property.
-   *
-   * @return read-only observable integer property representing the table height
-   */
-  public ReadOnlyInteger heightProperty()
-  {
-    return m_height.getReadOnly();
+    return (int) getHeight();
   }
 
   /********************************************* add *********************************************/
