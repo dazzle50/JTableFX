@@ -185,7 +185,7 @@ public class TableOverlay extends Canvas
     m_gc.setFill( colour );
 
     // determine row range to be checked
-    int firstVisible = m_view.getRowIndex( m_view.getHeaderHeight() ) - 1;
+    int firstVisible = Math.max( TableAxis.HEADER, m_view.getRowIndex( m_view.getHeaderHeight() ) - 1 );
     int lastVisible = Math.min( m_view.getRowIndex( (int) getHeight() ), m_view.getData().getRowCount() );
     double x = 0;
     double w = m_view.getHeaderWidth() - 1;
@@ -226,7 +226,7 @@ public class TableOverlay extends Canvas
     m_gc.setFill( colour );
 
     // determine column range to be checked
-    int firstVisible = m_view.getColumnIndex( m_view.getHeaderWidth() ) - 1;
+    int firstVisible = Math.max( TableAxis.HEADER, m_view.getColumnIndex( m_view.getHeaderWidth() ) - 1 );
     int lastVisible = Math.min( m_view.getColumnIndex( (int) getWidth() ), m_view.getData().getColumnCount() );
     double y = 0;
     double h = m_view.getHeaderHeight() - 1;

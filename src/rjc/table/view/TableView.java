@@ -19,6 +19,7 @@
 package rjc.table.view;
 
 import javafx.scene.input.ContextMenuEvent;
+import javafx.scene.input.MouseButton;
 import rjc.table.Utils;
 import rjc.table.data.TableData;
 import rjc.table.data.TableData.DataChange;
@@ -213,6 +214,10 @@ public class TableView extends TableViewComponents
     // react to mouse button pressed events
     setOnMousePressed( event ->
     {
+      // refresh right-click targeting before a stale cursor can change the selection
+      if ( event.getButton() == MouseButton.SECONDARY )
+        getMouseCell().setXY( (int) event.getX(), (int) event.getY(), true );
+
       // delegate to cursor if it implements table view cursor interface
       if ( getCursor() instanceof ITableViewCursor cursor )
         cursor.handlePressed( event );
@@ -297,9 +302,9 @@ public class TableView extends TableViewComponents
     getVerticalScrollBar().widthProperty().addListener( ( property, oldWidth, newWidth ) -> updateLayout() );
     getHorizontalScrollBar().heightProperty().addListener( ( property, oldHeight, newHeight ) -> updateLayout() );
 
-    // react to axis size changes including hiding & unhiding indexes
-    getColumnsAxis().getTotalPixelsProperty().addListener( ( sender, msg ) -> updateLayout() );
-    getRowsAxis().getTotalPixelsProperty().addListener( ( sender, msg ) -> updateLayout() );
+    // defer axis-driven layout until both axes have invalidated their zoom caches
+    getColumnsAxis().getTotalPixelsProperty().addLaterListener( ( sender, msg ) -> updateLayout() );
+    getRowsAxis().getTotalPixelsProperty().addLaterListener( ( sender, msg ) -> updateLayout() );
 
     // react to scroll bar position value changes
     getHorizontalScrollBar().valueProperty().addListener( ( property, oldValue, newValue ) -> tableModified() );
@@ -459,12 +464,51 @@ public class TableView extends TableViewComponents
    */
   public void openContextMenu( ContextMenuEvent event )
   {
+    // select the mouse header before building the menu so actions see the current selection
+    if ( !event.isKeyboardTrigger() )
+    {
+      getMouseCell().setXY( (int) event.getX(), (int) event.getY(), false );
+      selectHeader( getMouseCell().getColumn(), getMouseCell().getRow() );
+    }
+
     // build context menu
     var menu = new TableContextMenu( this );
 
     // show the context menu if it has any items
     if ( menu != null && !menu.getItems().isEmpty() )
       menu.show( getScene().getWindow(), event.getScreenX(), event.getScreenY() );
+  }
+
+  /**************************************** selectHeader *****************************************/
+  private void selectHeader( int viewColumn, int viewRow )
+  {
+    // preserve the selected group and its anchor when opening a menu on a selected header
+    if ( viewRow == TableAxis.HEADER && viewColumn >= TableAxis.FIRSTCELL && viewColumn < getColumnsAxis().getCount() )
+    {
+      if ( getSelection().isColumnSelected( viewColumn ) )
+        return;
+
+      getSelection().clear();
+      int topRow = getRowIndex( getHeaderHeight() );
+      getFocusCell().setPosition( viewColumn, topRow );
+      getSelectCell().setPosition( viewColumn, TableAxis.AFTER );
+    }
+    else if ( viewColumn == TableAxis.HEADER && viewRow >= TableAxis.FIRSTCELL && viewRow < getRowsAxis().getCount() )
+    {
+      if ( getSelection().isRowSelected( viewRow ) )
+        return;
+
+      getSelection().clear();
+      int leftColumn = getColumnIndex( getHeaderWidth() );
+      getFocusCell().setPosition( leftColumn, viewRow );
+      getSelectCell().setPosition( TableAxis.AFTER, viewRow );
+    }
+    else
+      return;
+
+    // update immediately because the select-cell listener runs later and may not fire for unchanged positions
+    getSelection().update();
+    getMouseCell().revalidateCursor();
   }
 
   /**************************************** setBusyState *****************************************/

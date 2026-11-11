@@ -43,13 +43,13 @@ public class ColumnHoverCursor extends AbstractCursor
     extractDetails( event );
     m_view.requestFocus();
 
-    // clear previous selections unless shift xor control pressed
-    if ( m_shift == m_control )
-      m_view.getSelection().clear();
-
     // if primary mouse button not pressed, don't do anything else
     if ( m_button != MouseButton.PRIMARY )
       return;
+
+    // clear previous selections unless shift xor control pressed
+    if ( m_shift == m_control )
+      m_view.getSelection().clear();
 
     // start selecting columns
     m_view.setCursor( Cursors.COLUMNS_SELECT );
