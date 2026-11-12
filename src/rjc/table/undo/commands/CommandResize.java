@@ -22,7 +22,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import rjc.table.HashSetInt;
+import rjc.table.Utils;
 import rjc.table.view.TableView;
+import rjc.table.view.axis.IndexSize;
 import rjc.table.view.axis.TableAxis;
 
 /*************************************************************************************************/
@@ -59,8 +61,8 @@ public class CommandResize implements ICommandResize
   @Override
   public void setNewSize( int nominalSize )
   {
-    // set command new size
-    m_newSize = nominalSize;
+    // keep the size positive and below the default sentinel so resizing cannot change visibility
+    m_newSize = Utils.clamp( nominalSize, 1, IndexSize.DEFAULT - 1 );
   }
 
   /******************************************* redo **********************************************/

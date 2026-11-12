@@ -36,7 +36,14 @@ import rjc.table.view.cursor.Cursors;
  * being indicated.
  *
  * <p>Direct calls to {@link #setPosition(int, int)} are prohibited; use
- * {@link #setXY(int, int, boolean)} or {@link #setInvalid()} instead.</p>
+ * {@link #setXY(int, int, boolean)}, {@link #refreshXY(int, int, boolean)} or {@link #setInvalid()}
+ * instead. Cached hit testing is suitable for ordinary movement; use {@code refreshXY()} when
+ * layout may have changed beneath a stationary pointer.</p>
+ *
+ * <p>Coordinates use view-local layout pixels, not screen/device pixels. Region classification uses
+ * table content and header extents; it does not exclude scrollbars or other positions outside the
+ * canvas viewport. Callers opening table menus must perform that canvas check separately. Use on
+ * the JavaFX Application Thread.</p>
  *
  * @see ObservablePosition
  * @see TableView
@@ -91,9 +98,9 @@ public class MousePosition extends ObservablePosition
 
   /***************************************** setInvalid ******************************************/
   /**
-   * Marks this position as invalid, clearing all cached cell boundary values and resetting
-   * the stored mouse coordinates. The underlying {@link ObservablePosition} is updated with
-   * {@code INVALID} indices, notifying any registered observers.
+   * Invalidates cached cell boundaries and sets stored mouse coordinates and cell indexes to
+   * {@link TableAxis#INVALID}. Notifies position observers only if the row or column index changes.
+   * Does not directly update the view cursor.
    */
   public void setInvalid()
   {
@@ -108,10 +115,12 @@ public class MousePosition extends ObservablePosition
   /************************************* revalidatePosition **************************************/
   /**
    * Schedules a re-evaluation of the current mouse cell position on the JavaFX Application
-   * Thread using the last recorded x-y coordinates, without updating the view cursor.
+   * Thread without updating the view cursor. Invalidates cached boundaries immediately; the queued
+   * callback reads the latest stored x-y coordinates when it runs, rather than capturing a snapshot.
    *
    * <p>Call this after a structural change (e.g. column/row resize or scroll) that may have
-   * moved the cell boundaries beneath the stationary mouse pointer.</p>
+   * moved the cell boundaries beneath the stationary mouse pointer. Use
+   * {@link #refreshXY(int, int, boolean)} for an immediate fresh calculation.</p>
    */
   public void revalidatePosition()
   {
@@ -124,7 +133,8 @@ public class MousePosition extends ObservablePosition
   /************************************ revalidateCursor *****************************************/
   /**
    * Schedules a re-evaluation of the current mouse cell position <em>and</em> the view cursor
-   * on the JavaFX Application Thread using the last recorded x-y coordinates.
+   * on the JavaFX Application Thread. Invalidates cached boundaries immediately; the queued callback
+   * uses the latest stored x-y coordinates when it runs.
    *
    * <p>Use in preference to {@link #revalidatePosition()} when the cursor appearance may also
    * have been invalidated, e.g. after a selection change.</p>
@@ -142,6 +152,11 @@ public class MousePosition extends ObservablePosition
    * Updates the tracked cell position from the given mouse pixel coordinates, recomputing
    * column and row indices only when the mouse has moved outside the currently cached cell
    * boundaries. Optionally refreshes the view cursor to reflect the new hover region.
+   * Position observers are notified synchronously if the row or column index changes.
+   *
+   * <p>When recalculated, negative coordinates map to {@link TableAxis#BEFORE}; header coordinates map to
+   * {@link TableAxis#HEADER}; coordinates at or beyond the corresponding content extent map to
+   * {@link TableAxis#AFTER}. These classifications are independent of the canvas viewport.</p>
    *
    * @param x             the mouse x coordinate in view-local pixels
    * @param y             the mouse y coordinate in view-local pixels
@@ -227,15 +242,36 @@ public class MousePosition extends ObservablePosition
       setCursor();
   }
 
+  /****************************************** refreshXY ******************************************/
+  /**
+   * Resets cached cell upper bounds to {@link TableAxis#INVALID} and immediately delegates to
+   * {@link #setXY(int, int, boolean)}. For nonnegative coordinates, forces current-layout hit testing
+   * even when the pointer remains within its old cached cell. Position notifications still depend
+   * on the resulting indexes changing.
+   *
+   * @param x the mouse x coordinate in view-local layout pixels
+   * @param y the mouse y coordinate in view-local layout pixels
+   * @param updateCursor true to refresh the hover cursor after updating the position
+   */
+  public void refreshXY( int x, int y, boolean updateCursor )
+  {
+    // bypass cached boundaries after layout or data changes beneath a stationary pointer
+    m_cellXend = INVALID;
+    m_cellYend = INVALID;
+    setXY( x, y, updateCursor );
+  }
+
   /****************************************** setCursor ******************************************/
   /**
    * Determines and applies the appropriate view cursor for the current mouse position.
+   * Uses stored pixel coordinates and cached cell edges; it does not independently validate
+   * whether the position lies on the canvas.
    *
    * <p>Cursor selection precedence:</p>
    * <ol>
    *   <li>If the scene already shows a {@link Cursors#WAIT} cursor, no change is made.</li>
    *   <li>Header corner cell → {@link Cursors#CORNER_CELL}.</li>
-   *   <li>Beyond table bounds → {@link Cursors#DEFAULT}.</li>
+   *   <li>At or beyond the content's right or bottom edge → {@link Cursors#DEFAULT}.</li>
    *   <li>Column header — near a resizable edge → {@link Cursors#COLUMNS_RESIZE};
    *       selected column → {@link Cursors#COLUMNS_REORDER};
    *       otherwise → {@link Cursors#COLUMNS_HOVER}.</li>

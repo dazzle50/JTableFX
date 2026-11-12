@@ -38,8 +38,14 @@ import javafx.scene.control.ContextMenu;
  * {@link TableContextMenuBuilder} may be registered per view via {@link #setBuilder} to
  * override the default menu-construction behaviour.</p>
  *
- * <p>Configuration is held in {@link WeakHashMap}s keyed on {@link TableView}, so entries
- * are automatically released when a view is garbage-collected.</p>
+ * <p>Enabled-item configuration uses weak view keys. Each view owns its custom builder, so a
+ * builder referring to its view does not keep that view alive through a static registry.</p>
+ *
+ * <p>Construction builds contents only; it does not prepare selection or show the popup. The normal
+ * {@link TableView#openContextMenu(javafx.scene.input.ContextMenuEvent)} entry point owns those
+ * interactions. Configuration changes affect subsequent construction, not existing menu items.
+ * Enabled items remain subject to model capabilities and the selected builder's implementation.
+ * Use on the JavaFX Application Thread.</p>
  */
 public class TableContextMenu extends ContextMenu
 {
@@ -50,56 +56,94 @@ public class TableContextMenu extends ContextMenu
   // optional context menu items that can be enabled/disabled for context menu
   public enum TableMenuItems
   {
-    COLUMN_HIDE, ROW_HIDE, COLUMN_SHOW, ROW_SHOW, COLUMN_FILTER_TEXT, ROW_FILTER_TEXT, COLUMN_SORT, ROW_SORT, COLUMN_INSERT, ROW_INSERT, COLUMN_DELETE, ROW_DELETE
+    /** Offer column hiding. */
+    COLUMN_HIDE,
+    /** Offer row hiding. */
+    ROW_HIDE,
+    /** Offer column unhiding. */
+    COLUMN_SHOW,
+    /** Offer row unhiding. */
+    ROW_SHOW,
+    /** Offer filtering of visible rows using a column's text. */
+    COLUMN_FILTER_TEXT,
+    /** Offer filtering of visible columns using a row's text. */
+    ROW_FILTER_TEXT,
+    /** Offer sorting of visible rows keyed by a column. */
+    COLUMN_SORT,
+    /** Offer sorting of visible columns keyed by a row. */
+    ROW_SORT,
+    /** Offer column insertion and appending when the model supports them. */
+    COLUMN_INSERT,
+    /** Offer row insertion and appending when the model supports them. */
+    ROW_INSERT,
+    /** Offer column deletion when the model supports it. */
+    COLUMN_DELETE,
+    /** Offer row deletion when the model supports it. */
+    ROW_DELETE
   }
 
-  private static final Map<TableView, Set<TableMenuItems>>     ENABLED = new WeakHashMap<>();
-  private static final Map<TableView, TableContextMenuBuilder> BUILDER = new WeakHashMap<>();
+  private static final Map<TableView, Set<TableMenuItems>> ENABLED = new WeakHashMap<>(); // enabled items per view
 
   /***************************************** constructor *****************************************/
   /**
-   * Constructs the context menu for the given table view, building it for the cell under the
-   * mouse pointer at the time the menu was triggered.
+   * Constructs contents using the view's cached mouse row and column. Does not refresh hit testing
+   * or resolve a keyboard target; use {@link #TableContextMenu(TableView, int, int)} when the target
+   * has already been resolved independently of the pointer.
    *
    * <p>If a custom {@link TableContextMenuBuilder} has been registered for the view via
    * {@link #setBuilder}, that builder is used; otherwise the default builder is used.</p>
    *
    * @param view the table view for which to construct the context menu
+   * @throws IllegalStateException if the builder cannot classify the cached mouse coordinates
    */
   public TableContextMenu( TableView view )
   {
-    // get the cell coordinates where the context menu was triggered
-    int mouseRow = view.getMouseCell().getRow();
-    int mouseCol = view.getMouseCell().getColumn();
+    this( view, view.getMouseCell().getRow(), view.getMouseCell().getColumn() );
+  }
 
-    // use builder to construct the appropriate menu for the location
-    var builder = BUILDER.getOrDefault( view, new TableContextMenuBuilder() );
-    builder.buildMenu( this, view, mouseRow, mouseCol );
+  /***************************************** constructor *****************************************/
+  /**
+   * Constructs contents for explicit view coordinates through the view's configured builder, or
+   * a fresh default builder if none is registered. Leaves selection and popup display unchanged.
+   *
+   * @param view the view providing menu configuration and command targets
+   * @param viewRow the body row index or a {@link rjc.table.view.axis.TableAxis} region sentinel
+   * @param viewColumn the body column index or a {@link rjc.table.view.axis.TableAxis} region sentinel
+   * @throws IllegalStateException if the builder cannot classify the supplied coordinate region
+   */
+  public TableContextMenu( TableView view, int viewRow, int viewColumn )
+  {
+    var builder = view.m_contextMenuBuilder;
+    if ( builder == null )
+      builder = new TableContextMenuBuilder();
+    builder.buildMenu( this, view, viewRow, viewColumn );
   }
 
   /***************************************** setBuilder ******************************************/
   /**
    * Registers a custom {@link TableContextMenuBuilder} for the specified table view,
-   * overriding the default menu-construction behaviour.
+   * overriding default construction for subsequent menus. The view retains this configuration
+   * through reset. Supplying null restores the default builder, as does {@link #removeBuilder}.
    *
    * @param view    the table view to configure
-   * @param builder the builder to use when constructing the context menu
+   * @param builder the custom builder, or null to use the default
    */
   public static void setBuilder( TableView view, TableContextMenuBuilder builder )
   {
-    BUILDER.put( view, builder );
+    view.m_contextMenuBuilder = builder;
   }
 
   /**************************************** removeBuilder ****************************************/
   /**
    * Removes any custom {@link TableContextMenuBuilder} registered for the specified table view,
-   * restoring the default menu-construction behaviour.
+   * restoring default construction for subsequent menus. Does not change enabled-item configuration
+   * or menus that have already been constructed.
    *
    * @param view the table view whose custom builder should be removed
    */
   public static void removeBuilder( TableView view )
   {
-    BUILDER.remove( view );
+    view.m_contextMenuBuilder = null;
   }
 
   /******************************************* enable ********************************************/
@@ -177,6 +221,7 @@ public class TableContextMenu extends ContextMenu
   /**
    * Returns whether the specified optional menu item is enabled for the given table view.
    * Defaults to {@code true} if no explicit configuration has been set for the view.
+   * This query does not test model capability, selection applicability or target validity.
    *
    * @param view the table view to query
    * @param item the menu item to check

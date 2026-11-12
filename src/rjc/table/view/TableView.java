@@ -18,6 +18,9 @@
 
 package rjc.table.view;
 
+import javafx.application.Platform;
+import javafx.scene.Node;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.MouseButton;
 import rjc.table.Utils;
@@ -54,7 +57,7 @@ import rjc.table.view.events.KeyTyped;
  *   <li>Optional cell editing support via {@link AbstractCellEditor}</li>
  *   <li>Mouse-based selection and interaction</li>
  *   <li>Keyboard navigation and shortcuts</li>
- *   <li>Horizontal and vertical scrolling with mouse wheel support</li>
+ *   <li>Horizontal and vertical scrollbars, with vertical mouse-wheel scrolling</li>
  *   <li>Zoom functionality</li>
  *   <li>Context menu support</li>
  * </ul>
@@ -69,6 +72,10 @@ import rjc.table.view.events.KeyTyped;
  *   <li><b>Cursor</b> - handles mouse interaction modes</li>
  *   <li><b>Positions</b> - track focus, select, and mouse cell positions</li>
  * </ul>
+ * <p>Each view owns a context-menu handler for target resolution, popup selection, placement and
+ * popup lifetime. The view retains validation, editor completion and subclass hooks. Mouse requests
+ * preserve selected groups or synchronously select a new target; keyboard requests classify the
+ * complete visible selection without changing cell focus, anchor or pointer position.</p>
  * 
  * <p><b>Data Synchronisation:</b></p>
  * <p>The view automatically listens to the data model and updates efficiently:</p>
@@ -84,7 +91,10 @@ import rjc.table.view.events.KeyTyped;
  * <ul>
  *   <li>{@link #getCellDrawer()} - to provide custom cell rendering</li>
  *   <li>{@link #getCellEditor(CellDrawer)} - to enable cell editing</li>
- *   <li>{@link #openContextMenu(ContextMenuEvent)} - to customise the context menu</li>
+ *   <li>{@link #prepareContextMenu(ContextMenuEvent)}, {@link #contextMenuSelectionChanged(int, int)},
+ *       {@link #buildContextMenu(int, int, boolean)} - to customise context menus while retaining
+ *       the shared targeting, selection and popup lifecycle. A full override of
+ *       {@link #openContextMenu(ContextMenuEvent)} takes responsibility for that lifecycle.</li>
  *   <li>{@link #addDataListeners()}, {@link #addMouseHandlers()}, {@link #addEventHandlers()}
  *       - to add additional event handling</li>
  * </ul>
@@ -110,11 +120,19 @@ import rjc.table.view.events.KeyTyped;
  */
 public class TableView extends TableViewComponents
 {
-  private TableData m_data; // data-model for table size and contents
+  private TableData                     m_data;               // data-model for table size and contents
+  TableContextMenuBuilder               m_contextMenuBuilder; // per-view builder retained through reset
+  private final TableContextMenuHandler m_contextMenuHandler; // menu targeting and popup lifetime
+  private ITableViewCursor              m_primaryCursor;      // active primary gesture cursor
+  private boolean                       m_ignoreContextMenu;  // suppress popup during primary gesture
+  private long                          m_selectRevision;     // latest select-cell or menu revision
+  private long                          m_selectionRevision;  // latest explicit selection revision
 
   /**************************************** constructor ******************************************/
   /**
-   * Constructs a new table view with the specified data model and identifier.
+   * Constructs a view bound to the supplied data model and assigns its node identifier. Assembles
+   * components, then installs data, mouse and other event handling through the corresponding
+   * overridable setup methods. Those overrides run before subclass construction has completed.
    * 
    * @param data the table data model containing size and content information
    * @param name the identifier name for this table view
@@ -126,6 +144,7 @@ public class TableView extends TableViewComponents
     if ( data == null )
       throw new NullPointerException( "TableData must not be null" );
     m_data = data;
+    m_contextMenuHandler = new TableContextMenuHandler( this );
     setId( name );
 
     // assemble view components and add listeners & event handlers
@@ -140,6 +159,8 @@ public class TableView extends TableViewComponents
    * Called by the layout system when this node should be resized to the specified dimensions.
    * <p>
    * Updates the standard Region size properties before refreshing the integer drawing extents.
+   * Recalculates component layout only if the integer allocated width or height changes; fractional
+   * dimensions are still retained by the underlying Region.
    *
    * @param width   the target layout width
    * @param height  the target layout height
@@ -157,8 +178,9 @@ public class TableView extends TableViewComponents
 
   /************************************** addDataListeners ***************************************/
   /**
-   * Adds listeners to the data model to respond to changes in table content.
-   * Converts data model indices to view indices and triggers appropriate redraws.
+   * Adds content-change listeners that map data indexes to view indexes for redraw, plus count-change
+   * listeners that invoke {@link #tableModified()}. Called during construction; overrides should
+   * retain the superclass setup when extending the standard model synchronisation.
    */
   protected void addDataListeners()
   {
@@ -192,8 +214,13 @@ public class TableView extends TableViewComponents
 
   /************************************** addMouseHandlers ***************************************/
   /**
-   * Adds mouse event handlers to the table view overlay for user interaction.
-   * Handles mouse movement, button presses, drags, releases, clicks, context menus and scrolling.
+   * Installs movement/exit handlers on the canvas overlay and button, context-menu and vertical
+   * wheel handlers on the view. Primary press selects the gesture cursor used for subsequent drag
+   * and release dispatch. Secondary events do not enter primary selection/resize/reorder handlers;
+   * menu opening occurs through the separate context-menu request event.
+   *
+   * <p>Called during construction. Overrides extending these interactions should preserve the
+   * superclass handlers and delegate retained events once.</p>
    */
   protected void addMouseHandlers()
   {
@@ -214,13 +241,22 @@ public class TableView extends TableViewComponents
     // react to mouse button pressed events
     setOnMousePressed( event ->
     {
-      // refresh right-click targeting before a stale cursor can change the selection
+      // secondary events belong to the native popup lifecycle and must not change primary gesture state
       if ( event.getButton() == MouseButton.SECONDARY )
-        getMouseCell().setXY( (int) event.getX(), (int) event.getY(), true );
+      {
+        m_ignoreContextMenu = m_primaryCursor != null || event.isPrimaryButtonDown();
+        return;
+      }
+      if ( event.getButton() != MouseButton.PRIMARY )
+        return;
 
       // delegate to cursor if it implements table view cursor interface
       if ( getCursor() instanceof ITableViewCursor cursor )
+      {
         cursor.handlePressed( event );
+        // a hover press may have switched to a selection cursor
+        m_primaryCursor = getCursor() instanceof ITableViewCursor active ? active : cursor;
+      }
       else
       {
         // ensure view has focus
@@ -233,23 +269,27 @@ public class TableView extends TableViewComponents
     setOnMouseDragged( event ->
     {
       // delegate to cursor for drag handling (typically for selections)
-      if ( getCursor() instanceof ITableViewCursor cursor )
-        cursor.handleDragged( event );
+      if ( event.isPrimaryButtonDown() && m_primaryCursor != null )
+        m_primaryCursor.handleDragged( event );
     } );
 
     // react to mouse button released events
     setOnMouseReleased( event ->
     {
       // delegate to cursor to complete any drag or press operations
-      if ( getCursor() instanceof ITableViewCursor cursor )
+      if ( event.getButton() == MouseButton.PRIMARY && m_primaryCursor != null )
+      {
+        var cursor = m_primaryCursor;
+        m_primaryCursor = null;
         cursor.handleReleased( event );
+      }
     } );
 
     // react to mouse mouse button clicked events
     setOnMouseClicked( event ->
     {
       // delegate to cursor for click handling (e.g. cell selection)
-      if ( getCursor() instanceof ITableViewCursor cursor )
+      if ( event.getButton() == MouseButton.PRIMARY && getCursor() instanceof ITableViewCursor cursor )
         cursor.handleClicked( event );
     } );
 
@@ -285,6 +325,13 @@ public class TableView extends TableViewComponents
    * Adds various event handlers for focus, visibility, size changes, scrolling, selection,
    * zoom and keyboard input. These handlers coordinate the view's response to user actions
    * and system events.
+   *
+   * <p>Select-cell changes queue area updates with position and selection revisions, so synchronous
+   * menu preparation or later commands can invalidate obsolete work. Selection redraw remains
+   * deferred. Mouse-position changes update the endpoint only for the active primary cursor.</p>
+   *
+   * <p>Called during construction; overrides extending the standard behaviour should retain the
+   * superclass listener and keyboard-handler setup.</p>
    */
   protected void addEventHandlers()
   {
@@ -311,14 +358,22 @@ public class TableView extends TableViewComponents
     getVerticalScrollBar().valueProperty().addListener( ( property, oldValue, newValue ) -> tableModified() );
 
     // react to select-cell position and changes to cell selections
-    getSelectCell().addLaterListener( ( sender, msg ) ->
+    getSelection().addListener( ( sender, msg ) -> m_selectionRevision++ );
+    getSelectCell().addListener( ( sender, msg ) ->
     {
-      // update selection based on new select cell position
-      getSelection().update();
+      long selectRevision = ++m_selectRevision;
+      long selectionRevision = m_selectionRevision;
+      Platform.runLater( () ->
+      {
+        // a synchronous menu selection or later command must not be overwritten by an old notification
+        if ( selectRevision != m_selectRevision || selectionRevision != m_selectionRevision )
+          return;
+        getSelection().update();
 
-      // scroll to show select cell unless selecting using mouse which has its own scrolling behaviour
-      if ( getCursor() instanceof SelectCursor == false )
-        scrollTo( getSelectCell() );
+        // mouse selection has its own scrolling behaviour
+        if ( getCursor() instanceof SelectCursor == false )
+          scrollTo( getSelectCell() );
+      } );
     } );
     getSelection().addLaterListener( ( sender, msg ) ->
     {
@@ -332,8 +387,8 @@ public class TableView extends TableViewComponents
     getMouseCell().addListener( ( sender, msg ) ->
     {
       // notify cursor to check if selection position should be updated
-      if ( getCursor() instanceof ITableViewCursor cursor )
-        cursor.checkSelectPosition();
+      if ( m_primaryCursor != null )
+        m_primaryCursor.checkSelectPosition();
     } );
 
     // react to zoom values changes
@@ -347,8 +402,9 @@ public class TableView extends TableViewComponents
   /**************************************** tableModified ****************************************/
   /**
    * Handles actions needed when the table view has been modified, typically due to scrolling
-   * or zooming. Triggers redraw, validates mouse position, ends any active editing, and
-   * notifies the cursor.
+   * or zooming. Requests redraw, schedules mouse-position revalidation, ends the globally active
+   * editor through {@link AbstractCellEditor#endEditing()}, and notifies the current table cursor.
+   * Editor completion therefore uses the normal commit-or-discard policy, including for errors.
    */
   private void tableModified()
   {
@@ -391,7 +447,8 @@ public class TableView extends TableViewComponents
   /**************************************** getCellDrawer ****************************************/
   /**
    * Creates and returns a new cell drawer instance responsible for rendering cells on the canvas.
-   * Subclasses can override this method to provide custom cell drawing behaviour.
+   * The drawer also provides cell geometry, value and styling when opening an editor. The default
+   * implementation creates a fresh drawer; subclasses may supply customised drawing behaviour.
    * 
    * @return a new cell drawer instance
    */
@@ -417,10 +474,15 @@ public class TableView extends TableViewComponents
 
   /***************************************** openEditor ******************************************/
   /**
-   * Opens a cell editor for the current focus cell with the specified initial value.
-   * If no editor is available or the value is invalid, the editor will not open.
+   * Prepares a drawer for the current focus cell, obtains its editor and opens it if
+   * {@link AbstractCellEditor#isValueValid(Object)} accepts the supplied starting value. Focus must
+   * already identify a valid body cell. A null editor or rejected opening value leaves editing
+   * unchanged; this preflight is not a model-acceptance or commit check.
+   *
+   * <p>Does not finish another active edit first: {@link AbstractCellEditor#open(Object, CellDrawer)}
+   * declines to open while an editor is active. Editor-specific conversion failures propagate.</p>
    * 
-   * @param value the initial value to display in the editor
+   * @param value the existing cell value or a typed starter value for replacement editing
    */
   public void openEditor( Object value )
   {
@@ -437,10 +499,11 @@ public class TableView extends TableViewComponents
 
   /****************************************** scrollTo *******************************************/
   /**
-   * Scrolls the view if necessary to ensure the specified cell position is visible.
-   * Only scrolls if the position is within valid table bounds.
+   * Scrolls each axis independently to reveal its coordinate when that coordinate is a valid body
+   * index. Header, invalid and beyond-count coordinates are ignored for that axis. Resulting scroll
+   * changes use the normal {@link #tableModified()} path and may finish an active editor.
    * 
-   * @param position the cell position to scroll to and make visible
+   * @param position the non-null view-coordinate position to reveal
    */
   public void scrollTo( ObservablePosition position )
   {
@@ -457,58 +520,100 @@ public class TableView extends TableViewComponents
 
   /*************************************** openContextMenu ***************************************/
   /**
-   * Opens the context menu for this table view at the specified screen coordinates.
-   * Typically called in response to a right-click or context menu key press.
+   * Validates a context-menu request, prepares its selection, and replaces the table's popup.
+   * Mouse requests use the specified screen coordinates; keyboard requests use the selection
+   * region and focus without moving the pointer or scrolling. Override the narrower preparation,
+   * selection-notification and construction hooks to retain this shared lifecycle.
+   *
+   * <p>Editor-owned requests and mouse requests outside the canvas are left unhandled. Requests
+   * during an active primary gesture are consumed without opening a replacement popup. Other table
+   * requests are consumed, validated and dismiss the old popup, including when rejected or when
+   * construction returns no items. Validation precedes default editor completion and focus changes.</p>
+   *
+   * <p>Targets are resolved after editing completes. New mouse selections are established before
+   * construction; keyboard requests preserve selection and use a selected header member or usable
+   * body focus for targeting. Keyboard placement is clamped to the canvas without scrolling.</p>
    * 
    * @param event the context menu event containing screen coordinates
    */
   public void openContextMenu( ContextMenuEvent event )
   {
-    // select the mouse header before building the menu so actions see the current selection
-    if ( !event.isKeyboardTrigger() )
-    {
-      getMouseCell().setXY( (int) event.getX(), (int) event.getY(), false );
-      selectHeader( getMouseCell().getColumn(), getMouseCell().getRow() );
-    }
-
-    // build context menu
-    var menu = new TableContextMenu( this );
-
-    // show the context menu if it has any items
-    if ( menu != null && !menu.getItems().isEmpty() )
-      menu.show( getScene().getWindow(), event.getScreenX(), event.getScreenY() );
-  }
-
-  /**************************************** selectHeader *****************************************/
-  private void selectHeader( int viewColumn, int viewRow )
-  {
-    // preserve the selected group and its anchor when opening a menu on a selected header
-    if ( viewRow == TableAxis.HEADER && viewColumn >= TableAxis.FIRSTCELL && viewColumn < getColumnsAxis().getCount() )
-    {
-      if ( getSelection().isColumnSelected( viewColumn ) )
-        return;
-
-      getSelection().clear();
-      int topRow = getRowIndex( getHeaderHeight() );
-      getFocusCell().setPosition( viewColumn, topRow );
-      getSelectCell().setPosition( viewColumn, TableAxis.AFTER );
-    }
-    else if ( viewColumn == TableAxis.HEADER && viewRow >= TableAxis.FIRSTCELL && viewRow < getRowsAxis().getCount() )
-    {
-      if ( getSelection().isRowSelected( viewRow ) )
-        return;
-
-      getSelection().clear();
-      int leftColumn = getColumnIndex( getHeaderWidth() );
-      getFocusCell().setPosition( leftColumn, viewRow );
-      getSelectCell().setPosition( TableAxis.AFTER, viewRow );
-    }
-    else
+    boolean keyboard = event.isKeyboardTrigger();
+    if ( event.getTarget() instanceof Node node && AbstractCellEditor.isEditorNode( node ) )
+      return;
+    if ( keyboard && getScene() != null && AbstractCellEditor.isEditorNode( getScene().getFocusOwner() ) )
       return;
 
-    // update immediately because the select-cell listener runs later and may not fire for unchanged positions
-    getSelection().update();
-    getMouseCell().revalidateCursor();
+    // preserve an actual primary gesture, including when a second button is pressed
+    if ( m_primaryCursor != null || ( !keyboard && m_ignoreContextMenu ) )
+    {
+      event.consume();
+      return;
+    }
+
+    // ignore scrollbars and outside requests before validation can commit an editor
+    if ( !keyboard && !m_contextMenuHandler.isOnCanvas( screenToLocal( event.getScreenX(), event.getScreenY() ) ) )
+      return;
+    event.consume();
+    boolean permitted = prepareContextMenu( event );
+    m_contextMenuHandler.hideContextMenu();
+    if ( !permitted )
+      return;
+
+    AbstractCellEditor.endEditing();
+    requestFocus();
+    m_selectRevision++;
+    m_contextMenuHandler.open( event );
+  }
+
+  /************************************* prepareContextMenu **************************************/
+  /**
+   * Validates an accepted table-menu request before default editor completion, focus acquisition
+   * or selection preparation. The default implementation permits it. Overrides may finish a valid
+   * edit or reject invalid input that must remain open; targeting is resolved afterwards so changes
+   * to layout or index ordering are respected.
+   *
+   * @param event the table request, already consumed by {@link #openContextMenu(ContextMenuEvent)}
+   * @return true to continue; false to dismiss the previous table popup and stop processing
+   */
+  protected boolean prepareContextMenu( ContextMenuEvent event )
+  {
+    // specialised views may reject a request while keeping invalid editor input intact
+    return true;
+  }
+
+  /******************************** contextMenuSelectionChanged **********************************/
+  /**
+   * Notifies subclasses after a mouse menu request synchronously replaces selection and before
+   * menu construction. Not called for preserved selections or keyboard requests. The default does
+   * nothing; overrides can record selection origin without replacing the common selection policy.
+   *
+   * @param viewRow the trigger row view index, or {@link TableAxis#HEADER} for a column header
+   * @param viewColumn the trigger column view index, or {@link TableAxis#HEADER} for a row header
+   */
+  protected void contextMenuSelectionChanged( int viewRow, int viewColumn )
+  {
+    // subclasses may record the origin of a newly created selection
+  }
+
+  /************************************** buildContextMenu ***************************************/
+  /**
+   * Constructs contents for a resolved request after validation, editor completion and selection
+   * preparation. The default creates a {@link TableContextMenu} using explicit coordinates and
+   * the configured builder. Coordinates identify the menu region and do not themselves grant a
+   * selection-only command a fallback target.
+   *
+   * <p>Overrides supply contents; the shared lifecycle owns display, dismissal and event consumption.
+   * Return a fresh menu for the request, or null/an empty menu to suppress display.</p>
+   *
+   * @param viewRow the body row index or header/trailing-space sentinel
+   * @param viewColumn the body column index or header/trailing-space sentinel
+   * @param keyboardTrigger true for a keyboard request; false for a mouse request
+   * @return the constructed menu, or null to suppress display
+   */
+  protected ContextMenu buildContextMenu( int viewRow, int viewColumn, boolean keyboardTrigger )
+  {
+    return new TableContextMenu( this, viewRow, viewColumn );
   }
 
   /**************************************** setBusyState *****************************************/
@@ -517,11 +622,12 @@ public class TableView extends TableViewComponents
    * observable status accordingly.
    *
    * <p>When entering busy state, this node's own cursor is cleared ({@code null}) so the
-   * scene-level wait cursor takes visual precedence. On exit, {@link #getMouseCell()}
-   * rechecks the pointer position so the correct cursor is restored immediately.
+   * scene-level wait cursor takes visual precedence. On exit, the scene cursor is set to its
+   * default and {@link #getMouseCell()} schedules a hover-cursor refresh using stored coordinates.
+   * Requires an attached scene and a status object assigned to the view.
    *
    * @param busy    {@code true} to enter busy state; {@code false} to leave it
-   * @param message the status message to display; must not be {@code null}
+   * @param message the status message to display, or null for no message
    */
   public void setBusyState( boolean busy, String message )
   {

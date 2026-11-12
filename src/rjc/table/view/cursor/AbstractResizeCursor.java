@@ -44,7 +44,7 @@ abstract public class AbstractResizeCursor extends AbstractCursor
     super( imageFile, xHotspot, yHotspot );
   }
 
-  /******************************************** start ********************************************/
+  /*************************************** setOrientation ****************************************/
   protected void setOrientation( Orientation orient )
   {
     // set resize orientation to vertical or horizontal
@@ -65,6 +65,8 @@ abstract public class AbstractResizeCursor extends AbstractCursor
   {
     // if resize index is not selected, ignore selected
     int index = getSelectedIndex( coordinate );
+    if ( index == TableAxis.INVALID )
+      return;
     if ( !selected.contains( index ) )
       selected.clear();
 
@@ -98,10 +100,12 @@ abstract public class AbstractResizeCursor extends AbstractCursor
   {
     // resizing all indexes, count visible sections before and including resize index
     int index = getSelectedIndex( coordinate );
+    if ( index == TableAxis.INVALID )
+      return;
     m_offset = m_axis.getPixelSize( TableAxis.HEADER );
     m_before = 0;
     for ( int section = 0; section <= index; section++ )
-      if ( m_axis.isVisible( index ) )
+      if ( m_axis.isVisible( section ) )
         m_before++;
 
     // prepare resize command (if selected is null = all)
@@ -117,6 +121,8 @@ abstract public class AbstractResizeCursor extends AbstractCursor
     // determine resize index from mouse coordinate
     int scroll = (int) m_scrollbar.getValue();
     int index = m_axis.getViewIndexAtPixel( coordinate, scroll );
+    if ( !m_axis.isVisible( index ) )
+      return TableAxis.INVALID;
     int indexStart = m_axis.getPixelStart( index, scroll );
     int indexEnd = m_axis.getPixelStart( index + 1, scroll );
     if ( coordinate - indexStart < indexEnd - coordinate )
@@ -127,6 +133,10 @@ abstract public class AbstractResizeCursor extends AbstractCursor
     else
       m_offset = coordinate - indexEnd;
 
+    // a stale cursor or hidden neighbour must not add a fixed index back into the resize set
+    if ( !m_axis.isVisible( index )
+        || !( m_axis == m_view.getColumnsAxis() ? m_view.isColumnResizable( index ) : m_view.isRowResizable( index ) ) )
+      return TableAxis.INVALID;
     return index;
   }
 

@@ -18,7 +18,6 @@
 
 package rjc.table.view.cursor;
 
-import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import rjc.table.view.TableScrollBar.Animation;
 
@@ -26,32 +25,62 @@ import rjc.table.view.TableScrollBar.Animation;
 /******************* Mouse cursor when selecting table view cells/columns/rows *******************/
 /*************************************************************************************************/
 
+/**
+ * Handles dragging for body-cell, whole-row and whole-column selection, including edge scrolling.
+ * Uses the shared event/view state maintained by {@link AbstractCursor}; the owning table must
+ * route matching primary-gesture events to the active cursor on the JavaFX Application Thread.
+ *
+ * <p>Dragging updates mouse position and scrolling. {@link #checkSelectPosition()} updates the
+ * select-cell endpoint; the table's position listeners perform the selection-area update.</p>
+ */
 public class SelectCursor extends AbstractCursor
 {
 
   /**************************************** constructor ******************************************/
+  /**
+   * Creates a selection cursor using an image resource resolved relative to {@link Cursors}.
+   *
+   * @param imageFile the cursor image resource name
+   * @param xHotspot the horizontal hotspot in image pixels
+   * @param yHotspot the vertical hotspot in image pixels
+   */
   public SelectCursor( String imageFile, int xHotspot, int yHotspot )
   {
     super( imageFile, xHotspot, yHotspot );
   }
 
   /*************************************** handleReleased ****************************************/
+  /**
+   * Consumes and records the release event, refreshes the hover cursor at its current coordinates,
+   * and stops edge-scrolling animations on both axes. The caller must ensure the release belongs
+   * to this cursor's primary selection gesture; this method does not test the released button.
+   *
+   * @param event the release event whose source is the owning table view
+   */
   @Override
   public void handleReleased( MouseEvent event )
   {
     // finishing selecting, so update cursor and stop any animations
+    extractDetails( event );
     m_view.getMouseCell().setXY( m_x, m_y, true );
     m_view.getHorizontalScrollBar().stopAnimationStartEnd();
     m_view.getVerticalScrollBar().stopAnimationStartEnd();
   }
 
   /**************************************** handleDragged ****************************************/
+  /**
+   * Consumes and records a drag event. While the primary button remains down, updates edge scrolling
+   * and the mouse-cell position without replacing the selection cursor. Additional pressed buttons
+   * do not prevent primary dragging. Otherwise skips scrolling and position updates.
+   *
+   * @param event the drag event whose source is the owning table view
+   */
   @Override
   public void handleDragged( MouseEvent event )
   {
     // selecting cells by dragging mouse whilst primary button held down
     extractDetails( event );
-    if ( m_button != MouseButton.PRIMARY )
+    if ( !event.isPrimaryButtonDown() )
       return;
 
     // check if table scrolling is wanted
@@ -63,6 +92,11 @@ public class SelectCursor extends AbstractCursor
   }
 
   /************************************* checkSelectPosition *************************************/
+  /**
+   * Updates the owning view's select-cell endpoint from the current gesture state and scrolling
+   * animation. Requires this cursor's view and position references to have been established by a
+   * mouse event. Does not directly modify selection rectangles.
+   */
   @Override
   public void checkSelectPosition()
   {
@@ -73,6 +107,13 @@ public class SelectCursor extends AbstractCursor
   }
 
   /************************************* checkColumnPosition *************************************/
+  /**
+   * Calculates the column endpoint, limiting its upper bound to the last unhidden column. Whole-row
+   * gestures initially retain their existing column endpoint, then active horizontal edge-scrolling
+   * adjusts the result to the viewport edge.
+   *
+   * @return the endpoint's view column or an axis sentinel when no body column is resolved
+   */
   private int checkColumnPosition()
   {
     // if mouse is beyond the table, limit to last visible column
@@ -99,6 +140,13 @@ public class SelectCursor extends AbstractCursor
   }
 
   /************************************** checkRowPosition ***************************************/
+  /**
+   * Calculates the row endpoint, limiting its upper bound to the last unhidden row. Whole-column
+   * gestures initially retain their existing row endpoint, then active vertical edge-scrolling
+   * adjusts the result to the viewport edge.
+   *
+   * @return the endpoint's view row or an axis sentinel when no body row is resolved
+   */
   private int checkRowPosition()
   {
     // if mouse is beyond the table, limit to last visible row

@@ -27,15 +27,26 @@ import rjc.table.view.TableView;
 /********************************* Hide table-view columns/rows **********************************/
 /*************************************************************************************************/
 
+/**
+ * Performs undoable row and column visibility changes using current view-coordinate selection.
+ * Hide uses the triggered member unless it is fully selected, in which case it uses the selected
+ * group. Unhide additionally reveals all hidden members when every visible member is fully selected.
+ *
+ * <p>Commands resolve view indexes through the corresponding axis and execute during construction;
+ * only commands that changed visibility enter the view's undo stack. These actions do not prepare
+ * selection, validate a popup request or finish editing. Call on the JavaFX Application Thread.</p>
+ */
 public class HideShow
 {
   /****************************************** hideRows *******************************************/
   /**
-   * Hide the specified row, or if that row is selected, hide all selected rows.
+   * Hides the supplied row, or all fully selected rows if that row has complete visible-column
+   * coverage. A selected-index result of null expands to all currently visible rows. Only actual
+   * visibility changes are recorded by the undo command.
    * 
-   * @param view TableView to operate on
-   * @param viewRow  row index to hide (or all selected rows if that row is selected)
-   * @return true if undo-command successfully pushed to undo-stack, else false
+   * @param view the owning table view
+   * @param viewRow a valid body row view index, used as the fallback or selected-group anchor
+   * @return true if a visibility change was recorded on the undo stack; false if no row changed
    */
   public static boolean hideRows( TableView view, int viewRow )
   {
@@ -64,11 +75,13 @@ public class HideShow
 
   /***************************************** hideColumns *****************************************/
   /**
-   * Hide the specified column, or if that column is selected, hide all selected columns.
+   * Hides the supplied column, or all fully selected columns if that column has complete visible-row
+   * coverage. A selected-index result of null expands to all currently visible columns. Only actual
+   * visibility changes are recorded by the undo command.
    *
-   * @param view TableView to operate on
-   * @param viewColumn column index to hide (or all selected columns if that column is selected)
-   * @return true if undo-command successfully pushed to undo-stack, else false
+   * @param view the owning table view
+   * @param viewColumn a valid body column view index, used as the fallback or selected-group anchor
+   * @return true if a visibility change was recorded on the undo stack; false if no column changed
    */
   public static boolean hideColumns( TableView view, int viewColumn )
   {
@@ -97,16 +110,18 @@ public class HideShow
 
   /**************************************** showColumns ******************************************/
   /**
-   * Unhide any hidden columns that are currently selected.
+   * Unhides selected hidden columns. If the selected-index result is null or every visible column
+   * is fully selected, unhides every hidden column, including members outside explicit selection.
+   * This convenience does not expand selection membership for other commands such as Delete.
    *  
-   * @param view TableView to operate on
-   * @return true if undo-command successfully pushed to undo-stack, else false
+   * @param view the owning table view
+   * @return true if an unhide command was recorded; false if no column became visible
    */
   public static boolean showColumns( TableView view )
   {
     // get currently selected columns
     var viewColumns = view.getSelection().getSelectedColumns();
-    if ( viewColumns == null ) // all visible columns are selected so unhide all
+    if ( viewColumns == null || view.getSelection().areAllVisibleColumnsSelected() ) // visible coverage means unhide all
       viewColumns = view.getColumnsAxis().getHiddenViewIndexes();
 
     // unhide the columns via undo-command and add to undostack
@@ -116,16 +131,18 @@ public class HideShow
 
   /****************************************** showRows ******************************************/
   /**
-   * Unhide any hidden rows that are currently selected.
+   * Unhides selected hidden rows. If the selected-index result is null or every visible row is
+   * fully selected, unhides every hidden row, including members outside explicit selection.
+   * This convenience does not expand selection membership for other commands such as Delete.
    *  
-   * @param view TableView to operate on
-   * @return true if undo-command successfully pushed to undo-stack, else false
+   * @param view the owning table view
+   * @return true if an unhide command was recorded; false if no row became visible
    */
   public static boolean showRows( TableView view )
   {
     // get currently selected rows
     var viewRows = view.getSelection().getSelectedRows();
-    if ( viewRows == null ) // all visible rows are selected so unhide all
+    if ( viewRows == null || view.getSelection().areAllVisibleRowsSelected() ) // visible coverage means unhide all
       viewRows = view.getRowsAxis().getHiddenViewIndexes();
 
     // unhide the rows via undo-command and add to undostack
